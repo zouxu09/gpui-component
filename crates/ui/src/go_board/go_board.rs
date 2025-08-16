@@ -1,4 +1,6 @@
-use crate::go_board::{GoBoardState, Grid, GridTheme, StoneTheme, Stones, Vertex};
+use crate::go_board::{
+    GoBoardState, Grid, GridTheme, StoneTheme, Stones, Vertex, VertexClickEvent, VertexInteractions,
+};
 use gpui::*;
 
 /// Main Go board component following GPUI reactive architecture
@@ -159,16 +161,12 @@ impl GoBoard {
             height: px(range_height * self.state.vertex_size),
         }
     }
-}
 
-impl Default for GoBoard {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl Render for GoBoard {
-    fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
+    /// Renders the board with optional vertex click handler
+    pub fn render_with_handler<F>(&self, on_vertex_click: Option<F>) -> impl IntoElement
+    where
+        F: Fn(VertexClickEvent) + 'static + Clone,
+    {
         // Create grid component with current state
         let grid = Grid::new(self.state.board_range.clone(), self.state.vertex_size)
             .with_theme(self.grid_theme.clone())
@@ -182,11 +180,35 @@ impl Render for GoBoard {
         )
         .with_theme(self.stone_theme.clone());
 
-        // Layer the components: grid as background, stones on top
-        div()
+        // Create base board div
+        let mut board_div = div()
             .id("go-board")
             .relative()
             .child(grid.render())
-            .child(div().absolute().inset_0().child(stones.render()))
+            .child(div().absolute().inset_0().child(stones.render()));
+
+        // Add interaction layer if vertex click handler is provided
+        if let Some(handler) = on_vertex_click {
+            let interactions =
+                VertexInteractions::new(self.state.board_range.clone(), self.state.vertex_size)
+                    .with_busy(self.state.busy);
+
+            let interaction_layer = interactions.render(handler);
+            board_div = board_div.child(div().absolute().inset_0().child(interaction_layer));
+        }
+
+        board_div
+    }
+}
+
+impl Default for GoBoard {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Render for GoBoard {
+    fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
+        self.render_with_handler::<fn(VertexClickEvent)>(None)
     }
 }
