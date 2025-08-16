@@ -84,7 +84,7 @@ Convert the feature design into a series of prompts for a code-generation LLM th
     - Write tests for label rendering and tooltip display behavior
     - _Requirements: 5.2, 5.3_
 
-  - [ ] 6.3 Implement marker layer management and z-ordering
+  - [x] 6.3 Implement marker layer management and z-ordering
     - Add proper z-index handling for overlapping markers
     - Implement efficient marker updates without full re-render
     - Support custom marker styles through CSS classes

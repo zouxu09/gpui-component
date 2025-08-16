@@ -164,6 +164,34 @@ impl GoBoardStory {
                     Some(Marker::new(MarkerType::Loader).with_color("red".to_string()));
                 marker_map[5][4] = Some(Marker::new(MarkerType::Loader).with_size(1.3));
 
+                // Row 6: Z-index layering demonstration - overlapping markers
+                // Background layer (z-index 1)
+                marker_map[6][1] = Some(
+                    Marker::new(MarkerType::Circle)
+                        .with_color("blue".to_string())
+                        .with_size(1.2)
+                        .with_z_index(1)
+                        .with_style_class("bg-layer".to_string()),
+                );
+
+                // Mid layer (z-index 5) - overlaps with background
+                marker_map[6][2] = Some(
+                    Marker::new(MarkerType::Square)
+                        .with_color("green".to_string())
+                        .with_size(1.0)
+                        .with_z_index(5)
+                        .with_style_class("mid-layer".to_string()),
+                );
+
+                // Foreground layer (z-index 10) - should appear on top
+                marker_map[6][3] = Some(
+                    Marker::new(MarkerType::Cross)
+                        .with_color("red".to_string())
+                        .with_size(0.8)
+                        .with_z_index(10)
+                        .with_style_class("fg-layer".to_string()),
+                );
+
                 board.set_marker_map(marker_map);
                 board
             }),
@@ -274,7 +302,7 @@ impl Render for GoBoardStory {
                     v_flex()
                         .gap_2()
                         .child("9x9 Board with Different Marker Types")
-                        .child("Row 1: Basic shapes, Row 2: Colored markers with tooltips (hover to see), Row 3: Different sizes, Row 4: Labels, Row 5: Loaders")
+                        .child("Row 1: Basic shapes, Row 2: Colored markers with tooltips (hover to see), Row 3: Different sizes, Row 4: Labels, Row 5: Loaders, Row 6: Z-index layering")
                         .child(self.marker_board.clone()),
                 ),
             )
