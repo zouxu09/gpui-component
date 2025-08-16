@@ -4,7 +4,7 @@ use gpui::{
 };
 
 use gpui_component::{
-    go_board::{GoBoard, GridTheme},
+    go_board::{GoBoard, GridTheme, VertexClickEvent},
     h_flex, v_flex, ActiveTheme,
 };
 
@@ -19,6 +19,7 @@ pub struct GoBoardStory {
     coordinate_board: Entity<GoBoard>,
     stone_board: Entity<GoBoard>,
     fuzzy_stone_board: Entity<GoBoard>,
+    interactive_board: Entity<GoBoard>,
 }
 
 impl GoBoardStory {
@@ -97,6 +98,7 @@ impl GoBoardStory {
                 board.set_stone_theme(fuzzy_theme);
                 board
             }),
+            interactive_board: cx.new(|_| GoBoard::with_size(9, 9).with_vertex_size(40.0)),
         }
     }
 
@@ -199,6 +201,22 @@ impl Render for GoBoardStory {
                 ),
             )
             .child(
+                section("Interactive Board").child(
+                    v_flex()
+                        .gap_2()
+                        .child("9x9 Board with Vertex Click Events")
+                        .child("Click on any intersection to see vertex coordinates in the console")
+                        .child(self.interactive_board.update(cx, |board, _| {
+                            board.render_with_handler(Some(|event: VertexClickEvent| {
+                                println!(
+                                    "Vertex clicked: ({}, {}) - coordinates: {:?}",
+                                    event.vertex.x, event.vertex.y, event.coordinates
+                                );
+                            }))
+                        })),
+                ),
+            )
+            .child(
                 section("Board Information").child(
                     v_flex()
                         .gap_2()
@@ -213,6 +231,8 @@ impl Render for GoBoardStory {
                         .child("• Custom themes with colors and styling")
                         .child("• Responsive design with proper scaling")
                         .child("• Support for partial board ranges")
+                        .child("• Vertex interaction system with click events")
+                        .child("• Busy state support for disabling interactions")
                         .child("• Shudan-inspired architecture"),
                 ),
             )
