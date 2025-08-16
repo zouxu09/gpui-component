@@ -91,15 +91,15 @@ Convert the feature design into a series of prompts for a code-generation LLM th
     - Write tests for marker layering and update performance
     - _Requirements: 5.4, 5.5_
 
-- [ ] 7. Implement selection and visual state management
-  - [ ] 7.1 Create vertex selection system
+- [x] 7. Implement selection and visual state management
+  - [x] 7.1 Create vertex selection system
     - Implement selectedVertices support with visual highlighting
     - Add dimmedVertices functionality with opacity changes
     - Support directional selection indicators (selectedLeft, selectedRight, etc.)
     - Write tests for selection state management and visual feedback
     - _Requirements: 8.1, 8.2, 8.4_
 
-  - [ ] 7.2 Add efficient selection state updates
+  - [x] 7.2 Add efficient selection state updates
     - Implement differential updates for selection changes
     - Ensure smooth performance when selection states change frequently
     - Add keyboard navigation support for accessibility

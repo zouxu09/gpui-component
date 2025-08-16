@@ -1,6 +1,6 @@
 use crate::go_board::{
     GoBoardState, Grid, GridTheme, Markers, StoneTheme, Stones, Vertex, VertexEventHandlers,
-    VertexInteractions,
+    VertexInteractions, VertexSelections,
 };
 use gpui::*;
 
@@ -112,6 +112,38 @@ impl GoBoard {
             .collect();
     }
 
+    /// Sets vertices with left-directional selection indicators
+    pub fn set_selected_left(&mut self, vertices: Vec<Vertex>) {
+        self.state.selected_left = vertices
+            .into_iter()
+            .filter(|v| self.state.is_valid_vertex(v))
+            .collect();
+    }
+
+    /// Sets vertices with right-directional selection indicators
+    pub fn set_selected_right(&mut self, vertices: Vec<Vertex>) {
+        self.state.selected_right = vertices
+            .into_iter()
+            .filter(|v| self.state.is_valid_vertex(v))
+            .collect();
+    }
+
+    /// Sets vertices with top-directional selection indicators
+    pub fn set_selected_top(&mut self, vertices: Vec<Vertex>) {
+        self.state.selected_top = vertices
+            .into_iter()
+            .filter(|v| self.state.is_valid_vertex(v))
+            .collect();
+    }
+
+    /// Sets vertices with bottom-directional selection indicators
+    pub fn set_selected_bottom(&mut self, vertices: Vec<Vertex>) {
+        self.state.selected_bottom = vertices
+            .into_iter()
+            .filter(|v| self.state.is_valid_vertex(v))
+            .collect();
+    }
+
     /// Sets the coordinate display visibility
     pub fn set_show_coordinates(&mut self, show: bool) {
         self.state.show_coordinates = show;
@@ -182,7 +214,18 @@ impl GoBoard {
         let grid_offset = point(px(0.0), px(0.0)); // Will be adjusted based on actual grid positioning
         let markers = Markers::new(self.state.vertex_size, grid_offset);
 
-        // Create base board div
+        // Create selection component for highlighting selected and dimmed vertices
+        let selections = VertexSelections::new(self.state.vertex_size, grid_offset);
+        let selection_data = VertexSelections::from_board_state(
+            &self.state.selected_vertices,
+            &self.state.dimmed_vertices,
+            &self.state.selected_left,
+            &self.state.selected_right,
+            &self.state.selected_top,
+            &self.state.selected_bottom,
+        );
+
+        // Create base board div with all layers
         let mut board_div = div()
             .id("go-board")
             .relative()
@@ -193,6 +236,12 @@ impl GoBoard {
                     .absolute()
                     .inset_0()
                     .child(markers.render_markers(&self.state.marker_map)),
+            )
+            .child(
+                div()
+                    .absolute()
+                    .inset_0()
+                    .child(selections.render_selections(&selection_data)),
             );
 
         // Add interaction layer with comprehensive event handlers
