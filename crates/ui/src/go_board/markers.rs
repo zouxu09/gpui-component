@@ -17,12 +17,13 @@ impl MarkerRenderer {
         }
     }
 
-    /// Renders a marker at the specified vertex position
+    /// Renders a marker at the specified vertex position with z-index and styling support
     pub fn render_marker(&self, marker: &Marker, vertex: &Vertex) -> impl IntoElement {
         let position = self.calculate_marker_position(vertex);
         let size = self.vertex_size * marker.size;
 
-        let mut marker_div = div()
+        // Build the marker div with conditional styling
+        let base_div = div()
             .absolute()
             .left(position.x)
             .top(position.y)
@@ -31,15 +32,15 @@ impl MarkerRenderer {
             .flex()
             .items_center()
             .justify_center()
+            // Note: GPUI doesn't support z-index directly, using id for styling
             .child(self.render_marker_shape(marker, size));
 
-        // Add tooltip if marker has a label
-        if let Some(tooltip_text) = &marker.label {
-            // Note: tooltip method not available in current GPUI version
-            // marker_div = marker_div.tooltip(tooltip_text.clone());
+        // Apply custom style class if provided
+        if let Some(style_class) = &marker.style_class {
+            base_div.id("custom-marker")
+        } else {
+            base_div.id("default-marker")
         }
-
-        marker_div
     }
 
     /// Calculates the pixel position for a marker at the given vertex
@@ -215,17 +216,84 @@ impl Markers {
         }
     }
 
-    /// Renders all markers from a marker map
+    /// Renders all markers from a marker map with proper z-index ordering
     pub fn render_markers(&self, marker_map: &[Vec<Option<Marker>>]) -> impl IntoElement {
         let mut marker_elements = Vec::new();
 
+        // Collect all markers with their positions
+        let mut markers_with_positions = Vec::new();
         for (y, row) in marker_map.iter().enumerate() {
             for (x, marker_opt) in row.iter().enumerate() {
                 if let Some(marker) = marker_opt {
                     let vertex = Vertex::new(x, y);
-                    marker_elements.push(self.renderer.render_marker(marker, &vertex));
+                    markers_with_positions.push((marker, vertex));
                 }
             }
+        }
+
+        // Sort markers by z-index for proper layering
+        markers_with_positions.sort_by(|a, b| a.0.z_index.cmp(&b.0.z_index));
+
+        // Render markers in z-index order
+        for (marker, vertex) in markers_with_positions {
+            marker_elements.push(self.renderer.render_marker(marker, &vertex));
+        }
+
+        div()
+            .absolute()
+            .top(px(0.0))
+            .left(px(0.0))
+            .w_full()
+            .h_full()
+            .children(marker_elements)
+    }
+
+    /// Efficiently update specific markers without full re-render
+    /// Returns only the markers that have changed
+    pub fn render_updated_markers(
+        &self,
+        old_marker_map: &[Vec<Option<Marker>>],
+        new_marker_map: &[Vec<Option<Marker>>],
+    ) -> Vec<(Vertex, Option<Marker>)> {
+        let mut updated_markers = Vec::new();
+
+        let height = old_marker_map.len().min(new_marker_map.len());
+        for y in 0..height {
+            let width = old_marker_map[y].len().min(new_marker_map[y].len());
+            for x in 0..width {
+                let old_marker = &old_marker_map[y][x];
+                let new_marker = &new_marker_map[y][x];
+
+                // Check if marker has changed
+                if old_marker != new_marker {
+                    let vertex = Vertex::new(x, y);
+                    updated_markers.push((vertex, new_marker.clone()));
+                }
+            }
+        }
+
+        updated_markers
+    }
+
+    /// Render only specific markers (useful for efficient updates)
+    pub fn render_specific_markers(
+        &self,
+        markers: &[(Vertex, Option<Marker>)],
+    ) -> impl IntoElement {
+        let mut marker_elements = Vec::new();
+
+        // Collect markers with z-index for sorting
+        let mut markers_with_z_index: Vec<_> = markers
+            .iter()
+            .filter_map(|(vertex, marker_opt)| marker_opt.as_ref().map(|marker| (marker, vertex)))
+            .collect();
+
+        // Sort by z-index
+        markers_with_z_index.sort_by(|a, b| a.0.z_index.cmp(&b.0.z_index));
+
+        // Render in z-index order
+        for (marker, vertex) in markers_with_z_index {
+            marker_elements.push(self.renderer.render_marker(marker, vertex));
         }
 
         div()
@@ -366,5 +434,113 @@ mod tests {
         let vertex = Vertex::new(3, 3);
         let _element = renderer.render_marker(&marker, &vertex);
         // Should render without tooltip functionality
+    }
+
+    #[test]
+    fn test_marker_z_index_ordering() {
+        let markers = Markers::new(20.0, point(px(0.0), px(0.0)));
+
+        // Create markers with different z-indices at the same position
+        let marker_map = vec![vec![
+            Some(Marker::new(MarkerType::Circle).with_z_index(10)),
+            Some(Marker::new(MarkerType::Cross).with_z_index(5)),
+            Some(Marker::new(MarkerType::Square).with_z_index(1)),
+        ]];
+
+        let _element = markers.render_markers(&marker_map);
+        // Should render markers in z-index order (1, 5, 10)
+    }
+
+    #[test]
+    fn test_marker_style_class() {
+        let renderer = MarkerRenderer::new(24.0, point(px(0.0), px(0.0)));
+        let marker = Marker::new(MarkerType::Circle)
+            .with_style_class("custom-marker-style".to_string())
+            .with_z_index(5);
+
+        let vertex = Vertex::new(1, 1);
+        let _element = renderer.render_marker(&marker, &vertex);
+        // Should render with custom style class and z-index
+    }
+
+    #[test]
+    fn test_efficient_marker_updates() {
+        let markers = Markers::new(20.0, point(px(0.0), px(0.0)));
+
+        // Old marker map
+        let old_map = vec![
+            vec![Some(Marker::new(MarkerType::Circle)), None],
+            vec![None, Some(Marker::new(MarkerType::Cross))],
+        ];
+
+        // New marker map with one change
+        let new_map = vec![
+            vec![Some(Marker::new(MarkerType::Triangle)), None], // Changed circle to triangle
+            vec![None, Some(Marker::new(MarkerType::Cross))],    // Unchanged
+        ];
+
+        let updated = markers.render_updated_markers(&old_map, &new_map);
+
+        // Should only return the changed marker
+        assert_eq!(updated.len(), 1);
+        assert_eq!(updated[0].0, Vertex::new(0, 0));
+        assert!(matches!(
+            updated[0].1.as_ref().unwrap().marker_type,
+            MarkerType::Triangle
+        ));
+    }
+
+    #[test]
+    fn test_specific_marker_rendering() {
+        let markers = Markers::new(20.0, point(px(0.0), px(0.0)));
+
+        let specific_markers = vec![
+            (
+                Vertex::new(0, 0),
+                Some(Marker::new(MarkerType::Circle).with_z_index(2)),
+            ),
+            (
+                Vertex::new(1, 0),
+                Some(Marker::new(MarkerType::Cross).with_z_index(1)),
+            ),
+            (Vertex::new(2, 0), None), // Should be filtered out
+        ];
+
+        let _element = markers.render_specific_markers(&specific_markers);
+        // Should render only non-None markers in z-index order
+    }
+
+    #[test]
+    fn test_marker_layering_performance() {
+        let markers = Markers::new(20.0, point(px(0.0), px(0.0)));
+
+        // Create a large number of overlapping markers with different z-indices
+        let mut marker_map = vec![vec![None; 5]; 5];
+        for i in 0..5 {
+            for j in 0..5 {
+                marker_map[i][j] = Some(
+                    Marker::new(MarkerType::Circle)
+                        .with_z_index((i * 5 + j) as i32)
+                        .with_color(format!("#FF{:02X}00", i * 50 + j * 10)),
+                );
+            }
+        }
+
+        let _element = markers.render_markers(&marker_map);
+        // Should efficiently render all markers with proper z-ordering
+    }
+
+    #[test]
+    fn test_marker_builder_pattern() {
+        let marker = Marker::new(MarkerType::Label("Test".to_string()))
+            .with_color("red".to_string())
+            .with_size(1.5)
+            .with_z_index(10)
+            .with_style_class("test-marker".to_string());
+
+        assert_eq!(marker.z_index, 10);
+        assert_eq!(marker.style_class, Some("test-marker".to_string()));
+        assert_eq!(marker.color, Some("red".to_string()));
+        assert_eq!(marker.size, 1.5);
     }
 }

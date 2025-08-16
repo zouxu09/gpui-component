@@ -69,9 +69,11 @@ pub enum MarkerType {
 #[derive(Clone, Debug, PartialEq)]
 pub struct Marker {
     pub marker_type: MarkerType,
-    pub label: Option<String>, // For tooltips and text markers
-    pub color: Option<String>, // Color for the marker (CSS-style)
-    pub size: f32,             // Size multiplier relative to vertex size
+    pub label: Option<String>,       // For tooltips and text markers
+    pub color: Option<String>,       // Color for the marker (CSS-style)
+    pub size: f32,                   // Size multiplier relative to vertex size
+    pub z_index: i32,                // Z-order for layering overlapping markers
+    pub style_class: Option<String>, // Custom CSS class for styling
 }
 
 impl Marker {
@@ -81,6 +83,8 @@ impl Marker {
             label: None,
             color: None,
             size: 1.0,
+            z_index: 0,
+            style_class: None,
         }
     }
 
@@ -90,6 +94,8 @@ impl Marker {
             label: Some(label),
             color: None,
             size: 1.0,
+            z_index: 0,
+            style_class: None,
         }
     }
 
@@ -100,6 +106,16 @@ impl Marker {
 
     pub fn with_size(mut self, size: f32) -> Self {
         self.size = size;
+        self
+    }
+
+    pub fn with_z_index(mut self, z_index: i32) -> Self {
+        self.z_index = z_index;
+        self
+    }
+
+    pub fn with_style_class(mut self, style_class: String) -> Self {
+        self.style_class = Some(style_class);
         self
     }
 }
