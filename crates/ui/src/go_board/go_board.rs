@@ -1,6 +1,6 @@
 use crate::go_board::{
-    GoBoardState, Grid, GridTheme, Markers, StoneTheme, Stones, Vertex, VertexEventHandlers,
-    VertexInteractions, VertexSelections,
+    GoBoardState, Grid, GridTheme, Markers, PaintOverlay, StoneTheme, Stones, Vertex,
+    VertexEventHandlers, VertexInteractions, VertexSelections,
 };
 use gpui::*;
 
@@ -144,6 +144,19 @@ impl GoBoard {
             .collect();
     }
 
+    /// Sets the paint map for territory visualization
+    pub fn set_paint_map(&mut self, paint_map: crate::go_board::PaintMap) {
+        if !paint_map.is_empty() && !paint_map[0].is_empty() {
+            let height = paint_map.len();
+            let width = paint_map[0].len();
+            let (current_width, current_height) = self.state.dimensions();
+
+            if width == current_width && height == current_height {
+                self.state.paint_map = paint_map;
+            }
+        }
+    }
+
     /// Sets the coordinate display visibility
     pub fn set_show_coordinates(&mut self, show: bool) {
         self.state.show_coordinates = show;
@@ -225,12 +238,21 @@ impl GoBoard {
             &self.state.selected_bottom,
         );
 
+        // Create paint overlay component for territory visualization
+        let paint_overlay = PaintOverlay::new(self.state.vertex_size, grid_offset);
+
         // Create base board div with all layers
         let mut board_div = div()
             .id("go-board")
             .relative()
             .child(grid.render())
             .child(div().absolute().inset_0().child(stones.render()))
+            .child(
+                div()
+                    .absolute()
+                    .inset_0()
+                    .child(paint_overlay.render_paint_overlay(&self.state.paint_map, None)),
+            )
             .child(
                 div()
                     .absolute()

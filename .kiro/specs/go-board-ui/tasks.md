@@ -107,7 +107,7 @@ Convert the feature design into a series of prompts for a code-generation LLM th
     - _Requirements: 8.3, 8.5_
 
 - [ ] 8. Create overlay and visualization system
-  - [ ] 8.1 Implement paint map overlays
+  - [x] 8.1 Implement paint map overlays
     - Create PaintOverlay component supporting paint values from -1.0 to 1.0
     - Add support for directional painting (left, right, top, bottom, corners)
     - Implement semi-transparent colored regions with smooth boundaries
