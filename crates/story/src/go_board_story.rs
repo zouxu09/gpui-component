@@ -5,9 +5,9 @@ use gpui::{
 
 use gpui_component::{
     go_board::{
-        GoBoard, GridTheme, Marker, MarkerType, SelectionDirection, VertexClickEvent,
-        VertexEventHandlers, VertexMouseDownEvent, VertexMouseMoveEvent, VertexMouseUpEvent,
-        VertexSelection,
+        CornerPaint, DirectionalPaintMap, GoBoard, GridTheme, Marker, MarkerType, PaintOverlay,
+        SelectionDirection, Vertex, VertexClickEvent, VertexEventHandlers, VertexMouseDownEvent,
+        VertexMouseMoveEvent, VertexMouseUpEvent, VertexSelection,
     },
     h_flex, v_flex, ActiveTheme,
 };
@@ -25,6 +25,7 @@ pub struct GoBoardStory {
     fuzzy_stone_board: Entity<GoBoard>,
     marker_board: Entity<GoBoard>,
     selection_board: Entity<GoBoard>,
+    paint_overlay_board: Entity<GoBoard>,
     interactive_board: Entity<GoBoard>,
 }
 
@@ -242,6 +243,39 @@ impl GoBoardStory {
 
                 board
             }),
+            paint_overlay_board: cx.new(|_| {
+                let mut board = GoBoard::with_size(9, 9).with_vertex_size(35.0);
+
+                // Create some stones for context
+                let sign_map = vec![
+                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    vec![0, 1, 0, -1, 0, 0, 0, 0, 0],
+                    vec![0, 0, 1, 0, -1, 0, 0, 0, 0],
+                    vec![0, -1, 0, 1, 0, 0, 0, 0, 0],
+                    vec![0, 0, -1, 0, 1, 0, 0, 0, 0],
+                    vec![0, 0, 0, -1, 0, 1, 0, 0, 0],
+                    vec![0, 0, 0, 0, -1, 0, 1, 0, 0],
+                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0],
+                ];
+                board.set_sign_map(sign_map);
+
+                // Create paint map for territory analysis
+                let paint_map = vec![
+                    vec![0.8, 0.6, 0.4, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                    vec![0.7, 0.0, 0.5, 0.0, -0.3, -0.5, -0.7, -0.8, -0.9],
+                    vec![0.6, 0.4, 0.0, 0.2, 0.0, -0.4, -0.6, -0.7, -0.8],
+                    vec![0.5, 0.0, 0.3, 0.0, -0.2, -0.4, -0.6, -0.7, -0.8],
+                    vec![0.4, 0.3, 0.0, 0.1, 0.0, -0.3, -0.5, -0.6, -0.7],
+                    vec![0.3, 0.2, 0.1, 0.0, -0.1, 0.0, -0.4, -0.5, -0.6],
+                    vec![0.2, 0.1, 0.0, -0.1, 0.0, 0.2, 0.0, -0.3, -0.4],
+                    vec![0.1, 0.0, -0.1, -0.2, -0.3, -0.4, -0.5, -0.6, -0.7],
+                    vec![0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                ];
+                board.set_paint_map(paint_map);
+
+                board
+            }),
             interactive_board: cx.new(|_| GoBoard::with_size(9, 9).with_vertex_size(40.0)),
         }
     }
@@ -361,6 +395,16 @@ impl Render for GoBoardStory {
                         .child("Blue circles: Selected vertices, Dimmed areas: Reduced opacity vertices")
                         .child("Red/Green/Orange/Purple: Directional selection indicators (left/right/top/bottom)")
                         .child(self.selection_board.clone()),
+                ),
+            )
+            .child(
+                section("Paint Overlay - Territory Analysis").child(
+                    v_flex()
+                        .gap_2()
+                        .child("9x9 Board with Paint Map Overlay for Territory Visualization")
+                        .child("Blue regions: Black territory (positive values), Gray regions: White territory (negative values)")
+                        .child("Intensity varies with paint value strength (-1.0 to 1.0)")
+                        .child(self.paint_overlay_board.clone()),
                 ),
             )
             .child(
