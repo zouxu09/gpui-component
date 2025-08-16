@@ -2,6 +2,7 @@ pub mod coordinates;
 pub mod go_board;
 pub mod grid;
 pub mod interactions;
+pub mod markers;
 pub mod state;
 pub mod stones;
 pub mod types;
@@ -22,6 +23,7 @@ pub use interactions::{
     VertexButton, VertexClickEvent, VertexEventHandlers, VertexInteractions, VertexMouseDownEvent,
     VertexMouseMoveEvent, VertexMouseUpEvent,
 };
+pub use markers::{MarkerRenderer, Markers};
 pub use state::GoBoardState;
 pub use stones::{Stone, StoneTheme, Stones};
 pub use types::*;
