@@ -15,7 +15,14 @@ pub struct GoBoardState {
     // Visual state
     pub selected_vertices: Vec<Vertex>,
     pub dimmed_vertices: Vec<Vertex>,
+    pub selected_left: Vec<Vertex>, // Directional selection indicators
+    pub selected_right: Vec<Vertex>,
+    pub selected_top: Vec<Vertex>,
+    pub selected_bottom: Vec<Vertex>,
     pub lines: Vec<Line>,
+
+    // Selection state tracking for efficient updates
+    pub previous_selection_state: Option<SelectionStateSnapshot>,
 
     // Animation state
     pub animated_vertices: Vec<Vertex>,
@@ -42,7 +49,13 @@ impl GoBoardState {
 
             selected_vertices: Vec::new(),
             dimmed_vertices: Vec::new(),
+            selected_left: Vec::new(),
+            selected_right: Vec::new(),
+            selected_top: Vec::new(),
+            selected_bottom: Vec::new(),
             lines: Vec::new(),
+
+            previous_selection_state: None,
 
             animated_vertices: Vec::new(),
             animation_duration: Duration::from_millis(200),
@@ -183,6 +196,10 @@ impl GoBoardState {
         self.selected_vertices
             .retain(|v| v.x < width && v.y < height);
         self.dimmed_vertices.retain(|v| v.x < width && v.y < height);
+        self.selected_left.retain(|v| v.x < width && v.y < height);
+        self.selected_right.retain(|v| v.x < width && v.y < height);
+        self.selected_top.retain(|v| v.x < width && v.y < height);
+        self.selected_bottom.retain(|v| v.x < width && v.y < height);
         self.animated_vertices
             .retain(|v| v.x < width && v.y < height);
 
@@ -190,6 +207,105 @@ impl GoBoardState {
         self.lines.retain(|line| {
             line.v1.x < width && line.v1.y < height && line.v2.x < width && line.v2.y < height
         });
+    }
+
+    /// Creates a snapshot of current selection state for differential updates
+    pub fn capture_selection_snapshot(&mut self) -> SelectionStateSnapshot {
+        let snapshot = SelectionStateSnapshot::from_board_state(self);
+        self.previous_selection_state = Some(snapshot.clone());
+        snapshot
+    }
+
+    /// Checks if selection state has changed since last snapshot
+    pub fn has_selection_changed(&self) -> bool {
+        match &self.previous_selection_state {
+            Some(previous) => {
+                let current = SelectionStateSnapshot::from_board_state(self);
+                current.differs_from(previous)
+            }
+            None => true, // No previous state means it's changed
+        }
+    }
+
+    /// Updates selection state efficiently with change tracking
+    pub fn update_selected_vertices(&mut self, vertices: Vec<Vertex>) -> bool {
+        let changed = self.selected_vertices != vertices;
+        if changed {
+            self.selected_vertices = vertices
+                .into_iter()
+                .filter(|v| self.is_valid_vertex(v))
+                .collect();
+        }
+        changed
+    }
+
+    /// Updates dimmed vertices efficiently with change tracking
+    pub fn update_dimmed_vertices(&mut self, vertices: Vec<Vertex>) -> bool {
+        let changed = self.dimmed_vertices != vertices;
+        if changed {
+            self.dimmed_vertices = vertices
+                .into_iter()
+                .filter(|v| self.is_valid_vertex(v))
+                .collect();
+        }
+        changed
+    }
+
+    /// Updates directional selection efficiently with change tracking
+    pub fn update_directional_selections(
+        &mut self,
+        selected_left: Option<Vec<Vertex>>,
+        selected_right: Option<Vec<Vertex>>,
+        selected_top: Option<Vec<Vertex>>,
+        selected_bottom: Option<Vec<Vertex>>,
+    ) -> bool {
+        let mut changed = false;
+
+        if let Some(vertices) = selected_left {
+            let filtered: Vec<_> = vertices
+                .into_iter()
+                .filter(|v| self.is_valid_vertex(v))
+                .collect();
+            if self.selected_left != filtered {
+                self.selected_left = filtered;
+                changed = true;
+            }
+        }
+
+        if let Some(vertices) = selected_right {
+            let filtered: Vec<_> = vertices
+                .into_iter()
+                .filter(|v| self.is_valid_vertex(v))
+                .collect();
+            if self.selected_right != filtered {
+                self.selected_right = filtered;
+                changed = true;
+            }
+        }
+
+        if let Some(vertices) = selected_top {
+            let filtered: Vec<_> = vertices
+                .into_iter()
+                .filter(|v| self.is_valid_vertex(v))
+                .collect();
+            if self.selected_top != filtered {
+                self.selected_top = filtered;
+                changed = true;
+            }
+        }
+
+        if let Some(vertices) = selected_bottom {
+            let filtered: Vec<_> = vertices
+                .into_iter()
+                .filter(|v| self.is_valid_vertex(v))
+                .collect();
+            if self.selected_bottom != filtered {
+                self.selected_bottom = filtered;
+                changed = true;
+            }
+        }
+
+        changed
     }
 }
 
@@ -313,5 +429,81 @@ mod tests {
         assert_eq!(state.get_sign(&Vertex::new(4, 4)), Some(1)); // Data preserved
         assert!(!state.selected_vertices.contains(&Vertex::new(8, 8))); // Invalid vertex removed
         assert!(!state.selected_vertices.contains(&Vertex::new(12, 12))); // Invalid vertex removed
+    }
+
+    #[test]
+    fn test_selection_state_tracking() {
+        let mut state = GoBoardState::new(9, 9);
+
+        // Initially no snapshot exists
+        assert!(state.has_selection_changed());
+
+        // Capture initial snapshot
+        let snapshot = state.capture_selection_snapshot();
+        assert!(!state.has_selection_changed()); // No change after capture
+
+        // Make changes and test detection
+        state.selected_vertices.push(Vertex::new(1, 1));
+        assert!(state.has_selection_changed());
+
+        // Capture new snapshot
+        state.capture_selection_snapshot();
+        assert!(!state.has_selection_changed());
+    }
+
+    #[test]
+    fn test_efficient_selection_updates() {
+        let mut state = GoBoardState::new(9, 9);
+
+        // Test that unchanged updates return false
+        let vertices = vec![Vertex::new(1, 1), Vertex::new(2, 2)];
+        assert!(state.update_selected_vertices(vertices.clone())); // First time should change
+        assert!(!state.update_selected_vertices(vertices)); // Second time should not change
+
+        // Test that actual changes return true
+        let new_vertices = vec![Vertex::new(3, 3)];
+        assert!(state.update_selected_vertices(new_vertices));
+    }
+
+    #[test]
+    fn test_directional_selection_updates() {
+        let mut state = GoBoardState::new(9, 9);
+
+        // Test updating multiple directional selections
+        let changed = state.update_directional_selections(
+            Some(vec![Vertex::new(1, 1)]),
+            Some(vec![Vertex::new(2, 2)]),
+            None,         // Don't update top
+            Some(vec![]), // Clear bottom
+        );
+
+        assert!(changed);
+        assert_eq!(state.selected_left.len(), 1);
+        assert_eq!(state.selected_right.len(), 1);
+        assert_eq!(state.selected_bottom.len(), 0);
+
+        // Test that unchanged updates return false
+        let changed = state.update_directional_selections(
+            Some(vec![Vertex::new(1, 1)]), // Same as before
+            Some(vec![Vertex::new(2, 2)]), // Same as before
+            None,                          // Don't update
+            None,                          // Don't update
+        );
+
+        assert!(!changed);
+    }
+
+    #[test]
+    fn test_selection_snapshot_differs() {
+        let state1 = GoBoardState::new(9, 9);
+        let mut state2 = GoBoardState::new(9, 9);
+        state2.selected_vertices.push(Vertex::new(1, 1));
+
+        let snapshot1 = SelectionStateSnapshot::from_board_state(&state1);
+        let snapshot2 = SelectionStateSnapshot::from_board_state(&state2);
+
+        assert!(snapshot1.differs_from(&snapshot2));
+        assert!(snapshot2.differs_from(&snapshot1));
+        assert!(!snapshot1.differs_from(&snapshot1));
     }
 }

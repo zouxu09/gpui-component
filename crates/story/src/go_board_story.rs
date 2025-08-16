@@ -5,8 +5,9 @@ use gpui::{
 
 use gpui_component::{
     go_board::{
-        GoBoard, GridTheme, Marker, MarkerType, VertexClickEvent, VertexEventHandlers,
-        VertexMouseDownEvent, VertexMouseMoveEvent, VertexMouseUpEvent,
+        GoBoard, GridTheme, Marker, MarkerType, SelectionDirection, VertexClickEvent,
+        VertexEventHandlers, VertexMouseDownEvent, VertexMouseMoveEvent, VertexMouseUpEvent,
+        VertexSelection,
     },
     h_flex, v_flex, ActiveTheme,
 };
@@ -23,6 +24,7 @@ pub struct GoBoardStory {
     stone_board: Entity<GoBoard>,
     fuzzy_stone_board: Entity<GoBoard>,
     marker_board: Entity<GoBoard>,
+    selection_board: Entity<GoBoard>,
     interactive_board: Entity<GoBoard>,
 }
 
@@ -195,6 +197,51 @@ impl GoBoardStory {
                 board.set_marker_map(marker_map);
                 board
             }),
+            selection_board: cx.new(|_| {
+                let mut board = GoBoard::with_size(9, 9).with_vertex_size(35.0);
+
+                // Create some stones for context
+                let sign_map = vec![
+                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    vec![0, 1, 0, -1, 0, 0, 0, 0, 0],
+                    vec![0, 0, 0, 0, 1, 0, 0, 0, 0],
+                    vec![0, -1, 0, 0, 0, -1, 0, 0, 0],
+                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    vec![0, 0, 0, 1, 0, 0, -1, 0, 0],
+                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0],
+                ];
+                board.set_sign_map(sign_map);
+
+                // Set up vertex selections to demonstrate different states
+                use gpui_component::go_board::Vertex;
+
+                // Selected vertices (highlighted in blue)
+                let selected_vertices = vec![
+                    Vertex::new(2, 2), // Normal selection
+                    Vertex::new(6, 6), // Another selection
+                ];
+                board.set_selected_vertices(selected_vertices);
+
+                // Dimmed vertices (reduced opacity)
+                let dimmed_vertices = vec![
+                    Vertex::new(0, 0), // Dimmed corner
+                    Vertex::new(8, 0), // Dimmed corner
+                    Vertex::new(0, 8), // Dimmed corner
+                    Vertex::new(8, 8), // Dimmed corner
+                    Vertex::new(4, 4), // Center dimmed
+                ];
+                board.set_dimmed_vertices(dimmed_vertices);
+
+                // Directional selection indicators
+                board.set_selected_left(vec![Vertex::new(1, 4)]); // Red left indicator
+                board.set_selected_right(vec![Vertex::new(7, 4)]); // Green right indicator
+                board.set_selected_top(vec![Vertex::new(4, 1)]); // Orange top indicator
+                board.set_selected_bottom(vec![Vertex::new(4, 7)]); // Purple bottom indicator
+
+                board
+            }),
             interactive_board: cx.new(|_| GoBoard::with_size(9, 9).with_vertex_size(40.0)),
         }
     }
@@ -307,6 +354,16 @@ impl Render for GoBoardStory {
                 ),
             )
             .child(
+                section("Vertex Selection").child(
+                    v_flex()
+                        .gap_2()
+                        .child("9x9 Board with Vertex Selection and Directional Indicators")
+                        .child("Blue circles: Selected vertices, Dimmed areas: Reduced opacity vertices")
+                        .child("Red/Green/Orange/Purple: Directional selection indicators (left/right/top/bottom)")
+                        .child(self.selection_board.clone()),
+                ),
+            )
+            .child(
                 section("Interactive Board").child(
                     v_flex()
                         .gap_2()
@@ -363,6 +420,11 @@ impl Render for GoBoardStory {
                         .child("  - Mouse down/up events for precise control")
                         .child("  - Mouse move events for hover feedback")
                         .child("  - Busy state support for disabling interactions")
+                        .child("• Vertex selection and highlighting system")
+                        .child("  - Selected vertices with visual highlighting")
+                        .child("  - Dimmed vertices with opacity control")
+                        .child("  - Directional selection indicators")
+                        .child("  - Efficient selection state management")
                         .child("• Touch device support through pointer events")
                         .child("• Shudan-inspired architecture"),
                 ),

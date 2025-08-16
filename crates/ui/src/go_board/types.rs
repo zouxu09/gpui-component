@@ -190,6 +190,118 @@ pub struct Line {
     pub line_type: LineType,
 }
 
+/// Selection types for directional vertex highlighting
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub enum SelectionDirection {
+    None,
+    Left,
+    Right,
+    Top,
+    Bottom,
+    TopLeft,
+    TopRight,
+    BottomLeft,
+    BottomRight,
+}
+
+/// Selection state for a vertex with visual configuration
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub struct VertexSelection {
+    pub vertex: Vertex,
+    pub direction: SelectionDirection,
+    pub opacity_percent: u8, // Changed to u8 percentage (0-100) for Hash compatibility
+}
+
+impl VertexSelection {
+    pub fn new(vertex: Vertex) -> Self {
+        Self {
+            vertex,
+            direction: SelectionDirection::None,
+            opacity_percent: 100,
+        }
+    }
+
+    pub fn with_direction(vertex: Vertex, direction: SelectionDirection) -> Self {
+        Self {
+            vertex,
+            direction,
+            opacity_percent: 100,
+        }
+    }
+
+    pub fn dimmed(vertex: Vertex, opacity: f32) -> Self {
+        Self {
+            vertex,
+            direction: SelectionDirection::None,
+            opacity_percent: (opacity.clamp(0.0, 1.0) * 100.0) as u8,
+        }
+    }
+
+    /// Gets the opacity as a floating-point value (0.0 to 1.0)
+    pub fn opacity(&self) -> f32 {
+        self.opacity_percent as f32 / 100.0
+    }
+
+    /// Sets the opacity from a floating-point value (0.0 to 1.0)
+    pub fn with_opacity(mut self, opacity: f32) -> Self {
+        self.opacity_percent = (opacity.clamp(0.0, 1.0) * 100.0) as u8;
+        self
+    }
+}
+
+/// Snapshot of selection state for efficient differential updates
+#[derive(Clone, Debug, PartialEq)]
+pub struct SelectionStateSnapshot {
+    pub selected_vertices: Vec<Vertex>,
+    pub dimmed_vertices: Vec<Vertex>,
+    pub selected_left: Vec<Vertex>,
+    pub selected_right: Vec<Vertex>,
+    pub selected_top: Vec<Vertex>,
+    pub selected_bottom: Vec<Vertex>,
+}
+
+impl SelectionStateSnapshot {
+    pub fn new(
+        selected_vertices: Vec<Vertex>,
+        dimmed_vertices: Vec<Vertex>,
+        selected_left: Vec<Vertex>,
+        selected_right: Vec<Vertex>,
+        selected_top: Vec<Vertex>,
+        selected_bottom: Vec<Vertex>,
+    ) -> Self {
+        Self {
+            selected_vertices,
+            dimmed_vertices,
+            selected_left,
+            selected_right,
+            selected_top,
+            selected_bottom,
+        }
+    }
+
+    /// Creates a snapshot from current board state
+    pub fn from_board_state(state: &crate::go_board::GoBoardState) -> Self {
+        Self {
+            selected_vertices: state.selected_vertices.clone(),
+            dimmed_vertices: state.dimmed_vertices.clone(),
+            selected_left: state.selected_left.clone(),
+            selected_right: state.selected_right.clone(),
+            selected_top: state.selected_top.clone(),
+            selected_bottom: state.selected_bottom.clone(),
+        }
+    }
+
+    /// Checks if this snapshot differs from another
+    pub fn differs_from(&self, other: &SelectionStateSnapshot) -> bool {
+        self.selected_vertices != other.selected_vertices
+            || self.dimmed_vertices != other.dimmed_vertices
+            || self.selected_left != other.selected_left
+            || self.selected_right != other.selected_right
+            || self.selected_top != other.selected_top
+            || self.selected_bottom != other.selected_bottom
+    }
+}
+
 impl Line {
     pub fn new(v1: Vertex, v2: Vertex, line_type: LineType) -> Self {
         Self { v1, v2, line_type }
@@ -279,5 +391,55 @@ mod tests {
 
         let arrow = Line::arrow(v1, v2);
         assert_eq!(arrow.line_type, LineType::Arrow);
+    }
+
+    #[test]
+    fn test_vertex_selection_creation() {
+        let vertex = Vertex::new(3, 4);
+
+        // Test basic selection
+        let selection = VertexSelection::new(vertex.clone());
+        assert_eq!(selection.vertex, vertex);
+        assert_eq!(selection.direction, SelectionDirection::None);
+        assert_eq!(selection.opacity(), 1.0);
+
+        // Test directional selection
+        let dir_selection =
+            VertexSelection::with_direction(vertex.clone(), SelectionDirection::Left);
+        assert_eq!(dir_selection.direction, SelectionDirection::Left);
+        assert_eq!(dir_selection.opacity(), 1.0);
+
+        // Test dimmed selection
+        let dimmed_selection = VertexSelection::dimmed(vertex.clone(), 0.5);
+        assert_eq!(dimmed_selection.opacity(), 0.5);
+        assert_eq!(dimmed_selection.direction, SelectionDirection::None);
+
+        // Test opacity clamping
+        let clamped_high = VertexSelection::dimmed(vertex.clone(), 1.5);
+        assert_eq!(clamped_high.opacity(), 1.0);
+
+        let clamped_low = VertexSelection::dimmed(vertex, -0.5);
+        assert_eq!(clamped_low.opacity(), 0.0);
+    }
+
+    #[test]
+    fn test_selection_direction_enum() {
+        let directions = vec![
+            SelectionDirection::None,
+            SelectionDirection::Left,
+            SelectionDirection::Right,
+            SelectionDirection::Top,
+            SelectionDirection::Bottom,
+            SelectionDirection::TopLeft,
+            SelectionDirection::TopRight,
+            SelectionDirection::BottomLeft,
+            SelectionDirection::BottomRight,
+        ];
+
+        // Test that all directions can be cloned and compared
+        for direction in directions {
+            let cloned = direction.clone();
+            assert_eq!(direction, cloned);
+        }
     }
 }
