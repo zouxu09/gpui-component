@@ -35,6 +35,8 @@ impl GoBoardStory {
                     grid_line_width: 1.5,
                     border_color: gpui::rgb(0x654321), // Dark brown border
                     border_width: 3.0,
+                    star_point_color: gpui::rgb(0x2c2c2c), // Dark gray star points
+                    star_point_size: 8.0,                  // Slightly larger star points
                 };
 
                 board.set_grid_theme(custom_theme);
@@ -121,6 +123,7 @@ impl Render for GoBoardStory {
                         .gap_2()
                         .child("Features:")
                         .child("• Grid-based layout with proper line positioning")
+                        .child("• Star points (hoshi) for standard board sizes")
                         .child("• Configurable board sizes (9x9, 13x13, 19x19)")
                         .child("• Custom themes with colors and styling")
                         .child("• Responsive design with proper scaling")

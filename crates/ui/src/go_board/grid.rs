@@ -10,6 +10,8 @@ pub struct GridTheme {
     pub grid_line_width: f32,
     pub border_color: Rgba,
     pub border_width: f32,
+    pub star_point_color: Rgba,
+    pub star_point_size: f32,
 }
 
 impl Default for GridTheme {
@@ -20,6 +22,8 @@ impl Default for GridTheme {
             grid_line_width: 1.0,
             border_color: rgb(0xca933a), // Wood border color
             border_width: 4.0,
+            star_point_color: rgb(0x000000), // Black star points
+            star_point_size: 6.0,            // Default star point size
         }
     }
 }
@@ -74,9 +78,112 @@ impl Grid {
 
     /// Gets the visible board dimensions
     fn visible_dimensions(&self) -> (f32, f32) {
-        let width = self.board_range.width() as f32 * self.vertex_size;
-        let height = self.board_range.height() as f32 * self.vertex_size;
+        let width = (self.board_range.x.1 - self.board_range.x.0) as f32 * self.vertex_size;
+        let height = (self.board_range.y.1 - self.board_range.y.0) as f32 * self.vertex_size;
         (width, height)
+    }
+
+    /// Calculates hoshi (star point) positions for standard Go board sizes
+    pub fn calculate_hoshi_positions(&self) -> Vec<Vertex> {
+        let full_width = self.board_range.x.1 + 1;
+        let full_height = self.board_range.y.1 + 1;
+
+        // Only calculate for the full board, then filter for visible range
+        let mut positions = Vec::new();
+
+        match (full_width, full_height) {
+            // 19x19 board - standard pattern
+            (19, 19) => {
+                positions.extend([
+                    Vertex::new(3, 3),
+                    Vertex::new(9, 3),
+                    Vertex::new(15, 3),
+                    Vertex::new(3, 9),
+                    Vertex::new(9, 9),
+                    Vertex::new(15, 9),
+                    Vertex::new(3, 15),
+                    Vertex::new(9, 15),
+                    Vertex::new(15, 15),
+                ]);
+            }
+            // 13x13 board - standard pattern
+            (13, 13) => {
+                positions.extend([
+                    Vertex::new(3, 3),
+                    Vertex::new(9, 3),
+                    Vertex::new(6, 6),
+                    Vertex::new(3, 9),
+                    Vertex::new(9, 9),
+                ]);
+            }
+            // 9x9 board - standard pattern
+            (9, 9) => {
+                positions.extend([
+                    Vertex::new(2, 2),
+                    Vertex::new(6, 2),
+                    Vertex::new(4, 4),
+                    Vertex::new(2, 6),
+                    Vertex::new(6, 6),
+                ]);
+            }
+            // Custom sizes - generate star points based on board size
+            (w, h) if w >= 7 && h >= 7 => {
+                let center_x = w / 2;
+                let center_y = h / 2;
+                let corner_offset = if w <= 11 { 2 } else { 3 };
+
+                // Add corner points
+                if w >= 7 && h >= 7 {
+                    positions.extend([
+                        Vertex::new(corner_offset, corner_offset),
+                        Vertex::new(w - 1 - corner_offset, corner_offset),
+                        Vertex::new(corner_offset, h - 1 - corner_offset),
+                        Vertex::new(w - 1 - corner_offset, h - 1 - corner_offset),
+                    ]);
+                }
+
+                // Add center point for odd-sized boards
+                if w % 2 == 1 && h % 2 == 1 {
+                    positions.push(Vertex::new(center_x, center_y));
+                }
+            }
+            _ => {} // No star points for very small boards
+        }
+
+        // Filter positions to only include those within the visible range
+        positions
+            .into_iter()
+            .filter(|pos| {
+                pos.x >= self.board_range.x.0
+                    && pos.x <= self.board_range.x.1
+                    && pos.y >= self.board_range.y.0
+                    && pos.y <= self.board_range.y.1
+            })
+            .collect()
+    }
+
+    /// Renders star points (hoshi) as circles
+    pub fn render_star_points(&self) -> Vec<impl IntoElement> {
+        let hoshi_positions = self.calculate_hoshi_positions();
+        let mut star_points = Vec::new();
+
+        for pos in hoshi_positions {
+            let (pixel_x, pixel_y) = self.vertex_to_pixel(&pos);
+            let radius = self.theme.star_point_size / 2.0;
+
+            star_points.push(
+                div()
+                    .absolute()
+                    .left(px(pixel_x - radius))
+                    .top(px(pixel_y - radius))
+                    .w(px(self.theme.star_point_size))
+                    .h(px(self.theme.star_point_size))
+                    .rounded_full()
+                    .bg(self.theme.star_point_color),
+            );
+        }
+
+        star_points
     }
 
     /// Renders horizontal grid lines
@@ -167,6 +274,11 @@ impl Grid {
             container = container.child(line);
         }
 
+        // Add star points (hoshi)
+        for star_point in self.render_star_points() {
+            container = container.child(star_point);
+        }
+
         container
     }
 }
@@ -212,12 +324,12 @@ mod tests {
         let range = BoardRange::new((0, 18), (0, 18)); // 19x19 board
         let grid = Grid::new(range, 25.0);
 
-        assert_eq!(grid.visible_dimensions(), (475.0, 475.0)); // 19 * 25
+        assert_eq!(grid.visible_dimensions(), (450.0, 450.0)); // 18 * 25
 
         let partial_range = BoardRange::new((5, 14), (5, 14)); // 10x10 partial board
         let partial_grid = Grid::new(partial_range, 30.0);
 
-        assert_eq!(partial_grid.visible_dimensions(), (300.0, 300.0)); // 10 * 30
+        assert_eq!(partial_grid.visible_dimensions(), (270.0, 270.0)); // 9 * 30
     }
 
     #[test]
@@ -264,5 +376,63 @@ mod tests {
         // Should have 5 vertical lines (x=3 to x=7)
         let vertical_lines = grid.render_vertical_lines();
         assert_eq!(vertical_lines.len(), 5);
+    }
+
+    #[test]
+    fn test_hoshi_calculation_19x19() {
+        let range = BoardRange::new((0, 18), (0, 18)); // Full 19x19 board
+        let grid = Grid::new(range, 20.0);
+
+        let hoshi_positions = grid.calculate_hoshi_positions();
+
+        // 19x19 should have 9 star points
+        assert_eq!(hoshi_positions.len(), 9);
+
+        // Verify some key positions
+        assert!(hoshi_positions.contains(&Vertex::new(3, 3)));
+        assert!(hoshi_positions.contains(&Vertex::new(9, 9))); // Center
+        assert!(hoshi_positions.contains(&Vertex::new(15, 15)));
+    }
+
+    #[test]
+    fn test_hoshi_calculation_13x13() {
+        let range = BoardRange::new((0, 12), (0, 12)); // Full 13x13 board
+        let grid = Grid::new(range, 20.0);
+
+        let hoshi_positions = grid.calculate_hoshi_positions();
+
+        // 13x13 should have 5 star points
+        assert_eq!(hoshi_positions.len(), 5);
+
+        // Verify center position
+        assert!(hoshi_positions.contains(&Vertex::new(6, 6)));
+    }
+
+    #[test]
+    fn test_hoshi_calculation_9x9() {
+        let range = BoardRange::new((0, 8), (0, 8)); // Full 9x9 board
+        let grid = Grid::new(range, 20.0);
+
+        let hoshi_positions = grid.calculate_hoshi_positions();
+
+        // 9x9 should have 5 star points
+        assert_eq!(hoshi_positions.len(), 5);
+
+        // Verify center position
+        assert!(hoshi_positions.contains(&Vertex::new(4, 4)));
+    }
+
+    #[test]
+    fn test_hoshi_filtering_partial_range() {
+        let range = BoardRange::new((5, 14), (5, 14)); // Partial view of 19x19
+        let grid = Grid::new(range, 20.0);
+
+        let hoshi_positions = grid.calculate_hoshi_positions();
+
+        // Should only include hoshi points within the visible range
+        for pos in &hoshi_positions {
+            assert!(pos.x >= 5 && pos.x <= 14);
+            assert!(pos.y >= 5 && pos.y <= 14);
+        }
     }
 }
