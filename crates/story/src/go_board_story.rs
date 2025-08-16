@@ -17,6 +17,7 @@ pub struct GoBoardStory {
     board_9x9: Entity<GoBoard>,
     custom_theme_board: Entity<GoBoard>,
     coordinate_board: Entity<GoBoard>,
+    stone_board: Entity<GoBoard>,
 }
 
 impl GoBoardStory {
@@ -46,6 +47,24 @@ impl GoBoardStory {
             coordinate_board: cx.new(|_| {
                 let mut board = GoBoard::with_size(13, 13).with_vertex_size(25.0);
                 board.set_show_coordinates(true);
+                board
+            }),
+            stone_board: cx.new(|_| {
+                let mut board = GoBoard::with_size(9, 9).with_vertex_size(35.0);
+
+                // Create a simple game pattern
+                let sign_map = vec![
+                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    vec![0, 0, 0, 1, 0, -1, 0, 0, 0],
+                    vec![0, 0, 1, 0, 0, 0, -1, 0, 0],
+                    vec![0, 1, 0, 1, 0, -1, 0, -1, 0],
+                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    vec![0, -1, 0, -1, 0, 1, 0, 1, 0],
+                    vec![0, 0, -1, 0, 0, 0, 1, 0, 0],
+                    vec![0, 0, 0, -1, 0, 1, 0, 0, 0],
+                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0],
+                ];
+                board.set_sign_map(sign_map);
                 board
             }),
         }
@@ -132,12 +151,21 @@ impl Render for GoBoardStory {
                 ),
             )
             .child(
+                section("Stone Rendering").child(
+                    v_flex()
+                        .gap_2()
+                        .child("9x9 Board with Stone Placement")
+                        .child(self.stone_board.clone()),
+                ),
+            )
+            .child(
                 section("Board Information").child(
                     v_flex()
                         .gap_2()
                         .child("Features:")
                         .child("• Grid-based layout with proper line positioning")
                         .child("• Star points (hoshi) for standard board sizes")
+                        .child("• Stone rendering with signMap support (-1: white, 1: black)")
                         .child("• Coordinate labels with standard Go notation (A-T, 1-19)")
                         .child("• Configurable board sizes (9x9, 13x13, 19x19)")
                         .child("• Custom themes with colors and styling")

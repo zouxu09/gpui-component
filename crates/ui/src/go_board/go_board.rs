@@ -1,4 +1,4 @@
-use crate::go_board::{GoBoardState, Grid, GridTheme, Vertex};
+use crate::go_board::{GoBoardState, Grid, GridTheme, StoneTheme, Stones, Vertex};
 use gpui::*;
 
 /// Main Go board component following GPUI reactive architecture
@@ -6,6 +6,7 @@ use gpui::*;
 pub struct GoBoard {
     state: GoBoardState,
     grid_theme: GridTheme,
+    stone_theme: StoneTheme,
 }
 
 impl GoBoard {
@@ -14,6 +15,7 @@ impl GoBoard {
         Self {
             state: GoBoardState::standard(),
             grid_theme: GridTheme::default(),
+            stone_theme: StoneTheme::default(),
         }
     }
 
@@ -22,6 +24,7 @@ impl GoBoard {
         Self {
             state: GoBoardState::new(width, height),
             grid_theme: GridTheme::default(),
+            stone_theme: StoneTheme::default(),
         }
     }
 
@@ -131,9 +134,19 @@ impl GoBoard {
         self.grid_theme = theme;
     }
 
+    /// Sets the stone theme
+    pub fn set_stone_theme(&mut self, theme: StoneTheme) {
+        self.stone_theme = theme;
+    }
+
     /// Gets a reference to the grid theme
     pub fn grid_theme(&self) -> &GridTheme {
         &self.grid_theme
+    }
+
+    /// Gets a reference to the stone theme
+    pub fn stone_theme(&self) -> &StoneTheme {
+        &self.stone_theme
     }
 
     /// Calculates the total board size in pixels
@@ -161,7 +174,19 @@ impl Render for GoBoard {
             .with_theme(self.grid_theme.clone())
             .with_coordinates(self.state.show_coordinates);
 
-        // Render the grid as the main board component
-        div().id("go-board").child(grid.render())
+        // Create stones component with current sign map
+        let stones = Stones::new(
+            self.state.board_range.clone(),
+            self.state.vertex_size,
+            self.state.sign_map.clone(),
+        )
+        .with_theme(self.stone_theme.clone());
+
+        // Layer the components: grid as background, stones on top
+        div()
+            .id("go-board")
+            .relative()
+            .child(grid.render())
+            .child(div().absolute().inset_0().child(stones.render()))
     }
 }

@@ -40,7 +40,7 @@ Convert the feature design into a series of prompts for a code-generation LLM th
     - _Requirements: 4.3, 4.5_
 
 - [ ] 4. Create basic stone rendering system
-  - [ ] 4.1 Implement Stone component with signMap support
+  - [x] 4.1 Implement Stone component with signMap support
     - Create Stone struct supporting sign values (-1: white, 0: empty, 1: black)
     - Implement basic stone rendering using circles or images at vertex positions
     - Add stone scaling based on vertex_size parameter
