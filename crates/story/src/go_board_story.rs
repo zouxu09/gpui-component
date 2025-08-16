@@ -18,6 +18,7 @@ pub struct GoBoardStory {
     custom_theme_board: Entity<GoBoard>,
     coordinate_board: Entity<GoBoard>,
     stone_board: Entity<GoBoard>,
+    fuzzy_stone_board: Entity<GoBoard>,
 }
 
 impl GoBoardStory {
@@ -65,6 +66,35 @@ impl GoBoardStory {
                     vec![0, 0, 0, 0, 0, 0, 0, 0, 0],
                 ];
                 board.set_sign_map(sign_map);
+                board
+            }),
+            fuzzy_stone_board: cx.new(|_| {
+                let mut board = GoBoard::with_size(9, 9).with_vertex_size(35.0);
+
+                // Create the same pattern as stone_board
+                let sign_map = vec![
+                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    vec![0, 0, 0, 1, 0, -1, 0, 0, 0],
+                    vec![0, 0, 1, 0, 0, 0, -1, 0, 0],
+                    vec![0, 1, 0, 1, 0, -1, 0, -1, 0],
+                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    vec![0, -1, 0, -1, 0, 1, 0, 1, 0],
+                    vec![0, 0, -1, 0, 0, 0, 1, 0, 0],
+                    vec![0, 0, 0, -1, 0, 1, 0, 0, 0],
+                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0],
+                ];
+                board.set_sign_map(sign_map);
+
+                // Enable fuzzy positioning and visual variation
+                use gpui_component::go_board::StoneTheme;
+                let fuzzy_theme = StoneTheme {
+                    fuzzy_placement: true,
+                    fuzzy_max_offset: 3.0,
+                    random_variation: true,
+                    max_rotation: 8.0,
+                    ..StoneTheme::default()
+                };
+                board.set_stone_theme(fuzzy_theme);
                 board
             }),
         }
@@ -152,10 +182,20 @@ impl Render for GoBoardStory {
             )
             .child(
                 section("Stone Rendering").child(
-                    v_flex()
-                        .gap_2()
-                        .child("9x9 Board with Stone Placement")
-                        .child(self.stone_board.clone()),
+                    h_flex()
+                        .gap_6()
+                        .child(
+                            v_flex()
+                                .gap_2()
+                                .child("9x9 Board with Basic Stones")
+                                .child(self.stone_board.clone()),
+                        )
+                        .child(
+                            v_flex()
+                                .gap_2()
+                                .child("9x9 Board with Fuzzy Positioning")
+                                .child(self.fuzzy_stone_board.clone()),
+                        ),
                 ),
             )
             .child(
@@ -166,6 +206,8 @@ impl Render for GoBoardStory {
                         .child("• Grid-based layout with proper line positioning")
                         .child("• Star points (hoshi) for standard board sizes")
                         .child("• Stone rendering with signMap support (-1: white, 1: black)")
+                        .child("• Fuzzy stone placement for natural appearance")
+                        .child("• Random visual variation with deterministic positioning")
                         .child("• Coordinate labels with standard Go notation (A-T, 1-19)")
                         .child("• Configurable board sizes (9x9, 13x13, 19x19)")
                         .child("• Custom themes with colors and styling")

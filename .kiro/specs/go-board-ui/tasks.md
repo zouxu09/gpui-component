@@ -39,7 +39,7 @@ Convert the feature design into a series of prompts for a code-generation LLM th
     - Write tests for coordinate visibility and range-based label updates
     - _Requirements: 4.3, 4.5_
 
-- [ ] 4. Create basic stone rendering system
+- [x] 4. Create basic stone rendering system
   - [x] 4.1 Implement Stone component with signMap support
     - Create Stone struct supporting sign values (-1: white, 0: empty, 1: black)
     - Implement basic stone rendering using circles or images at vertex positions
@@ -47,7 +47,7 @@ Convert the feature design into a series of prompts for a code-generation LLM th
     - Write tests for stone positioning and scaling calculations
     - _Requirements: 2.1, 2.3_
 
-  - [ ] 4.2 Add stone visual enhancements and fuzzy positioning
+  - [x] 4.2 Add stone visual enhancements and fuzzy positioning
     - Implement fuzzy stone placement with random position shifts
     - Add random visual variation using random_class (0-4) for stone diversity
     - Support custom stone images via theme configuration
