@@ -17,7 +17,7 @@ Convert the feature design into a series of prompts for a code-generation LLM th
     - Write tests for grid line positioning and scaling calculations
     - _Requirements: 1.1, 1.3, 1.4_
 
-  - [ ] 2.2 Add star point (hoshi) rendering to the grid
+  - [x] 2.2 Add star point (hoshi) rendering to the grid
     - Implement calculate_hoshi_positions method for standard 9x9, 13x13, 19x19 boards
     - Add render_star_points method that draws circles at calculated positions
     - Support custom board sizes with appropriate star point patterns

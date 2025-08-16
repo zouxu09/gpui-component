@@ -16,6 +16,7 @@ pub struct GoBoardStory {
     board_13x13: Entity<GoBoard>,
     board_9x9: Entity<GoBoard>,
     custom_theme_board: Entity<GoBoard>,
+    coordinate_board: Entity<GoBoard>,
 }
 
 impl GoBoardStory {
@@ -40,6 +41,11 @@ impl GoBoardStory {
                 };
 
                 board.set_grid_theme(custom_theme);
+                board
+            }),
+            coordinate_board: cx.new(|_| {
+                let mut board = GoBoard::with_size(13, 13).with_vertex_size(25.0);
+                board.set_show_coordinates(true);
                 board
             }),
         }
@@ -118,12 +124,21 @@ impl Render for GoBoardStory {
                 ),
             )
             .child(
+                section("Coordinate Labels").child(
+                    v_flex()
+                        .gap_2()
+                        .child("13x13 Board with Coordinate Labels")
+                        .child(self.coordinate_board.clone()),
+                ),
+            )
+            .child(
                 section("Board Information").child(
                     v_flex()
                         .gap_2()
                         .child("Features:")
                         .child("• Grid-based layout with proper line positioning")
                         .child("• Star points (hoshi) for standard board sizes")
+                        .child("• Coordinate labels with standard Go notation (A-T, 1-19)")
                         .child("• Configurable board sizes (9x9, 13x13, 19x19)")
                         .child("• Custom themes with colors and styling")
                         .child("• Responsive design with proper scaling")

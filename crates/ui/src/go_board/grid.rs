@@ -1,3 +1,6 @@
+use crate::go_board::coordinates::{
+    default_coord_x, default_coord_y, CoordFunction, CoordinateLabels, CoordinateTheme,
+};
 use crate::go_board::types::{BoardRange, Vertex};
 use gpui::*;
 
@@ -33,6 +36,9 @@ pub struct Grid {
     vertex_size: f32,
     theme: GridTheme,
     show_coordinates: bool,
+    coordinate_theme: CoordinateTheme,
+    coord_x: CoordFunction,
+    coord_y: CoordFunction,
 }
 
 impl Grid {
@@ -43,6 +49,9 @@ impl Grid {
             vertex_size,
             theme: GridTheme::default(),
             show_coordinates: false,
+            coordinate_theme: CoordinateTheme::default(),
+            coord_x: default_coord_x,
+            coord_y: default_coord_y,
         }
     }
 
@@ -55,6 +64,23 @@ impl Grid {
     /// Sets coordinate visibility
     pub fn with_coordinates(mut self, show: bool) -> Self {
         self.show_coordinates = show;
+        self
+    }
+
+    /// Sets the coordinate theme
+    pub fn with_coordinate_theme(mut self, theme: CoordinateTheme) -> Self {
+        self.coordinate_theme = theme;
+        self
+    }
+
+    /// Sets custom coordinate functions
+    pub fn with_coordinate_functions(
+        mut self,
+        coord_x: CoordFunction,
+        coord_y: CoordFunction,
+    ) -> Self {
+        self.coord_x = coord_x;
+        self.coord_y = coord_y;
         self
     }
 
@@ -251,8 +277,17 @@ impl Grid {
         grid_container
     }
 
-    /// Renders the complete grid with background and lines
-    pub fn render(&self) -> impl IntoElement {
+    /// Renders the complete grid with background, lines, and optional coordinates
+    pub fn render(&self) -> AnyElement {
+        if self.show_coordinates {
+            self.render_with_coordinates().into_any_element()
+        } else {
+            self.render_grid_only().into_any_element()
+        }
+    }
+
+    /// Renders the grid without coordinates
+    fn render_grid_only(&self) -> impl IntoElement {
         let (width, height) = self.visible_dimensions();
 
         // Create container with background
@@ -280,6 +315,57 @@ impl Grid {
         }
 
         container
+    }
+
+    /// Renders the grid with coordinate labels
+    fn render_with_coordinates(&self) -> impl IntoElement {
+        let coordinate_labels = CoordinateLabels::new(self.board_range.clone(), self.vertex_size)
+            .with_theme(self.coordinate_theme.clone())
+            .with_coord_functions(self.coord_x, self.coord_y);
+
+        let (grid_offset_x, grid_offset_y) = coordinate_labels.grid_offset();
+        let (total_width, total_height) = coordinate_labels.total_dimensions();
+        let (width, height) = self.visible_dimensions();
+
+        // Create main container with relative positioning
+        let mut main_container = div().relative().w(px(total_width)).h(px(total_height));
+
+        // Add coordinate labels as background layer
+        main_container = main_container.child(
+            div()
+                .absolute()
+                .inset_0()
+                .child(coordinate_labels.render_coordinates()),
+        );
+
+        // Create grid container positioned within the coordinate space
+        let mut grid_container = div()
+            .absolute()
+            .left(px(grid_offset_x))
+            .top(px(grid_offset_y))
+            .w(px(width))
+            .h(px(height))
+            .bg(self.theme.background_color)
+            .border_1()
+            .border_color(self.theme.border_color)
+            .relative();
+
+        // Add horizontal lines
+        for line in self.render_horizontal_lines() {
+            grid_container = grid_container.child(line);
+        }
+
+        // Add vertical lines
+        for line in self.render_vertical_lines() {
+            grid_container = grid_container.child(line);
+        }
+
+        // Add star points (hoshi)
+        for star_point in self.render_star_points() {
+            grid_container = grid_container.child(star_point);
+        }
+
+        main_container.child(grid_container)
     }
 }
 
