@@ -9,7 +9,7 @@ Convert the feature design into a series of prompts for a code-generation LLM th
   - Write unit tests for data structure creation and basic operations
   - _Requirements: 1.1, 2.1_
 
-- [ ] 2. Implement basic board rendering with grid lines and background
+- [x] 2. Implement basic board rendering with grid lines and background
   - [x] 2.1 Create Grid component for drawing board lines and background
     - Implement Grid struct with board_range, vertex_size, and theme support
     - Add render_grid_lines method that draws horizontal and vertical lines using GPUI
@@ -24,15 +24,15 @@ Convert the feature design into a series of prompts for a code-generation LLM th
     - Write tests for hoshi position calculation across different board sizes
     - _Requirements: 1.2, 1.3_
 
-- [ ] 3. Implement coordinate labeling system
-  - [ ] 3.1 Create coordinate label rendering
+- [x] 3. Implement coordinate labeling system
+  - [x] 3.1 Create coordinate label rendering
     - Implement CoordinateLabels component with configurable coordX and coordY functions
     - Add render_coordinates method supporting all four sides (top, bottom, left, right)
     - Support standard Go notation (A-T columns, 1-19 rows) with I skipped
     - Write tests for coordinate label positioning and custom labeling functions
     - _Requirements: 4.1, 4.2, 4.4_
 
-  - [ ] 3.2 Add coordinate visibility and range support
+  - [x] 3.2 Add coordinate visibility and range support
     - Implement showCoordinates toggle functionality
     - Add support for partial board coordinate display based on BoardRange
     - Ensure coordinate labels update automatically when range changes
