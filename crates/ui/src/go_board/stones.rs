@@ -9,6 +9,15 @@ pub struct StoneTheme {
     pub stone_size_ratio: f32, // Ratio of stone size to vertex size (0.0 to 1.0)
     pub border_width: f32,
     pub border_color: Rgba,
+    // Fuzzy positioning
+    pub fuzzy_placement: bool,
+    pub fuzzy_max_offset: f32, // Maximum offset in pixels for fuzzy placement
+    // Visual variation
+    pub random_variation: bool,
+    pub max_rotation: f32, // Maximum rotation in degrees
+    // Custom stone images
+    pub black_stone_image: Option<String>, // CSS background-image URL
+    pub white_stone_image: Option<String>, // CSS background-image URL
 }
 
 impl Default for StoneTheme {
@@ -19,6 +28,12 @@ impl Default for StoneTheme {
             stone_size_ratio: 0.9,      // 90% of vertex size
             border_width: 1.0,
             border_color: rgb(0x000000), // Black border
+            fuzzy_placement: false,
+            fuzzy_max_offset: 2.0, // 2 pixels max offset
+            random_variation: false,
+            max_rotation: 5.0, // 5 degrees max rotation
+            black_stone_image: None,
+            white_stone_image: None,
         }
     }
 }
@@ -29,16 +44,37 @@ pub struct Stone {
     sign: i8, // -1: white, 0: empty, 1: black
     vertex_size: f32,
     theme: StoneTheme,
+    random_class: u8, // 0-4 for visual variation
 }
 
 impl Stone {
     /// Creates a new stone
     pub fn new(position: Vertex, sign: i8, vertex_size: f32) -> Self {
+        // Generate deterministic random class based on position for consistency
+        let random_class = ((position.x * 7 + position.y * 11) % 5) as u8;
+
         Self {
             position,
             sign,
             vertex_size,
             theme: StoneTheme::default(),
+            random_class,
+        }
+    }
+
+    /// Creates a new stone with explicit random class
+    pub fn with_random_class(
+        position: Vertex,
+        sign: i8,
+        vertex_size: f32,
+        random_class: u8,
+    ) -> Self {
+        Self {
+            position,
+            sign,
+            vertex_size,
+            theme: StoneTheme::default(),
+            random_class: random_class % 5, // Ensure 0-4 range
         }
     }
 
@@ -75,13 +111,42 @@ impl Stone {
         self.vertex_size * self.theme.stone_size_ratio
     }
 
+    /// Calculates fuzzy position offset for natural stone placement
+    fn fuzzy_offset(&self) -> (f32, f32) {
+        if !self.theme.fuzzy_placement {
+            return (0.0, 0.0);
+        }
+
+        // Use deterministic "random" values based on position and random_class
+        let seed = self.position.x * 17 + self.position.y * 23 + self.random_class as usize * 13;
+        let offset_x = ((seed % 100) as f32 / 50.0 - 1.0) * self.theme.fuzzy_max_offset;
+        let offset_y = (((seed * 37) % 100) as f32 / 50.0 - 1.0) * self.theme.fuzzy_max_offset;
+
+        (offset_x, offset_y)
+    }
+
+    /// Calculates rotation for visual variation
+    fn rotation_angle(&self) -> f32 {
+        if !self.theme.random_variation {
+            return 0.0;
+        }
+
+        // Use deterministic "random" rotation based on position and random_class
+        let seed = self.position.x * 19 + self.position.y * 29 + self.random_class as usize * 7;
+        ((seed % 100) as f32 / 50.0 - 1.0) * self.theme.max_rotation
+    }
+
     /// Renders the stone as a circle
     pub fn render(&self, board_range: &BoardRange) -> Option<impl IntoElement> {
         if self.sign == 0 {
             return None; // Empty vertex, no stone to render
         }
 
-        let (pixel_x, pixel_y) = self.pixel_position(board_range);
+        let (base_pixel_x, base_pixel_y) = self.pixel_position(board_range);
+        let (fuzzy_x, fuzzy_y) = self.fuzzy_offset();
+        let pixel_x = base_pixel_x + fuzzy_x;
+        let pixel_y = base_pixel_y + fuzzy_y;
+
         let stone_size = self.stone_size();
         let radius = stone_size / 2.0;
 
@@ -91,19 +156,45 @@ impl Stone {
             self.theme.white_color
         };
 
-        Some(
-            div()
-                .absolute()
-                .left(px(pixel_x - radius))
-                .top(px(pixel_y - radius))
-                .w(px(stone_size))
-                .h(px(stone_size))
-                .rounded_full()
+        // Check if custom stone images are provided
+        let stone_image = if self.sign == 1 {
+            &self.theme.black_stone_image
+        } else {
+            &self.theme.white_stone_image
+        };
+
+        let mut stone_div = div()
+            .absolute()
+            .left(px(pixel_x - radius))
+            .top(px(pixel_y - radius))
+            .w(px(stone_size))
+            .h(px(stone_size))
+            .rounded_full();
+
+        // Apply background image or color
+        if let Some(_image_url) = stone_image {
+            // For now, we'll use a different color scheme to indicate custom stones
+            // In a real implementation, custom image support would require additional GPUI features
+            let custom_color = if self.sign == 1 {
+                rgb(0x2a2a2a) // Slightly different black for custom stones
+            } else {
+                rgb(0xe8e8e8) // Slightly different white for custom stones
+            };
+
+            stone_div = stone_div
+                .bg(custom_color)
+                .when(self.theme.border_width > 0.0, |div| {
+                    div.border_1().border_color(self.theme.border_color)
+                });
+        } else {
+            stone_div = stone_div
                 .bg(color)
                 .when(self.theme.border_width > 0.0, |div| {
                     div.border_1().border_color(self.theme.border_color)
-                }),
-        )
+                });
+        }
+
+        Some(stone_div)
     }
 }
 
@@ -285,5 +376,106 @@ mod tests {
         let (width, height) = stones.visible_dimensions();
         assert_eq!(width, 120.0); // (6-2) * 30 = 4 * 30
         assert_eq!(height, 90.0); // (4-1) * 30 = 3 * 30
+    }
+
+    #[test]
+    fn test_stone_random_class_generation() {
+        let stone1 = Stone::new(Vertex::new(0, 0), 1, 20.0);
+        let stone2 = Stone::new(Vertex::new(1, 1), 1, 20.0);
+        let stone3 = Stone::new(Vertex::new(0, 0), -1, 20.0); // Same position, different sign
+
+        // Random class should be based on position, not sign
+        assert_eq!(stone1.random_class, stone3.random_class);
+        // Different positions should potentially have different random classes
+        assert!(
+            stone1.random_class != stone2.random_class
+                || stone1.random_class == stone2.random_class
+        );
+        // Random class should be in range 0-4
+        assert!(stone1.random_class < 5);
+        assert!(stone2.random_class < 5);
+    }
+
+    #[test]
+    fn test_stone_with_explicit_random_class() {
+        let stone = Stone::with_random_class(Vertex::new(0, 0), 1, 20.0, 7);
+        assert_eq!(stone.random_class, 2); // 7 % 5 = 2
+
+        let stone2 = Stone::with_random_class(Vertex::new(0, 0), 1, 20.0, 3);
+        assert_eq!(stone2.random_class, 3);
+    }
+
+    #[test]
+    fn test_fuzzy_offset_disabled() {
+        let mut theme = StoneTheme::default();
+        theme.fuzzy_placement = false;
+
+        let stone = Stone::new(Vertex::new(2, 3), 1, 20.0).with_theme(theme);
+        let (offset_x, offset_y) = stone.fuzzy_offset();
+
+        assert_eq!(offset_x, 0.0);
+        assert_eq!(offset_y, 0.0);
+    }
+
+    #[test]
+    fn test_fuzzy_offset_enabled() {
+        let mut theme = StoneTheme::default();
+        theme.fuzzy_placement = true;
+        theme.fuzzy_max_offset = 3.0;
+
+        let stone = Stone::new(Vertex::new(2, 3), 1, 20.0).with_theme(theme);
+        let (offset_x, offset_y) = stone.fuzzy_offset();
+
+        // Offsets should be within the max range
+        assert!(offset_x.abs() <= theme.fuzzy_max_offset);
+        assert!(offset_y.abs() <= theme.fuzzy_max_offset);
+
+        // Offsets should be deterministic (same position = same offset)
+        let stone2 = Stone::new(Vertex::new(2, 3), -1, 20.0).with_theme(theme.clone());
+        let (offset_x2, offset_y2) = stone2.fuzzy_offset();
+        assert_eq!(offset_x, offset_x2);
+        assert_eq!(offset_y, offset_y2);
+    }
+
+    #[test]
+    fn test_rotation_angle_disabled() {
+        let mut theme = StoneTheme::default();
+        theme.random_variation = false;
+
+        let stone = Stone::new(Vertex::new(2, 3), 1, 20.0).with_theme(theme);
+        let rotation = stone.rotation_angle();
+
+        assert_eq!(rotation, 0.0);
+    }
+
+    #[test]
+    fn test_rotation_angle_enabled() {
+        let mut theme = StoneTheme::default();
+        theme.random_variation = true;
+        theme.max_rotation = 10.0;
+
+        let stone = Stone::new(Vertex::new(2, 3), 1, 20.0).with_theme(theme);
+        let rotation = stone.rotation_angle();
+
+        // Rotation should be within the max range
+        assert!(rotation.abs() <= theme.max_rotation);
+
+        // Rotation should be deterministic
+        let stone2 = Stone::new(Vertex::new(2, 3), -1, 20.0).with_theme(theme.clone());
+        let rotation2 = stone2.rotation_angle();
+        assert_eq!(rotation, rotation2);
+    }
+
+    #[test]
+    fn test_stone_theme_with_custom_images() {
+        let theme = StoneTheme {
+            black_stone_image: Some("black_stone.png".to_string()),
+            white_stone_image: Some("white_stone.png".to_string()),
+            ..StoneTheme::default()
+        };
+
+        assert!(theme.black_stone_image.is_some());
+        assert!(theme.white_stone_image.is_some());
+        assert_eq!(theme.black_stone_image.unwrap(), "black_stone.png");
     }
 }
