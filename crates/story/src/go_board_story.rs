@@ -5,8 +5,8 @@ use gpui::{
 
 use gpui_component::{
     go_board::{
-        GoBoard, GridTheme, VertexClickEvent, VertexEventHandlers, VertexMouseDownEvent,
-        VertexMouseMoveEvent, VertexMouseUpEvent,
+        GoBoard, GridTheme, Marker, MarkerType, VertexClickEvent, VertexEventHandlers,
+        VertexMouseDownEvent, VertexMouseMoveEvent, VertexMouseUpEvent,
     },
     h_flex, v_flex, ActiveTheme,
 };
@@ -22,6 +22,7 @@ pub struct GoBoardStory {
     coordinate_board: Entity<GoBoard>,
     stone_board: Entity<GoBoard>,
     fuzzy_stone_board: Entity<GoBoard>,
+    marker_board: Entity<GoBoard>,
     interactive_board: Entity<GoBoard>,
 }
 
@@ -99,6 +100,71 @@ impl GoBoardStory {
                     ..StoneTheme::default()
                 };
                 board.set_stone_theme(fuzzy_theme);
+                board
+            }),
+            marker_board: cx.new(|_| {
+                let mut board = GoBoard::with_size(9, 9).with_vertex_size(35.0);
+
+                // Create a marker map demonstrating all marker types
+                let mut marker_map = vec![vec![None; 9]; 9];
+
+                // Row 1: Basic marker types
+                marker_map[1][1] = Some(Marker::new(MarkerType::Circle));
+                marker_map[1][2] = Some(Marker::new(MarkerType::Cross));
+                marker_map[1][3] = Some(Marker::new(MarkerType::Triangle));
+                marker_map[1][4] = Some(Marker::new(MarkerType::Square));
+                marker_map[1][5] = Some(Marker::new(MarkerType::Point));
+
+                // Row 2: Colored markers with tooltips
+                marker_map[2][1] = Some(
+                    Marker::with_label(
+                        MarkerType::Circle,
+                        "Red circle marker - hover for tooltip!".to_string(),
+                    )
+                    .with_color("red".to_string()),
+                );
+                marker_map[2][2] = Some(
+                    Marker::with_label(MarkerType::Cross, "Blue cross with tooltip".to_string())
+                        .with_color("blue".to_string()),
+                );
+                marker_map[2][3] = Some(
+                    Marker::with_label(MarkerType::Triangle, "Green triangle marker".to_string())
+                        .with_color("green".to_string()),
+                );
+                marker_map[2][4] = Some(
+                    Marker::with_label(MarkerType::Square, "Important marker".to_string())
+                        .with_color("#FF0000".to_string()),
+                );
+                marker_map[2][5] = Some(
+                    Marker::with_label(MarkerType::Point, "Point of interest".to_string())
+                        .with_color("#0000FF".to_string()),
+                );
+
+                // Row 3: Different sizes
+                marker_map[3][1] = Some(Marker::new(MarkerType::Circle).with_size(0.8));
+                marker_map[3][2] = Some(Marker::new(MarkerType::Cross).with_size(1.2));
+                marker_map[3][3] = Some(Marker::new(MarkerType::Triangle).with_size(1.5));
+                marker_map[3][4] = Some(Marker::new(MarkerType::Square).with_size(0.6));
+                marker_map[3][5] = Some(Marker::new(MarkerType::Point).with_size(2.0));
+
+                // Row 4: Label markers
+                marker_map[4][1] = Some(Marker::new(MarkerType::Label("A".to_string())));
+                marker_map[4][2] = Some(
+                    Marker::new(MarkerType::Label("B".to_string())).with_color("red".to_string()),
+                );
+                marker_map[4][3] = Some(
+                    Marker::new(MarkerType::Label("1".to_string())).with_color("blue".to_string()),
+                );
+                marker_map[4][4] =
+                    Some(Marker::new(MarkerType::Label("2".to_string())).with_size(1.5));
+
+                // Row 5: Loader markers
+                marker_map[5][2] = Some(Marker::new(MarkerType::Loader));
+                marker_map[5][3] =
+                    Some(Marker::new(MarkerType::Loader).with_color("red".to_string()));
+                marker_map[5][4] = Some(Marker::new(MarkerType::Loader).with_size(1.3));
+
+                board.set_marker_map(marker_map);
                 board
             }),
             interactive_board: cx.new(|_| GoBoard::with_size(9, 9).with_vertex_size(40.0)),
@@ -201,6 +267,15 @@ impl Render for GoBoardStory {
                                 .child("9x9 Board with Fuzzy Positioning")
                                 .child(self.fuzzy_stone_board.clone()),
                         ),
+                ),
+            )
+            .child(
+                section("Marker Types").child(
+                    v_flex()
+                        .gap_2()
+                        .child("9x9 Board with Different Marker Types")
+                        .child("Row 1: Basic shapes, Row 2: Colored markers with tooltips (hover to see), Row 3: Different sizes, Row 4: Labels, Row 5: Loaders")
+                        .child(self.marker_board.clone()),
                 ),
             )
             .child(

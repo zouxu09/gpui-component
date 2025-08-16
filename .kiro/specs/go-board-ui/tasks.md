@@ -54,7 +54,7 @@ Convert the feature design into a series of prompts for a code-generation LLM th
     - Write tests for fuzzy positioning algorithms and visual variation
     - _Requirements: 2.2, 2.4, 2.5_
 
-- [ ] 5. Implement comprehensive event handling system
+- [x] 5. Implement comprehensive event handling system
   - [x] 5.1 Create vertex interaction handling
     - Implement VertexButton components for clickable intersection areas
     - Add onVertexClick event handling with proper vertex coordinate [x, y] emission
@@ -70,14 +70,14 @@ Convert the feature design into a series of prompts for a code-generation LLM th
     - _Requirements: 3.2, 3.3_
 
 - [ ] 6. Create marker and annotation system
-  - [ ] 6.1 Implement basic marker types
+  - [x] 6.1 Implement basic marker types
     - Create Marker component supporting circle, cross, triangle, square, point types
     - Implement MarkerType enum and rendering logic using SVG for scalable markers
     - Add proper positioning and scaling relative to vertex positions
     - Write tests for marker rendering and positioning accuracy
     - _Requirements: 5.1, 5.2_
 
-  - [ ] 6.2 Add label markers and tooltip support
+  - [x] 6.2 Add label markers and tooltip support
     - Implement label marker type for text annotations
     - Add tooltip functionality using marker label property on hover
     - Support loader marker type for indicating processing states

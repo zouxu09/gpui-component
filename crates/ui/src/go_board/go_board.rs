@@ -1,6 +1,6 @@
 use crate::go_board::{
-    GoBoardState, Grid, GridTheme, StoneTheme, Stones, Vertex, VertexClickEvent,
-    VertexEventHandlers, VertexInteractions,
+    GoBoardState, Grid, GridTheme, Markers, StoneTheme, Stones, Vertex, VertexEventHandlers,
+    VertexInteractions,
 };
 use gpui::*;
 
@@ -178,12 +178,22 @@ impl GoBoard {
         )
         .with_theme(self.stone_theme.clone());
 
+        // Create markers component with current marker map
+        let grid_offset = point(px(0.0), px(0.0)); // Will be adjusted based on actual grid positioning
+        let markers = Markers::new(self.state.vertex_size, grid_offset);
+
         // Create base board div
         let mut board_div = div()
             .id("go-board")
             .relative()
             .child(grid.render())
-            .child(div().absolute().inset_0().child(stones.render()));
+            .child(div().absolute().inset_0().child(stones.render()))
+            .child(
+                div()
+                    .absolute()
+                    .inset_0()
+                    .child(markers.render_markers(&self.state.marker_map)),
+            );
 
         // Add interaction layer with comprehensive event handlers
         let interactions =

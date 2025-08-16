@@ -70,6 +70,8 @@ pub enum MarkerType {
 pub struct Marker {
     pub marker_type: MarkerType,
     pub label: Option<String>, // For tooltips and text markers
+    pub color: Option<String>, // Color for the marker (CSS-style)
+    pub size: f32,             // Size multiplier relative to vertex size
 }
 
 impl Marker {
@@ -77,6 +79,8 @@ impl Marker {
         Self {
             marker_type,
             label: None,
+            color: None,
+            size: 1.0,
         }
     }
 
@@ -84,7 +88,19 @@ impl Marker {
         Self {
             marker_type,
             label: Some(label),
+            color: None,
+            size: 1.0,
         }
+    }
+
+    pub fn with_color(mut self, color: String) -> Self {
+        self.color = Some(color);
+        self
+    }
+
+    pub fn with_size(mut self, size: f32) -> Self {
+        self.size = size;
+        self
     }
 }
 
