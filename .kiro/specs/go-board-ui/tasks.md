@@ -2,7 +2,7 @@
 
 Convert the feature design into a series of prompts for a code-generation LLM that will implement each step in a test-driven manner. Prioritize best practices, incremental progress, and early testing, ensuring no big jumps in complexity at any stage. Make sure that each prompt builds on the previous prompts, and ends with wiring things together. There should be no hanging or orphaned code that isn't integrated into a previous step. Focus ONLY on tasks that involve writing, modifying, or testing code.
 
-- [ ] 1. Set up core data structures and basic Go board component foundation
+- [x] 1. Set up core data structures and basic Go board component foundation
   - Create fundamental types: Vertex, BoardRange, SignMap following Shudan's architecture
   - Implement GoBoardState struct with all required fields (sign_map, marker_map, etc.)
   - Create basic GoBoard component struct that compiles and can be instantiated
@@ -10,7 +10,7 @@ Convert the feature design into a series of prompts for a code-generation LLM th
   - _Requirements: 1.1, 2.1_
 
 - [ ] 2. Implement basic board rendering with grid lines and background
-  - [ ] 2.1 Create Grid component for drawing board lines and background
+  - [x] 2.1 Create Grid component for drawing board lines and background
     - Implement Grid struct with board_range, vertex_size, and theme support
     - Add render_grid_lines method that draws horizontal and vertical lines using GPUI
     - Implement basic board background rendering with configurable colors

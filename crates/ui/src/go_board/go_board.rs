@@ -1,10 +1,11 @@
-use crate::go_board::{GoBoardState, Vertex};
+use crate::go_board::{GoBoardState, Grid, GridTheme, Vertex};
 use gpui::*;
 
 /// Main Go board component following GPUI reactive architecture
 /// Provides a flexible, customizable Go board display inspired by Shudan
 pub struct GoBoard {
     state: GoBoardState,
+    grid_theme: GridTheme,
 }
 
 impl GoBoard {
@@ -12,6 +13,7 @@ impl GoBoard {
     pub fn new() -> Self {
         Self {
             state: GoBoardState::standard(),
+            grid_theme: GridTheme::default(),
         }
     }
 
@@ -19,6 +21,7 @@ impl GoBoard {
     pub fn with_size(width: usize, height: usize) -> Self {
         Self {
             state: GoBoardState::new(width, height),
+            grid_theme: GridTheme::default(),
         }
     }
 
@@ -123,6 +126,16 @@ impl GoBoard {
         self.state.busy = busy;
     }
 
+    /// Sets the grid theme
+    pub fn set_grid_theme(&mut self, theme: GridTheme) {
+        self.grid_theme = theme;
+    }
+
+    /// Gets a reference to the grid theme
+    pub fn grid_theme(&self) -> &GridTheme {
+        &self.grid_theme
+    }
+
     /// Calculates the total board size in pixels
     pub fn board_pixel_size(&self) -> Size<Pixels> {
         let range_width = self.state.board_range.width() as f32;
@@ -143,28 +156,12 @@ impl Default for GoBoard {
 
 impl Render for GoBoard {
     fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
-        let board_size = self.board_pixel_size();
+        // Create grid component with current state
+        let grid = Grid::new(self.state.board_range.clone(), self.state.vertex_size)
+            .with_theme(self.grid_theme.clone())
+            .with_coordinates(self.state.show_coordinates);
 
-        // Basic board container for now - will be expanded in future tasks
-        div()
-            .id("go-board")
-            .w(board_size.width)
-            .h(board_size.height)
-            .bg(rgb(0xebb55b)) // Default wood color from Shudan theme
-            .border_1()
-            .border_color(rgb(0xca933a))
-            .child(
-                div()
-                    .size_full()
-                    .flex()
-                    .items_center()
-                    .justify_center()
-                    .text_color(rgb(0x5e2e0c))
-                    .child(format!(
-                        "Go Board {}x{}",
-                        self.state.width(),
-                        self.state.height()
-                    )),
-            )
+        // Render the grid as the main board component
+        div().id("go-board").child(grid.render())
     }
 }
