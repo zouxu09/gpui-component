@@ -62,7 +62,7 @@ Convert the feature design into a series of prompts for a code-generation LLM th
     - Write tests for vertex coordinate calculation and event emission
     - _Requirements: 3.1, 3.4_
 
-  - [ ] 5.2 Add comprehensive mouse and pointer event support
+  - [x] 5.2 Add comprehensive mouse and pointer event support
     - Implement onVertexMouseEnter/Leave for hover feedback
     - Add onVertexPointer* events for touch device support
     - Include onVertexMouseDown/Up and onVertexMouseMove events

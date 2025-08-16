@@ -4,7 +4,10 @@ use gpui::{
 };
 
 use gpui_component::{
-    go_board::{GoBoard, GridTheme, VertexClickEvent},
+    go_board::{
+        GoBoard, GridTheme, VertexClickEvent, VertexEventHandlers, VertexMouseDownEvent,
+        VertexMouseMoveEvent, VertexMouseUpEvent,
+    },
     h_flex, v_flex, ActiveTheme,
 };
 
@@ -204,15 +207,36 @@ impl Render for GoBoardStory {
                 section("Interactive Board").child(
                     v_flex()
                         .gap_2()
-                        .child("9x9 Board with Vertex Click Events")
-                        .child("Click on any intersection to see vertex coordinates in the console")
+                        .child("9x9 Board with Comprehensive Event Handling")
+                        .child("Try different mouse interactions: click, mouse down/up, move")
                         .child(self.interactive_board.update(cx, |board, _| {
-                            board.render_with_handler(Some(|event: VertexClickEvent| {
-                                println!(
-                                    "Vertex clicked: ({}, {}) - coordinates: {:?}",
-                                    event.vertex.x, event.vertex.y, event.coordinates
-                                );
-                            }))
+                            let handlers = VertexEventHandlers::new()
+                                .with_click(|event: VertexClickEvent| {
+                                    println!(
+                                        "Click: ({}, {}) - coordinates: {:?}",
+                                        event.vertex.x, event.vertex.y, event.coordinates
+                                    );
+                                })
+                                .with_mouse_down(|event: VertexMouseDownEvent| {
+                                    println!(
+                                        "Mouse Down: ({}, {}) - button: {:?}",
+                                        event.vertex.x, event.vertex.y, event.button
+                                    );
+                                })
+                                .with_mouse_up(|event: VertexMouseUpEvent| {
+                                    println!(
+                                        "Mouse Up: ({}, {}) - button: {:?}",
+                                        event.vertex.x, event.vertex.y, event.button
+                                    );
+                                })
+                                .with_mouse_move(|event: VertexMouseMoveEvent| {
+                                    println!(
+                                        "Mouse Move: ({}, {})",
+                                        event.vertex.x, event.vertex.y
+                                    );
+                                });
+
+                            board.render_with_vertex_handlers(handlers)
                         })),
                 ),
             )
@@ -231,8 +255,12 @@ impl Render for GoBoardStory {
                         .child("• Custom themes with colors and styling")
                         .child("• Responsive design with proper scaling")
                         .child("• Support for partial board ranges")
-                        .child("• Vertex interaction system with click events")
-                        .child("• Busy state support for disabling interactions")
+                        .child("• Comprehensive vertex interaction system")
+                        .child("  - Click events for user interactions")
+                        .child("  - Mouse down/up events for precise control")
+                        .child("  - Mouse move events for hover feedback")
+                        .child("  - Busy state support for disabling interactions")
+                        .child("• Touch device support through pointer events")
                         .child("• Shudan-inspired architecture"),
                 ),
             )
