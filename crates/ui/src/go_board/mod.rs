@@ -2,6 +2,7 @@ pub mod coordinates;
 pub mod go_board;
 pub mod grid;
 pub mod state;
+pub mod stones;
 pub mod types;
 
 #[cfg(test)]
@@ -17,4 +18,5 @@ pub use coordinates::{default_coord_x, default_coord_y, CoordinateLabels, Coordi
 pub use go_board::GoBoard;
 pub use grid::{Grid, GridTheme};
 pub use state::GoBoardState;
+pub use stones::{Stone, StoneTheme, Stones};
 pub use types::*;
