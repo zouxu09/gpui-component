@@ -18,7 +18,10 @@ mod integration_tests;
 pub use coordinates::{default_coord_x, default_coord_y, CoordinateLabels, CoordinateTheme};
 pub use go_board::GoBoard;
 pub use grid::{Grid, GridTheme};
-pub use interactions::{VertexButton, VertexClickEvent, VertexInteractions};
+pub use interactions::{
+    VertexButton, VertexClickEvent, VertexEventHandlers, VertexInteractions, VertexMouseDownEvent,
+    VertexMouseMoveEvent, VertexMouseUpEvent,
+};
 pub use state::GoBoardState;
 pub use stones::{Stone, StoneTheme, Stones};
 pub use types::*;

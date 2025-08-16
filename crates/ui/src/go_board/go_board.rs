@@ -1,5 +1,6 @@
 use crate::go_board::{
-    GoBoardState, Grid, GridTheme, StoneTheme, Stones, Vertex, VertexClickEvent, VertexInteractions,
+    GoBoardState, Grid, GridTheme, StoneTheme, Stones, Vertex, VertexClickEvent,
+    VertexEventHandlers, VertexInteractions,
 };
 use gpui::*;
 
@@ -162,11 +163,8 @@ impl GoBoard {
         }
     }
 
-    /// Renders the board with optional vertex click handler
-    pub fn render_with_handler<F>(&self, on_vertex_click: Option<F>) -> impl IntoElement
-    where
-        F: Fn(VertexClickEvent) + 'static + Clone,
-    {
+    /// Renders the board with comprehensive vertex event handlers
+    pub fn render_with_vertex_handlers(&self, handlers: VertexEventHandlers) -> impl IntoElement {
         // Create grid component with current state
         let grid = Grid::new(self.state.board_range.clone(), self.state.vertex_size)
             .with_theme(self.grid_theme.clone())
@@ -187,15 +185,13 @@ impl GoBoard {
             .child(grid.render())
             .child(div().absolute().inset_0().child(stones.render()));
 
-        // Add interaction layer if vertex click handler is provided
-        if let Some(handler) = on_vertex_click {
-            let interactions =
-                VertexInteractions::new(self.state.board_range.clone(), self.state.vertex_size)
-                    .with_busy(self.state.busy);
+        // Add interaction layer with comprehensive event handlers
+        let interactions =
+            VertexInteractions::new(self.state.board_range.clone(), self.state.vertex_size)
+                .with_busy(self.state.busy);
 
-            let interaction_layer = interactions.render(handler);
-            board_div = board_div.child(div().absolute().inset_0().child(interaction_layer));
-        }
+        let interaction_layer = interactions.render_with_handlers(handlers);
+        board_div = board_div.child(div().absolute().inset_0().child(interaction_layer));
 
         board_div
     }
@@ -209,6 +205,7 @@ impl Default for GoBoard {
 
 impl Render for GoBoard {
     fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
-        self.render_with_handler::<fn(VertexClickEvent)>(None)
+        let handlers = VertexEventHandlers::new();
+        self.render_with_vertex_handlers(handlers)
     }
 }
