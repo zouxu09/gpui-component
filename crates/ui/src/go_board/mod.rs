@@ -1,3 +1,4 @@
+pub mod coordinates;
 pub mod go_board;
 pub mod grid;
 pub mod state;
@@ -12,6 +13,7 @@ mod grid_tests;
 #[cfg(test)]
 mod integration_tests;
 
+pub use coordinates::{default_coord_x, default_coord_y, CoordinateLabels, CoordinateTheme};
 pub use go_board::GoBoard;
 pub use grid::{Grid, GridTheme};
 pub use state::GoBoardState;
