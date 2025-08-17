@@ -1,6 +1,6 @@
 use crate::go_board::{
-    GoBoardState, Grid, GridTheme, HeatOverlay, Markers, PaintOverlay, StoneTheme, Stones, Vertex,
-    VertexEventHandlers, VertexInteractions, VertexSelections,
+    GhostStoneOverlay, GoBoardState, Grid, GridTheme, HeatOverlay, Markers, PaintOverlay,
+    StoneTheme, Stones, Vertex, VertexEventHandlers, VertexInteractions, VertexSelections,
 };
 use gpui::*;
 
@@ -170,6 +170,19 @@ impl GoBoard {
         }
     }
 
+    /// Sets the ghost stone map for analysis visualization
+    pub fn set_ghost_stone_map(&mut self, ghost_stone_map: crate::go_board::GhostStoneMap) {
+        if !ghost_stone_map.is_empty() && !ghost_stone_map[0].is_empty() {
+            let height = ghost_stone_map.len();
+            let width = ghost_stone_map[0].len();
+            let (current_width, current_height) = self.state.dimensions();
+
+            if width == current_width && height == current_height {
+                self.state.ghost_stone_map = ghost_stone_map;
+            }
+        }
+    }
+
     /// Sets the coordinate display visibility
     pub fn set_show_coordinates(&mut self, show: bool) {
         self.state.show_coordinates = show;
@@ -257,12 +270,21 @@ impl GoBoard {
         // Create heat overlay component for influence visualization
         let heat_overlay = HeatOverlay::new(self.state.vertex_size, grid_offset);
 
+        // Create ghost stone overlay component for analysis visualization
+        let ghost_stone_overlay = GhostStoneOverlay::new(self.state.vertex_size, grid_offset);
+
         // Create base board div with all layers
         let mut board_div = div()
             .id("go-board")
             .relative()
             .child(grid.render())
             .child(div().absolute().inset_0().child(stones.render()))
+            .child(
+                div()
+                    .absolute()
+                    .inset_0()
+                    .child(ghost_stone_overlay.render_ghost_stones(&self.state.ghost_stone_map)),
+            )
             .child(
                 div()
                     .absolute()
