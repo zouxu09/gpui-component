@@ -7,7 +7,7 @@ pub type PaintMap = Vec<Vec<f32>>; // -1.0 to 1.0 for paint intensity
 
 /// Represents a position on the Go board using zero-based coordinates
 /// [0, 0] denotes the upper left position of the board
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct Vertex {
     pub x: usize,
     pub y: usize,

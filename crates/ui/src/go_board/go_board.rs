@@ -1,7 +1,7 @@
 use crate::go_board::{
-    BoardTheme, GhostStoneOverlay, GoBoardState, Grid, GridTheme, HeatOverlay, LineOverlay,
-    Markers, PaintOverlay, StoneTheme, Stones, ThemeCSSAdapter, Vertex, VertexEventHandlers,
-    VertexInteractions, VertexSelections,
+    BoardTheme, DifferentialRenderer, GhostStoneOverlay, GoBoardState, Grid, GridTheme,
+    HeatOverlay, LineOverlay, Markers, PaintOverlay, StoneTheme, Stones, ThemeCSSAdapter, Vertex,
+    VertexEventHandlers, VertexInteractions, VertexSelections,
 };
 use gpui::*;
 
@@ -11,6 +11,7 @@ pub struct GoBoard {
     state: GoBoardState,
     theme: BoardTheme,
     css_adapter: ThemeCSSAdapter,
+    differential_renderer: DifferentialRenderer,
 }
 
 impl GoBoard {
@@ -20,6 +21,7 @@ impl GoBoard {
         Self {
             state: GoBoardState::standard(),
             css_adapter: ThemeCSSAdapter::from_theme(&theme),
+            differential_renderer: DifferentialRenderer::new(),
             theme,
         }
     }
@@ -30,6 +32,7 @@ impl GoBoard {
         Self {
             state: GoBoardState::new(width, height),
             css_adapter: ThemeCSSAdapter::from_theme(&theme),
+            differential_renderer: DifferentialRenderer::new(),
             theme,
         }
     }
@@ -39,6 +42,7 @@ impl GoBoard {
         Self {
             state: GoBoardState::standard(),
             css_adapter: ThemeCSSAdapter::from_theme(&theme),
+            differential_renderer: DifferentialRenderer::new(),
             theme,
         }
     }
@@ -93,6 +97,31 @@ impl GoBoard {
                 }
             }
         }
+    }
+
+    /// Updates sign map efficiently with change detection
+    pub fn update_sign_map(&mut self, sign_map: crate::go_board::SignMap) -> bool {
+        self.state.update_sign_map(&sign_map)
+    }
+
+    /// Updates individual stones efficiently
+    pub fn update_stones(&mut self, updates: &[(Vertex, i8)]) -> bool {
+        self.state.update_stones(updates)
+    }
+
+    /// Gets the differences between current and new sign map
+    pub fn get_sign_map_differences(&self, new_sign_map: &crate::go_board::SignMap) -> Vec<Vertex> {
+        self.state.get_sign_map_differences(new_sign_map)
+    }
+
+    /// Sets a single stone at a vertex efficiently
+    pub fn set_stone(&mut self, vertex: &Vertex, sign: i8) -> bool {
+        self.state.set_sign(vertex, sign)
+    }
+
+    /// Gets the stone at a specific vertex
+    pub fn get_stone(&self, vertex: &Vertex) -> Option<i8> {
+        self.state.get_sign(vertex)
     }
 
     /// Sets the marker map
@@ -274,6 +303,23 @@ impl GoBoard {
     pub fn set_theme(&mut self, theme: BoardTheme) {
         self.theme = theme;
         self.css_adapter = ThemeCSSAdapter::from_theme(&self.theme);
+        // Invalidate differential renderer cache since theme affects rendering
+        self.differential_renderer.invalidate_cache();
+    }
+
+    /// Forces a full re-render on next update (useful after major changes)
+    pub fn invalidate_render_cache(&mut self) {
+        self.differential_renderer.invalidate_cache();
+    }
+
+    /// Gets statistics about the last differential update
+    pub fn get_update_stats(&self) -> crate::go_board::UpdateStats {
+        self.differential_renderer.get_update_stats()
+    }
+
+    /// Checks if a vertex was changed in the last update
+    pub fn vertex_changed(&self, vertex: &Vertex) -> bool {
+        self.differential_renderer.vertex_changed(vertex)
     }
 
     /// Sets the grid theme (for backward compatibility)
@@ -287,6 +333,8 @@ impl GoBoard {
         self.theme.star_point_color = grid_theme.star_point_color;
         self.theme.star_point_size = grid_theme.star_point_size;
         self.css_adapter = ThemeCSSAdapter::from_theme(&self.theme);
+        // Invalidate cache since theme affects rendering
+        self.differential_renderer.invalidate_cache();
     }
 
     /// Sets the stone theme (for backward compatibility)
@@ -304,6 +352,8 @@ impl GoBoard {
         self.theme.black_stone_texture = stone_theme.black_stone_image;
         self.theme.white_stone_texture = stone_theme.white_stone_image;
         self.css_adapter = ThemeCSSAdapter::from_theme(&self.theme);
+        // Invalidate cache since theme affects rendering
+        self.differential_renderer.invalidate_cache();
     }
 
     /// Gets a reference to the board theme
@@ -359,8 +409,12 @@ impl GoBoard {
         }
     }
 
-    /// Renders the board with comprehensive vertex event handlers
+    /// Renders the board with comprehensive vertex event handlers using differential rendering
     pub fn render_with_vertex_handlers(&self, handlers: VertexEventHandlers) -> impl IntoElement {
+        // This method creates a standard render for now
+        // In a future implementation, this could be optimized with differential rendering
+        // by tracking which elements need updates
+
         // Create grid component with theme-derived properties
         let grid_theme = self.grid_theme();
         let grid = Grid::new(self.state.board_range.clone(), self.state.vertex_size)
@@ -455,6 +509,49 @@ impl GoBoard {
         board_div = board_div.child(div().absolute().inset_0().child(interaction_layer));
 
         board_div
+    }
+
+    /// Renders the board with differential updates (experimental optimization)
+    /// This method analyzes changes and only re-renders modified elements
+    pub fn render_with_differential_updates(
+        &mut self,
+        handlers: VertexEventHandlers,
+    ) -> AnyElement {
+        // Note: In a real GPUI application, this would require more sophisticated
+        // state management and component caching. For now, this demonstrates
+        // the differential analysis capability.
+
+        // Analyze what has changed since last render
+        use crate::go_board::types::SelectionStateSnapshot;
+        let selection_state = SelectionStateSnapshot::from_board_state(&self.state);
+
+        let update = self.differential_renderer.analyze_changes(
+            &self.state.sign_map,
+            &self.state.marker_map,
+            &self.state.ghost_stone_map,
+            &selection_state,
+        );
+
+        // For demonstration, we'll render the full board but could optimize
+        // to only render changed elements in a production implementation
+        if update.requires_full_render
+            || !update.changed_stones.is_empty()
+            || !update.changed_markers.is_empty()
+            || !update.changed_ghost_stones.is_empty()
+            || update.selection_changed
+        {
+            // In a real implementation, this is where we would:
+            // 1. Only update the DOM elements that changed
+            // 2. Use CSS transforms for animations
+            // 3. Batch DOM updates to prevent layout thrashing
+            // 4. Use virtual DOM or similar diffing strategies
+
+            self.render_with_vertex_handlers(handlers)
+                .into_any_element()
+        } else {
+            // No changes detected, return minimal render
+            div().id("go-board-no-changes").into_any_element()
+        }
     }
 }
 

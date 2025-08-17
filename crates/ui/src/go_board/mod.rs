@@ -1,5 +1,6 @@
 pub mod bounded_go_board;
 pub mod coordinates;
+pub mod differential_renderer;
 pub mod ghost_stone;
 pub mod go_board;
 pub mod grid;
@@ -29,8 +30,12 @@ mod integration_tests;
 #[cfg(test)]
 mod texture_integration_tests;
 
+#[cfg(test)]
+mod efficient_update_tests;
+
 pub use bounded_go_board::BoundedGoBoard;
 pub use coordinates::{default_coord_x, default_coord_y, CoordinateLabels, CoordinateTheme};
+pub use differential_renderer::{DifferentialRenderer, DifferentialUpdate, UpdateStats};
 pub use ghost_stone::{GhostStoneOverlay, GhostStoneRenderer, GhostStoneTheme};
 pub use go_board::GoBoard;
 pub use grid::{Grid, GridTheme};

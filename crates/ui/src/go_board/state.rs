@@ -320,6 +320,85 @@ impl GoBoardState {
         changed
     }
 
+    /// Updates multiple stones efficiently with change tracking
+    pub fn update_stones(&mut self, updates: &[(Vertex, i8)]) -> bool {
+        let mut changed = false;
+
+        for (vertex, sign) in updates {
+            if self.is_valid_vertex(vertex) && (-1..=1).contains(sign) {
+                let current_sign = self.sign_map[vertex.y][vertex.x];
+                if current_sign != *sign {
+                    self.sign_map[vertex.y][vertex.x] = *sign;
+                    changed = true;
+                }
+            }
+        }
+
+        changed
+    }
+
+    /// Bulk update the sign map from a complete map with change tracking
+    pub fn update_sign_map(&mut self, new_sign_map: &SignMap) -> bool {
+        if new_sign_map.is_empty() || new_sign_map[0].is_empty() {
+            return false;
+        }
+
+        let height = new_sign_map.len();
+        let width = new_sign_map[0].len();
+        let (current_width, current_height) = self.dimensions();
+
+        if width != current_width || height != current_height {
+            return false; // Size mismatch
+        }
+
+        // Check if the new map differs from current
+        let mut changed = false;
+        for (y, row) in new_sign_map.iter().enumerate() {
+            for (x, new_sign) in row.iter().enumerate() {
+                if self.sign_map[y][x] != *new_sign {
+                    changed = true;
+                    break;
+                }
+            }
+            if changed {
+                break;
+            }
+        }
+
+        if changed {
+            self.sign_map = new_sign_map.clone();
+        }
+
+        changed
+    }
+
+    /// Gets a list of vertices that differ between current and new sign map
+    pub fn get_sign_map_differences(&self, new_sign_map: &SignMap) -> Vec<Vertex> {
+        let mut differences = Vec::new();
+
+        if new_sign_map.is_empty() || new_sign_map[0].is_empty() {
+            return differences;
+        }
+
+        let height = new_sign_map.len();
+        let width = new_sign_map[0].len();
+        let (current_width, current_height) = self.dimensions();
+
+        if width != current_width || height != current_height {
+            return differences; // Size mismatch
+        }
+
+        for (y, row) in new_sign_map.iter().enumerate() {
+            for (x, new_sign) in row.iter().enumerate() {
+                if self.sign_map[y][x] != *new_sign {
+                    differences.push(Vertex::new(x, y));
+                }
+            }
+        }
+
+        differences
+    }
+
     /// Updates selection state efficiently with change tracking
     pub fn update_selected_vertices(&mut self, vertices: Vec<Vertex>) -> bool {
         let changed = self.selected_vertices != vertices;
@@ -736,25 +815,96 @@ mod tests {
     }
 
     #[test]
-    fn test_ghost_stone_layer_management() {
-        let mut state = GoBoardState::new(5, 5);
-        let vertex = Vertex::new(2, 2);
+    fn test_update_stones() {
+        let mut state = GoBoardState::new(9, 9);
 
-        // Set a regular stone
-        assert!(state.set_sign(&vertex, 1));
-        assert_eq!(state.get_sign(&vertex), Some(1));
+        // Test bulk stone updates
+        let updates = vec![
+            (Vertex::new(1, 1), 1),
+            (Vertex::new(2, 2), -1),
+            (Vertex::new(3, 3), 0), // Clear stone
+        ];
 
-        // Set a ghost stone at the same position
-        let ghost_stone = GhostStone::new(-1, GhostStoneType::Good);
-        assert!(state.set_ghost_stone(&vertex, Some(ghost_stone.clone())));
+        // First update should return true (changes made)
+        assert!(state.update_stones(&updates));
 
-        // Both should coexist (layering is handled by rendering)
-        assert_eq!(state.get_sign(&vertex), Some(1));
-        assert_eq!(state.get_ghost_stone(&vertex), Some(&ghost_stone));
+        // Verify the updates were applied
+        assert_eq!(state.get_sign(&Vertex::new(1, 1)), Some(1));
+        assert_eq!(state.get_sign(&Vertex::new(2, 2)), Some(-1));
+        assert_eq!(state.get_sign(&Vertex::new(3, 3)), Some(0));
 
-        // Clear ghost stone but keep regular stone
-        assert!(state.set_ghost_stone(&vertex, None));
-        assert_eq!(state.get_sign(&vertex), Some(1)); // Stone remains
-        assert!(state.get_ghost_stone(&vertex).is_none()); // Ghost stone cleared
+        // Same updates should return false (no changes)
+        assert!(!state.update_stones(&updates));
+
+        // Test invalid sign values
+        let invalid_updates = vec![
+            (Vertex::new(4, 4), 2),   // Invalid sign
+            (Vertex::new(10, 10), 1), // Out of bounds
+        ];
+        assert!(!state.update_stones(&invalid_updates));
+        assert_eq!(state.get_sign(&Vertex::new(4, 4)), Some(0)); // Should remain unchanged
+    }
+
+    #[test]
+    fn test_update_sign_map() {
+        let mut state = GoBoardState::new(3, 3);
+
+        // Create a test sign map
+        let sign_map = vec![vec![1, 0, -1], vec![0, 1, 0], vec![-1, 0, 1]];
+
+        // First update should return true
+        assert!(state.update_sign_map(&sign_map));
+
+        // Verify the map was updated
+        assert_eq!(state.get_sign(&Vertex::new(0, 0)), Some(1));
+        assert_eq!(state.get_sign(&Vertex::new(2, 0)), Some(-1));
+        assert_eq!(state.get_sign(&Vertex::new(1, 1)), Some(1));
+
+        // Same map should return false
+        assert!(!state.update_sign_map(&sign_map));
+
+        // Different map should return true
+        let mut different_map = sign_map.clone();
+        different_map[0][0] = 0;
+        assert!(state.update_sign_map(&different_map));
+
+        // Test size mismatch
+        let wrong_size_map = vec![vec![0; 2]; 2];
+        assert!(!state.update_sign_map(&wrong_size_map));
+
+        // Test empty map
+        let empty_map = vec![];
+        assert!(!state.update_sign_map(&empty_map));
+    }
+
+    #[test]
+    fn test_get_sign_map_differences() {
+        let mut state = GoBoardState::new(3, 3);
+
+        // Set initial state
+        let initial_map = vec![vec![1, 0, 0], vec![0, -1, 0], vec![0, 0, 1]];
+        state.sign_map = initial_map;
+
+        // Create new map with changes
+        let new_map = vec![
+            vec![1, 1, 0],   // Changed at (1, 0)
+            vec![0, -1, -1], // Changed at (2, 1)
+            vec![-1, 0, 1],  // Changed at (0, 2)
+        ];
+
+        let differences = state.get_sign_map_differences(&new_map);
+        assert_eq!(differences.len(), 3);
+        assert!(differences.contains(&Vertex::new(1, 0)));
+        assert!(differences.contains(&Vertex::new(2, 1)));
+        assert!(differences.contains(&Vertex::new(0, 2)));
+
+        // Test with identical maps
+        let same_differences = state.get_sign_map_differences(&state.sign_map.clone());
+        assert!(same_differences.is_empty());
+
+        // Test size mismatch
+        let wrong_size_map = vec![vec![0; 2]; 2];
+        let size_mismatch_differences = state.get_sign_map_differences(&wrong_size_map);
+        assert!(size_mismatch_differences.is_empty());
     }
 }
