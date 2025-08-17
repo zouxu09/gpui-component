@@ -197,7 +197,7 @@ Convert the feature design into a series of prompts for a code-generation LLM th
     - _Requirements: 1.2_
 
 - [ ] 14. Optimize performance and implement differential updates
-  - [ ] 14.1 Implement efficient signMap update handling
+  - [x] 14.1 Implement efficient signMap update handling
     - Create differential rendering system that only updates changed vertices
     - Add proper z-index layering with minimal DOM manipulation
     - Implement efficient stone placement and removal without full re-render

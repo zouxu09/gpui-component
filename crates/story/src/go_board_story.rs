@@ -44,6 +44,7 @@ pub struct GoBoardStory {
     partial_board_center: Entity<BoundedGoBoard>,
     partial_board_corner: Entity<BoundedGoBoard>,
     partial_board_edge: Entity<BoundedGoBoard>,
+    efficient_update_demo: Entity<GoBoard>,
 }
 
 impl GoBoardStory {
@@ -775,6 +776,22 @@ impl GoBoardStory {
                 bounded.set_sign_map(sign_map);
                 bounded
             }),
+            // Demonstration of efficient differential updates
+            efficient_update_demo: cx.new(|_| {
+                let mut board = GoBoard::with_size(9, 9).with_vertex_size(30.0);
+
+                // Demonstrate efficient bulk updates
+                let initial_stones = vec![
+                    (Vertex::new(2, 2), 1),
+                    (Vertex::new(6, 2), -1),
+                    (Vertex::new(2, 6), -1),
+                    (Vertex::new(6, 6), 1),
+                    (Vertex::new(4, 4), 1), // Center stone
+                ];
+
+                board.update_stones(&initial_stones);
+                board
+            }),
         }
     }
 
@@ -1116,6 +1133,21 @@ impl Render for GoBoardStory {
                 ),
             )
             .child(
+                section("Efficient Update System - Differential Rendering").child(
+                    v_flex()
+                        .gap_4()
+                        .child("Demonstrates efficient signMap updates with change detection and differential rendering")
+                        .child(
+                            v_flex()
+                                .gap_2()
+                                .child("Efficient Updates Demo")
+                                .child("Uses update_stones() and update_sign_map() methods for optimal performance")
+                                .child("Only re-renders elements that have actually changed")
+                                .child(self.efficient_update_demo.clone()),
+                        ),
+                ),
+            )
+            .child(
                 section("Board Information").child(
                     v_flex()
                         .gap_2()
@@ -1164,7 +1196,13 @@ impl Render for GoBoardStory {
                         .child("  - Directional selection indicators")
                         .child("  - Efficient selection state management")
                         .child("• Touch device support through pointer events")
-                        .child("• Shudan-inspired architecture"),
+                        .child("• Shudan-inspired architecture")
+                        .child("• Efficient differential rendering system")
+                        .child("  - Change detection for signMap, markerMap, and ghostStoneMap updates")
+                        .child("  - Only re-renders elements that have actually changed")
+                        .child("  - Optimized for large boards and frequent updates")
+                        .child("  - Built-in performance monitoring and statistics")
+                        .child("  - Memory-efficient state tracking and caching"),
                 ),
             )
     }

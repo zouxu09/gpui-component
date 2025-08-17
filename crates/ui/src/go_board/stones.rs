@@ -304,6 +304,133 @@ impl Stones {
         self.sign_map = sign_map;
     }
 
+    /// Updates the sign map efficiently with change detection
+    pub fn update_sign_map(&mut self, new_sign_map: &SignMap) -> bool {
+        if new_sign_map.is_empty() || new_sign_map[0].is_empty() {
+            return false;
+        }
+
+        let _height = new_sign_map.len();
+        let _width = new_sign_map[0].len();
+
+        // Check if the new map differs from current
+        let mut changed = false;
+        for (y, row) in new_sign_map.iter().enumerate() {
+            if y >= self.sign_map.len() {
+                changed = true;
+                break;
+            }
+            for (x, new_sign) in row.iter().enumerate() {
+                if x >= self.sign_map[y].len() || self.sign_map[y][x] != *new_sign {
+                    changed = true;
+                    break;
+                }
+            }
+            if changed {
+                break;
+            }
+        }
+
+        if changed {
+            self.sign_map = new_sign_map.clone();
+        }
+
+        changed
+    }
+
+    /// Gets the differences between current and new sign map
+    pub fn get_sign_map_differences(&self, new_sign_map: &SignMap) -> Vec<Vertex> {
+        let mut differences = Vec::new();
+
+        if new_sign_map.is_empty() || new_sign_map[0].is_empty() {
+            return differences;
+        }
+
+        for (y, row) in new_sign_map.iter().enumerate() {
+            if y < self.sign_map.len() {
+                for (x, new_sign) in row.iter().enumerate() {
+                    if x < self.sign_map[y].len() && self.sign_map[y][x] != *new_sign {
+                        differences.push(Vertex::new(x, y));
+                    }
+                }
+            }
+        }
+
+        differences
+    }
+
+    /// Updates individual stones efficiently
+    pub fn update_stones(&mut self, updates: &[(Vertex, i8)]) -> bool {
+        let mut changed = false;
+
+        for (vertex, sign) in updates {
+            if vertex.y < self.sign_map.len() && vertex.x < self.sign_map[vertex.y].len() {
+                if (-1..=1).contains(sign) && self.sign_map[vertex.y][vertex.x] != *sign {
+                    self.sign_map[vertex.y][vertex.x] = *sign;
+                    changed = true;
+                }
+            }
+        }
+
+        changed
+    }
+
+    /// Renders only stones that have changed from a previous state
+    pub fn render_differential_stones(&self, changed_vertices: &[Vertex]) -> Vec<impl IntoElement> {
+        let mut stones = Vec::new();
+
+        for vertex in changed_vertices {
+            // Only render if vertex is within visible range
+            if vertex.x >= self.board_range.x.0
+                && vertex.x <= self.board_range.x.1
+                && vertex.y >= self.board_range.y.0
+                && vertex.y <= self.board_range.y.1
+            {
+                if vertex.y < self.sign_map.len() && vertex.x < self.sign_map[vertex.y].len() {
+                    let sign = self.sign_map[vertex.y][vertex.x];
+                    if sign != 0 {
+                        let stone = Stone::new(*vertex, sign, self.vertex_size)
+                            .with_theme(self.theme.clone());
+
+                        if let Some(element) = stone.render(&self.board_range) {
+                            stones.push(element);
+                        }
+                    }
+                }
+            }
+        }
+
+        stones
+    }
+
+    /// Renders stones only within the specified vertices (for efficient updates)
+    pub fn render_stones_at_vertices(&self, vertices: &[Vertex]) -> Vec<impl IntoElement> {
+        let mut stones = Vec::new();
+
+        for vertex in vertices {
+            // Only render if vertex is within visible range
+            if vertex.x >= self.board_range.x.0
+                && vertex.x <= self.board_range.x.1
+                && vertex.y >= self.board_range.y.0
+                && vertex.y <= self.board_range.y.1
+            {
+                if vertex.y < self.sign_map.len() && vertex.x < self.sign_map[vertex.y].len() {
+                    let sign = self.sign_map[vertex.y][vertex.x];
+                    if sign != 0 {
+                        let stone = Stone::new(*vertex, sign, self.vertex_size)
+                            .with_theme(self.theme.clone());
+
+                        if let Some(element) = stone.render(&self.board_range) {
+                            stones.push(element);
+                        }
+                    }
+                }
+            }
+        }
+
+        stones
+    }
+
     /// Updates the board range
     pub fn set_board_range(&mut self, range: BoardRange) {
         self.board_range = range;
