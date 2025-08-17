@@ -11,6 +11,8 @@ pub mod paint_overlay;
 pub mod selection;
 pub mod state;
 pub mod stones;
+pub mod theme;
+pub mod theme_adapter;
 pub mod types;
 
 #[cfg(test)]
@@ -43,4 +45,6 @@ pub use paint_overlay::{
 pub use selection::{SelectionRenderer, VertexSelections};
 pub use state::GoBoardState;
 pub use stones::{Stone, StoneTheme, Stones};
+pub use theme::BoardTheme;
+pub use theme_adapter::ThemeCSSAdapter;
 pub use types::*;

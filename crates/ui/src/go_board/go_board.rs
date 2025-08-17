@@ -1,7 +1,7 @@
 use crate::go_board::{
-    GhostStoneOverlay, GoBoardState, Grid, GridTheme, HeatOverlay, LineOverlay, Markers,
-    PaintOverlay, StoneTheme, Stones, Vertex, VertexEventHandlers, VertexInteractions,
-    VertexSelections,
+    BoardTheme, GhostStoneOverlay, GoBoardState, Grid, GridTheme, HeatOverlay, LineOverlay,
+    Markers, PaintOverlay, StoneTheme, Stones, ThemeCSSAdapter, Vertex, VertexEventHandlers,
+    VertexInteractions, VertexSelections,
 };
 use gpui::*;
 
@@ -9,26 +9,37 @@ use gpui::*;
 /// Provides a flexible, customizable Go board display inspired by Shudan
 pub struct GoBoard {
     state: GoBoardState,
-    grid_theme: GridTheme,
-    stone_theme: StoneTheme,
+    theme: BoardTheme,
+    css_adapter: ThemeCSSAdapter,
 }
 
 impl GoBoard {
     /// Creates a new Go board with default 19x19 dimensions
     pub fn new() -> Self {
+        let theme = BoardTheme::default();
         Self {
             state: GoBoardState::standard(),
-            grid_theme: GridTheme::default(),
-            stone_theme: StoneTheme::default(),
+            css_adapter: ThemeCSSAdapter::from_theme(&theme),
+            theme,
         }
     }
 
     /// Creates a Go board with specified dimensions
     pub fn with_size(width: usize, height: usize) -> Self {
+        let theme = BoardTheme::default();
         Self {
             state: GoBoardState::new(width, height),
-            grid_theme: GridTheme::default(),
-            stone_theme: StoneTheme::default(),
+            css_adapter: ThemeCSSAdapter::from_theme(&theme),
+            theme,
+        }
+    }
+
+    /// Creates a Go board with a specified theme
+    pub fn with_theme(theme: BoardTheme) -> Self {
+        Self {
+            state: GoBoardState::standard(),
+            css_adapter: ThemeCSSAdapter::from_theme(&theme),
+            theme,
         }
     }
 
@@ -259,24 +270,82 @@ impl GoBoard {
         self.state.busy = busy;
     }
 
-    /// Sets the grid theme
-    pub fn set_grid_theme(&mut self, theme: GridTheme) {
-        self.grid_theme = theme;
+    /// Sets the board theme (replaces both grid and stone themes)
+    pub fn set_theme(&mut self, theme: BoardTheme) {
+        self.theme = theme;
+        self.css_adapter = ThemeCSSAdapter::from_theme(&self.theme);
     }
 
-    /// Sets the stone theme
-    pub fn set_stone_theme(&mut self, theme: StoneTheme) {
-        self.stone_theme = theme;
+    /// Sets the grid theme (for backward compatibility)
+    pub fn set_grid_theme(&mut self, grid_theme: GridTheme) {
+        // Convert GridTheme to BoardTheme properties
+        self.theme.board_background_color = grid_theme.background_color;
+        self.theme.grid_line_color = grid_theme.grid_line_color;
+        self.theme.grid_line_width = grid_theme.grid_line_width;
+        self.theme.board_border_color = grid_theme.border_color;
+        self.theme.board_border_width = grid_theme.border_width;
+        self.theme.star_point_color = grid_theme.star_point_color;
+        self.theme.star_point_size = grid_theme.star_point_size;
+        self.css_adapter = ThemeCSSAdapter::from_theme(&self.theme);
     }
 
-    /// Gets a reference to the grid theme
-    pub fn grid_theme(&self) -> &GridTheme {
-        &self.grid_theme
+    /// Sets the stone theme (for backward compatibility)
+    pub fn set_stone_theme(&mut self, stone_theme: StoneTheme) {
+        // Convert StoneTheme to BoardTheme properties
+        self.theme.black_stone_color = stone_theme.black_color;
+        self.theme.white_stone_color = stone_theme.white_color;
+        self.theme.stone_size_ratio = stone_theme.stone_size_ratio;
+        self.theme.stone_border_width = stone_theme.border_width;
+        self.theme.stone_border_color = stone_theme.border_color;
+        self.theme.fuzzy_placement = stone_theme.fuzzy_placement;
+        self.theme.fuzzy_max_offset = stone_theme.fuzzy_max_offset;
+        self.theme.random_variation = stone_theme.random_variation;
+        self.theme.max_rotation = stone_theme.max_rotation;
+        self.theme.black_stone_texture = stone_theme.black_stone_image;
+        self.theme.white_stone_texture = stone_theme.white_stone_image;
+        self.css_adapter = ThemeCSSAdapter::from_theme(&self.theme);
     }
 
-    /// Gets a reference to the stone theme
-    pub fn stone_theme(&self) -> &StoneTheme {
-        &self.stone_theme
+    /// Gets a reference to the board theme
+    pub fn theme(&self) -> &BoardTheme {
+        &self.theme
+    }
+
+    /// Gets a reference to the CSS adapter
+    pub fn css_adapter(&self) -> &ThemeCSSAdapter {
+        &self.css_adapter
+    }
+
+    /// Gets a reference to the grid theme (for backward compatibility)
+    pub fn grid_theme(&self) -> GridTheme {
+        // Convert BoardTheme to GridTheme
+        GridTheme {
+            background_color: self.theme.board_background_color,
+            grid_line_color: self.theme.grid_line_color,
+            grid_line_width: self.theme.grid_line_width,
+            border_color: self.theme.board_border_color,
+            border_width: self.theme.board_border_width,
+            star_point_color: self.theme.star_point_color,
+            star_point_size: self.theme.star_point_size,
+        }
+    }
+
+    /// Gets a reference to the stone theme (for backward compatibility)
+    pub fn stone_theme(&self) -> StoneTheme {
+        // Convert BoardTheme to StoneTheme
+        StoneTheme {
+            black_color: self.theme.black_stone_color,
+            white_color: self.theme.white_stone_color,
+            stone_size_ratio: self.theme.stone_size_ratio,
+            border_width: self.theme.stone_border_width,
+            border_color: self.theme.stone_border_color,
+            fuzzy_placement: self.theme.fuzzy_placement,
+            fuzzy_max_offset: self.theme.fuzzy_max_offset,
+            random_variation: self.theme.random_variation,
+            max_rotation: self.theme.max_rotation,
+            black_stone_image: self.theme.black_stone_texture.clone(),
+            white_stone_image: self.theme.white_stone_texture.clone(),
+        }
     }
 
     /// Calculates the total board size in pixels
@@ -292,18 +361,20 @@ impl GoBoard {
 
     /// Renders the board with comprehensive vertex event handlers
     pub fn render_with_vertex_handlers(&self, handlers: VertexEventHandlers) -> impl IntoElement {
-        // Create grid component with current state
+        // Create grid component with theme-derived properties
+        let grid_theme = self.grid_theme();
         let grid = Grid::new(self.state.board_range.clone(), self.state.vertex_size)
-            .with_theme(self.grid_theme.clone())
+            .with_theme(grid_theme)
             .with_coordinates(self.state.show_coordinates);
 
-        // Create stones component with current sign map
+        // Create stones component with theme-derived properties
+        let stone_theme = self.stone_theme();
         let stones = Stones::new(
             self.state.board_range.clone(),
             self.state.vertex_size,
             self.state.sign_map.clone(),
         )
-        .with_theme(self.stone_theme.clone());
+        .with_theme(stone_theme);
 
         // Create markers component with current marker map
         let grid_offset = point(px(0.0), px(0.0)); // Will be adjusted based on actual grid positioning

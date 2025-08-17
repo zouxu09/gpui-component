@@ -5,10 +5,11 @@ use gpui::{
 
 use gpui_component::{
     go_board::{
-        CornerPaint, DirectionalPaintMap, GhostStone, GhostStoneOverlay, GhostStoneType, GoBoard,
-        GridTheme, HeatData, HeatOverlay, Line, LineOverlay, LineType, Marker, MarkerType,
-        PaintOverlay, SelectionDirection, Vertex, VertexClickEvent, VertexEventHandlers,
-        VertexMouseDownEvent, VertexMouseMoveEvent, VertexMouseUpEvent, VertexSelection,
+        BoardTheme, CornerPaint, DirectionalPaintMap, GhostStone, GhostStoneOverlay,
+        GhostStoneType, GoBoard, GridTheme, HeatData, HeatOverlay, Line, LineOverlay, LineType,
+        Marker, MarkerType, PaintOverlay, SelectionDirection, Vertex, VertexClickEvent,
+        VertexEventHandlers, VertexMouseDownEvent, VertexMouseMoveEvent, VertexMouseUpEvent,
+        VertexSelection,
     },
     h_flex, v_flex, ActiveTheme,
 };
@@ -21,6 +22,9 @@ pub struct GoBoardStory {
     board_13x13: Entity<GoBoard>,
     board_9x9: Entity<GoBoard>,
     custom_theme_board: Entity<GoBoard>,
+    dark_theme_board: Entity<GoBoard>,
+    minimalist_theme_board: Entity<GoBoard>,
+    high_contrast_board: Entity<GoBoard>,
     coordinate_board: Entity<GoBoard>,
     stone_board: Entity<GoBoard>,
     fuzzy_stone_board: Entity<GoBoard>,
@@ -41,20 +45,30 @@ impl GoBoardStory {
             board_13x13: cx.new(|_| GoBoard::with_size(13, 13)),
             board_9x9: cx.new(|_| GoBoard::with_size(9, 9)),
             custom_theme_board: cx.new(|_| {
+                // Create a custom theme using the new BoardTheme system
+                let custom_theme = BoardTheme::default()
+                    .with_board_background(gpui::rgb(0x8B7355)) // Darker wood
+                    .with_grid_lines(gpui::rgb(0x2c2c2c), 1.5) // Dark gray lines, thicker
+                    .with_stone_colors(gpui::rgb(0x000000), gpui::rgb(0xffffff)) // Pure B&W stones
+                    .with_coordinates(gpui::rgb(0x654321), 12.0, 0.8); // Dark brown coordinates
+
                 let mut board = GoBoard::with_size(9, 9).with_vertex_size(30.0);
-
-                // Custom theme with darker colors
-                let custom_theme = GridTheme {
-                    background_color: gpui::rgb(0x8B7355), // Darker wood
-                    grid_line_color: gpui::rgb(0x2c2c2c),  // Dark gray lines
-                    grid_line_width: 1.5,
-                    border_color: gpui::rgb(0x654321), // Dark brown border
-                    border_width: 3.0,
-                    star_point_color: gpui::rgb(0x2c2c2c), // Dark gray star points
-                    star_point_size: 8.0,                  // Slightly larger star points
-                };
-
-                board.set_grid_theme(custom_theme);
+                board.set_theme(custom_theme);
+                board
+            }),
+            dark_theme_board: cx.new(|_| {
+                let mut board = GoBoard::with_size(9, 9).with_vertex_size(30.0);
+                board.set_theme(BoardTheme::dark());
+                board
+            }),
+            minimalist_theme_board: cx.new(|_| {
+                let mut board = GoBoard::with_size(9, 9).with_vertex_size(30.0);
+                board.set_theme(BoardTheme::minimalist());
+                board
+            }),
+            high_contrast_board: cx.new(|_| {
+                let mut board = GoBoard::with_size(9, 9).with_vertex_size(30.0);
+                board.set_theme(BoardTheme::high_contrast());
                 board
             }),
             coordinate_board: cx.new(|_| {
@@ -639,11 +653,50 @@ impl Render for GoBoardStory {
                 ),
             )
             .child(
-                section("Custom Theme").child(
+                section("Theming System").child(
+                    v_flex()
+                        .gap_4()
+                        .child("BoardTheme provides comprehensive theming with CSS custom property support")
+                        .child(
+                            h_flex()
+                                .gap_6()
+                                .child(
+                                    v_flex()
+                                        .gap_2()
+                                        .child("Custom Theme (Builder Pattern)")
+                                        .child(self.custom_theme_board.clone()),
+                                )
+                                .child(
+                                    v_flex()
+                                        .gap_2()
+                                        .child("Dark Theme")
+                                        .child(self.dark_theme_board.clone()),
+                                ),
+                        )
+                        .child(
+                            h_flex()
+                                .gap_6()
+                                .child(
+                                    v_flex()
+                                        .gap_2()
+                                        .child("Minimalist Theme")
+                                        .child(self.minimalist_theme_board.clone()),
+                                )
+                                .child(
+                                    v_flex()
+                                        .gap_2()
+                                        .child("High Contrast (Accessibility)")
+                                        .child(self.high_contrast_board.clone()),
+                                ),
+                        ),
+                ),
+            )
+            .child(
+                section("Legacy Theme Support").child(
                     v_flex()
                         .gap_2()
-                        .child("9x9 Board with Custom Theme")
-                        .child(self.custom_theme_board.clone()),
+                        .child("Backward compatibility with GridTheme and StoneTheme")
+                        .child("(Same visual as Custom Theme above)")
                 ),
             )
             .child(
@@ -781,6 +834,11 @@ impl Render for GoBoardStory {
                         .child("• Coordinate labels with standard Go notation (A-T, 1-19)")
                         .child("• Configurable board sizes (9x9, 13x13, 19x19)")
                         .child("• Custom themes with colors and styling")
+                        .child("• BoardTheme system with CSS custom property generation")
+                        .child("  - Supports --board-background-color, --grid-line-color, etc.")
+                        .child("  - Theme builder pattern for easy customization")
+                        .child("  - Predefined themes: default, dark, minimalist, high-contrast")
+                        .child("  - Backward compatibility with GridTheme and StoneTheme")
                         .child("• Responsive design with proper scaling")
                         .child("• Support for partial board ranges")
                         .child("• Comprehensive vertex interaction system")
