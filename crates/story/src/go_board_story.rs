@@ -5,11 +5,11 @@ use gpui::{
 
 use gpui_component::{
     go_board::{
-        BoardTheme, CornerPaint, DirectionalPaintMap, GhostStone, GhostStoneOverlay,
-        GhostStoneType, GoBoard, GridTheme, HeatData, HeatOverlay, Line, LineOverlay, LineType,
-        Marker, MarkerType, PaintOverlay, SelectionDirection, TextureThemeAdapter, TextureUtils,
-        Vertex, VertexClickEvent, VertexEventHandlers, VertexMouseDownEvent, VertexMouseMoveEvent,
-        VertexMouseUpEvent, VertexSelection,
+        BoardTheme, BoundedGoBoard, CornerPaint, DirectionalPaintMap, GhostStone,
+        GhostStoneOverlay, GhostStoneType, GoBoard, GridTheme, HeatData, HeatOverlay, Line,
+        LineOverlay, LineType, Marker, MarkerType, PaintOverlay, SelectionDirection,
+        TextureThemeAdapter, TextureUtils, Vertex, VertexClickEvent, VertexEventHandlers,
+        VertexMouseDownEvent, VertexMouseMoveEvent, VertexMouseUpEvent, VertexSelection,
     },
     h_flex, v_flex, ActiveTheme,
 };
@@ -37,6 +37,10 @@ pub struct GoBoardStory {
     ghost_stone_board: Entity<GoBoard>,
     line_board: Entity<GoBoard>,
     interactive_board: Entity<GoBoard>,
+    bounded_small_board: Entity<BoundedGoBoard>,
+    bounded_medium_board: Entity<BoundedGoBoard>,
+    bounded_large_board: Entity<BoundedGoBoard>,
+    bounded_constrained_board: Entity<BoundedGoBoard>,
 }
 
 impl GoBoardStory {
@@ -638,6 +642,82 @@ impl GoBoardStory {
                 board
             }),
             interactive_board: cx.new(|_| GoBoard::with_size(9, 9).with_vertex_size(40.0)),
+            bounded_small_board: cx.new(|_| {
+                // Small bounded board - 9x9 in 150x150 space
+                let mut bounded = BoundedGoBoard::with_size(9, 9, 150.0, 150.0);
+                let sign_map = vec![
+                    vec![0, 1, 0, 0, 0, 0, 0, -1, 0],
+                    vec![1, 0, 1, 0, 0, 0, -1, 0, -1],
+                    vec![0, 1, 0, 0, 0, 0, 0, -1, 0],
+                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    vec![0, 0, 0, 0, 1, 0, 0, 0, 0],
+                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    vec![0, 1, 0, 0, 0, 0, 0, -1, 0],
+                    vec![1, 0, 1, 0, 0, 0, -1, 0, -1],
+                    vec![0, 1, 0, 0, 0, 0, 0, -1, 0],
+                ];
+                bounded.set_sign_map(sign_map);
+                bounded
+            }),
+            bounded_medium_board: cx.new(|_| {
+                // Medium bounded board - 13x13 in 250x250 space
+                let mut bounded = BoundedGoBoard::with_size(13, 13, 250.0, 250.0);
+                bounded.set_show_coordinates(true);
+                let sign_map = vec![
+                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    vec![0, 0, 0, 1, 0, 0, 0, 0, 0, -1, 0, 0, 0],
+                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    vec![0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, 0],
+                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    vec![0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0],
+                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    vec![0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0],
+                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    vec![0, 0, 0, -1, 0, 0, 0, 0, 0, 1, 0, 0, 0],
+                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                ];
+                bounded.set_sign_map(sign_map);
+                bounded
+            }),
+            bounded_large_board: cx.new(|_| {
+                // Large bounded board - 19x19 in 380x380 space
+                let mut bounded = BoundedGoBoard::with_size(19, 19, 380.0, 380.0);
+                let sign_map = vec![vec![0; 19]; 19]; // Empty 19x19 board
+                bounded.set_sign_map(sign_map);
+                bounded
+            }),
+            bounded_constrained_board: cx.new(|_| {
+                // Constrained aspect ratio - 19x19 in 200x400 space (height-constrained)
+                let mut bounded = BoundedGoBoard::with_size(19, 19, 200.0, 400.0)
+                    .with_vertex_size_limits(5.0, 25.0);
+
+                // Add some stones to show the scaling effect
+                let sign_map = vec![
+                    vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1],
+                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1],
+                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, -1],
+                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1],
+                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1],
+                ];
+                bounded.set_sign_map(sign_map);
+                bounded
+            }),
         }
     }
 
@@ -863,6 +943,50 @@ impl Render for GoBoardStory {
                 ),
             )
             .child(
+                section("Bounded Go Board - Responsive Sizing").child(
+                    v_flex()
+                        .gap_4()
+                        .child("BoundedGoBoard automatically calculates vertex size to fit within constraints")
+                        .child(
+                            h_flex()
+                                .gap_6()
+                                .child(
+                                    v_flex()
+                                        .gap_2()
+                                        .child("Small (9x9 in 150x150)")
+                                        .child(format!("Vertex size: {:.1}px", self.bounded_small_board.read(cx).vertex_size()))
+                                        .child(self.bounded_small_board.clone()),
+                                )
+                                .child(
+                                    v_flex()
+                                        .gap_2()
+                                        .child("Medium (13x13 in 250x250)")
+                                        .child(format!("Vertex size: {:.1}px", self.bounded_medium_board.read(cx).vertex_size()))
+                                        .child(self.bounded_medium_board.clone()),
+                                ),
+                        )
+                        .child(
+                            h_flex()
+                                .gap_6()
+                                .child(
+                                    v_flex()
+                                        .gap_2()
+                                        .child("Large (19x19 in 380x380)")
+                                        .child(format!("Vertex size: {:.1}px", self.bounded_large_board.read(cx).vertex_size()))
+                                        .child(self.bounded_large_board.clone()),
+                                )
+                                .child(
+                                    v_flex()
+                                        .gap_2()
+                                        .child("Constrained (19x19 in 200x400)")
+                                        .child(format!("Vertex size: {:.1}px", self.bounded_constrained_board.read(cx).vertex_size()))
+                                        .child("Width-constrained with size limits (5-25px)")
+                                        .child(self.bounded_constrained_board.clone()),
+                                ),
+                        ),
+                ),
+            )
+            .child(
                 section("Interactive Board").child(
                     v_flex()
                         .gap_2()
@@ -923,6 +1047,12 @@ impl Render for GoBoardStory {
                         .child("  - Random stone variation textures (random_0 through random_4)")
                         .child("  - Deterministic variation placement for consistent appearance")
                         .child("  - Asset loading and caching system with error handling")
+                        .child("• Bounded sizing and responsive behavior")
+                        .child("  - BoundedGoBoard component with automatic vertex size calculation")
+                        .child("  - maxWidth/maxHeight constraints with proportional scaling")
+                        .child("  - Configurable vertex size limits (min/max bounds)")
+                        .child("  - Width and height constraint detection")
+                        .child("  - Support for extreme aspect ratios and small displays")
                         .child("• Responsive design with proper scaling")
                         .child("• Support for partial board ranges")
                         .child("• Comprehensive vertex interaction system")
