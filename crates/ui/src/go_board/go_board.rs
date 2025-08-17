@@ -1,8 +1,9 @@
 use crate::go_board::memory_manager::{MarkerComponent, StoneComponent};
 use crate::go_board::{
-    BoardTheme, DifferentialRenderer, GhostStoneOverlay, GoBoardState, Grid, GridTheme,
-    HeatOverlay, LineOverlay, Markers, MemoryManager, PaintOverlay, StoneTheme, Stones,
-    ThemeCSSAdapter, Vertex, VertexEventHandlers, VertexInteractions, VertexSelections,
+    BoardTheme, DifferentialRenderer, GhostStoneOverlay, GoBoardError, GoBoardResult, GoBoardState,
+    GoBoardValidator, Grid, GridTheme, HeatOverlay, LineOverlay, Markers, MemoryManager,
+    PaintOverlay, StoneTheme, Stones, ThemeCSSAdapter, Vertex, VertexEventHandlers,
+    VertexInteractions, VertexSelections,
 };
 use gpui::*;
 
@@ -41,6 +42,12 @@ impl GoBoard {
         }
     }
 
+    /// Creates a Go board with specified dimensions and validation
+    pub fn try_with_size(width: usize, height: usize) -> GoBoardResult<Self> {
+        GoBoardValidator::validate_board_size(width, height)?;
+        Ok(Self::with_size(width, height))
+    }
+
     /// Creates a Go board with a specified theme
     pub fn with_theme(theme: BoardTheme) -> Self {
         Self {
@@ -56,6 +63,13 @@ impl GoBoard {
     pub fn with_vertex_size(mut self, size: f32) -> Self {
         self.state.vertex_size = size;
         self
+    }
+
+    /// Creates a Go board with validated custom vertex size
+    pub fn try_with_vertex_size(mut self, size: f32) -> GoBoardResult<Self> {
+        GoBoardValidator::validate_vertex_size(size)?;
+        self.state.vertex_size = size;
+        Ok(self)
     }
 
     /// Creates a Go board with specified board range for partial display
@@ -121,6 +135,25 @@ impl GoBoard {
         result
     }
 
+    /// Updates sign map with validation
+    pub fn try_update_sign_map(
+        &mut self,
+        sign_map: crate::go_board::SignMap,
+    ) -> GoBoardResult<bool> {
+        let (width, height) = self.state.dimensions();
+        GoBoardValidator::validate_map_size(&sign_map, "sign_map", width, height)?;
+
+        // Validate each sign value
+        for (y, row) in sign_map.iter().enumerate() {
+            for (x, &sign) in row.iter().enumerate() {
+                let vertex = Vertex::new(x, y);
+                GoBoardValidator::validate_sign(sign, &vertex)?;
+            }
+        }
+
+        Ok(self.update_sign_map(sign_map))
+    }
+
     /// Updates individual stones efficiently with memory management
     pub fn update_stones(&mut self, updates: &[(Vertex, i8)]) -> bool {
         // For bulk updates, check if cleanup is needed
@@ -138,6 +171,22 @@ impl GoBoard {
         result
     }
 
+    /// Updates individual stones with validation
+    pub fn try_update_stones(&mut self, updates: &[(Vertex, i8)]) -> GoBoardResult<bool> {
+        let (width, height) = self.state.dimensions();
+
+        // Validate bulk update size for performance
+        GoBoardValidator::validate_bulk_update_size(updates.len(), 100)?;
+
+        // Validate each update
+        for (vertex, sign) in updates {
+            GoBoardValidator::validate_vertex(vertex, width, height)?;
+            GoBoardValidator::validate_sign(*sign, vertex)?;
+        }
+
+        Ok(self.update_stones(updates))
+    }
+
     /// Gets the differences between current and new sign map
     pub fn get_sign_map_differences(&self, new_sign_map: &crate::go_board::SignMap) -> Vec<Vertex> {
         self.state.get_sign_map_differences(new_sign_map)
@@ -146,6 +195,14 @@ impl GoBoard {
     /// Sets a single stone at a vertex efficiently
     pub fn set_stone(&mut self, vertex: &Vertex, sign: i8) -> bool {
         self.state.set_sign(vertex, sign)
+    }
+
+    /// Sets a single stone at a vertex with validation
+    pub fn try_set_stone(&mut self, vertex: &Vertex, sign: i8) -> GoBoardResult<bool> {
+        let (width, height) = self.state.dimensions();
+        GoBoardValidator::validate_vertex(vertex, width, height)?;
+        GoBoardValidator::validate_sign(sign, vertex)?;
+        Ok(self.state.set_sign(vertex, sign))
     }
 
     /// Gets the stone at a specific vertex

@@ -211,15 +211,15 @@ Convert the feature design into a series of prompts for a code-generation LLM th
     - Write tests for memory usage patterns and cleanup verification
     - _Requirements: 9.5_
 
-- [ ] 15. Create comprehensive error handling and validation
-  - [ ] 15.1 Implement GoBoardError enum and validation
+- [x] 15. Create comprehensive error handling and validation
+  - [x] 15.1 Implement GoBoardError enum and validation
     - Create comprehensive error types for common integration issues
     - Add input validation for board sizes, vertex positions, and ranges
     - Implement clear error messages with actionable guidance
     - Write tests for error handling and validation edge cases
     - _Requirements: 11.4_
 
-  - [ ] 15.2 Add runtime error recovery and graceful degradation
+  - [x] 15.2 Add runtime error recovery and graceful degradation
     - Implement graceful handling of invalid theme configurations
     - Add fallback behavior for missing textures or assets
     - Ensure component stability when receiving invalid data
