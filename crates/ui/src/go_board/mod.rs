@@ -1,4 +1,5 @@
 pub mod coordinates;
+pub mod ghost_stone;
 pub mod go_board;
 pub mod grid;
 pub mod heat_overlay;
@@ -21,6 +22,7 @@ mod grid_tests;
 mod integration_tests;
 
 pub use coordinates::{default_coord_x, default_coord_y, CoordinateLabels, CoordinateTheme};
+pub use ghost_stone::{GhostStoneOverlay, GhostStoneRenderer, GhostStoneTheme};
 pub use go_board::GoBoard;
 pub use grid::{Grid, GridTheme};
 pub use heat_overlay::{HeatOverlay, HeatOverlayRenderer};

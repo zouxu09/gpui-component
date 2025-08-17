@@ -5,10 +5,10 @@ use gpui::{
 
 use gpui_component::{
     go_board::{
-        CornerPaint, DirectionalPaintMap, GoBoard, GridTheme, HeatData, HeatOverlay, Marker,
-        MarkerType, PaintOverlay, SelectionDirection, Vertex, VertexClickEvent,
-        VertexEventHandlers, VertexMouseDownEvent, VertexMouseMoveEvent, VertexMouseUpEvent,
-        VertexSelection,
+        CornerPaint, DirectionalPaintMap, GhostStone, GhostStoneOverlay, GhostStoneType, GoBoard,
+        GridTheme, HeatData, HeatOverlay, Marker, MarkerType, PaintOverlay, SelectionDirection,
+        Vertex, VertexClickEvent, VertexEventHandlers, VertexMouseDownEvent, VertexMouseMoveEvent,
+        VertexMouseUpEvent, VertexSelection,
     },
     h_flex, v_flex, ActiveTheme,
 };
@@ -28,6 +28,7 @@ pub struct GoBoardStory {
     selection_board: Entity<GoBoard>,
     paint_overlay_board: Entity<GoBoard>,
     heat_overlay_board: Entity<GoBoard>,
+    ghost_stone_board: Entity<GoBoard>,
     interactive_board: Entity<GoBoard>,
 }
 
@@ -401,6 +402,129 @@ impl GoBoardStory {
 
                 board
             }),
+            ghost_stone_board: cx.new(|_| {
+                let mut board = GoBoard::with_size(9, 9).with_vertex_size(35.0);
+
+                // Create some stones for context
+                let sign_map = vec![
+                    vec![0, 0, 0, 1, 0, -1, 0, 0, 0],
+                    vec![0, 1, 0, 0, 0, 0, 0, -1, 0],
+                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    vec![1, 0, 0, 0, 0, 0, 0, 0, -1],
+                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    vec![-1, 0, 0, 0, 0, 0, 0, 0, 1],
+                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    vec![0, -1, 0, 0, 0, 0, 0, 1, 0],
+                    vec![0, 0, 0, -1, 0, 1, 0, 0, 0],
+                ];
+                board.set_sign_map(sign_map);
+
+                // Create ghost stone map for analysis visualization
+                let ghost_stone_map = vec![
+                    vec![
+                        Some(GhostStone::new(1, GhostStoneType::Good)),
+                        Some(GhostStone::new(-1, GhostStoneType::Interesting)),
+                        Some(GhostStone::new(1, GhostStoneType::Doubtful)),
+                        None,
+                        Some(GhostStone::new(-1, GhostStoneType::Good).faint()),
+                        None,
+                        Some(GhostStone::new(1, GhostStoneType::Bad)),
+                        Some(GhostStone::new(-1, GhostStoneType::Interesting)),
+                        Some(GhostStone::new(1, GhostStoneType::Good)),
+                    ],
+                    vec![
+                        Some(GhostStone::new(-1, GhostStoneType::Doubtful)),
+                        None,
+                        Some(GhostStone::new(1, GhostStoneType::Good)),
+                        Some(GhostStone::new(-1, GhostStoneType::Bad).faint()),
+                        Some(GhostStone::new(1, GhostStoneType::Interesting)),
+                        Some(GhostStone::new(-1, GhostStoneType::Doubtful)),
+                        Some(GhostStone::new(1, GhostStoneType::Bad)),
+                        None,
+                        Some(GhostStone::new(-1, GhostStoneType::Good)),
+                    ],
+                    vec![
+                        Some(GhostStone::new(1, GhostStoneType::Bad).faint()),
+                        Some(GhostStone::new(-1, GhostStoneType::Good)),
+                        Some(GhostStone::new(1, GhostStoneType::Interesting).faint()),
+                        Some(GhostStone::new(-1, GhostStoneType::Doubtful)),
+                        Some(GhostStone::new(1, GhostStoneType::Bad)),
+                        Some(GhostStone::new(-1, GhostStoneType::Interesting)),
+                        Some(GhostStone::new(1, GhostStoneType::Good).faint()),
+                        Some(GhostStone::new(-1, GhostStoneType::Bad)),
+                        Some(GhostStone::new(1, GhostStoneType::Doubtful)),
+                    ],
+                    vec![
+                        None,
+                        Some(GhostStone::new(-1, GhostStoneType::Interesting).faint()),
+                        Some(GhostStone::new(1, GhostStoneType::Good)),
+                        Some(GhostStone::new(-1, GhostStoneType::Bad)),
+                        Some(GhostStone::new(1, GhostStoneType::Doubtful).faint()),
+                        Some(GhostStone::new(-1, GhostStoneType::Good)),
+                        Some(GhostStone::new(1, GhostStoneType::Interesting)),
+                        Some(GhostStone::new(-1, GhostStoneType::Doubtful)),
+                        None,
+                    ],
+                    vec![
+                        Some(GhostStone::new(1, GhostStoneType::Good)),
+                        Some(GhostStone::new(-1, GhostStoneType::Bad).faint()),
+                        Some(GhostStone::new(1, GhostStoneType::Interesting)),
+                        Some(GhostStone::new(-1, GhostStoneType::Doubtful)),
+                        Some(GhostStone::new(1, GhostStoneType::Good).faint()),
+                        Some(GhostStone::new(-1, GhostStoneType::Bad)),
+                        Some(GhostStone::new(1, GhostStoneType::Interesting).faint()),
+                        Some(GhostStone::new(-1, GhostStoneType::Doubtful)),
+                        Some(GhostStone::new(1, GhostStoneType::Good)),
+                    ],
+                    vec![
+                        None,
+                        Some(GhostStone::new(-1, GhostStoneType::Doubtful)),
+                        Some(GhostStone::new(1, GhostStoneType::Bad).faint()),
+                        Some(GhostStone::new(-1, GhostStoneType::Good)),
+                        Some(GhostStone::new(1, GhostStoneType::Interesting)),
+                        Some(GhostStone::new(-1, GhostStoneType::Doubtful).faint()),
+                        Some(GhostStone::new(1, GhostStoneType::Bad)),
+                        Some(GhostStone::new(-1, GhostStoneType::Good)),
+                        None,
+                    ],
+                    vec![
+                        Some(GhostStone::new(1, GhostStoneType::Interesting).faint()),
+                        Some(GhostStone::new(-1, GhostStoneType::Bad)),
+                        Some(GhostStone::new(1, GhostStoneType::Good)),
+                        Some(GhostStone::new(-1, GhostStoneType::Doubtful).faint()),
+                        Some(GhostStone::new(1, GhostStoneType::Interesting)),
+                        Some(GhostStone::new(-1, GhostStoneType::Bad)),
+                        Some(GhostStone::new(1, GhostStoneType::Good).faint()),
+                        Some(GhostStone::new(-1, GhostStoneType::Doubtful)),
+                        Some(GhostStone::new(1, GhostStoneType::Bad)),
+                    ],
+                    vec![
+                        Some(GhostStone::new(-1, GhostStoneType::Good)),
+                        None,
+                        Some(GhostStone::new(1, GhostStoneType::Doubtful).faint()),
+                        Some(GhostStone::new(-1, GhostStoneType::Interesting)),
+                        Some(GhostStone::new(1, GhostStoneType::Bad)),
+                        Some(GhostStone::new(-1, GhostStoneType::Good).faint()),
+                        Some(GhostStone::new(1, GhostStoneType::Doubtful)),
+                        None,
+                        Some(GhostStone::new(-1, GhostStoneType::Interesting)),
+                    ],
+                    vec![
+                        Some(GhostStone::new(1, GhostStoneType::Bad).faint()),
+                        Some(GhostStone::new(-1, GhostStoneType::Good)),
+                        Some(GhostStone::new(1, GhostStoneType::Interesting)),
+                        None,
+                        Some(GhostStone::new(-1, GhostStoneType::Doubtful).faint()),
+                        None,
+                        Some(GhostStone::new(1, GhostStoneType::Bad)),
+                        Some(GhostStone::new(-1, GhostStoneType::Good)),
+                        Some(GhostStone::new(1, GhostStoneType::Interesting).faint()),
+                    ],
+                ];
+                board.set_ghost_stone_map(ghost_stone_map);
+
+                board
+            }),
             interactive_board: cx.new(|_| GoBoard::with_size(9, 9).with_vertex_size(40.0)),
         }
     }
@@ -540,6 +664,16 @@ impl Render for GoBoardStory {
                         .child("Color gradient: Blue (low influence) → Cyan → Yellow → Red (high influence)")
                         .child("Strength values 0-9 with optional text labels (hover to see effect)")
                         .child(self.heat_overlay_board.clone()),
+                ),
+            )
+            .child(
+                section("Ghost Stones - Analysis Visualization").child(
+                    v_flex()
+                        .gap_2()
+                        .child("9x9 Board with Ghost Stones for Move Analysis")
+                        .child("Green: Good moves, Blue: Interesting moves, Yellow: Doubtful moves, Red: Bad moves")
+                        .child("Faint ghost stones have reduced opacity for subtle display")
+                        .child(self.ghost_stone_board.clone()),
                 ),
             )
             .child(
