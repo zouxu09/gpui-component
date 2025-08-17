@@ -400,8 +400,8 @@ impl Stones {
 
     /// Calculates the visible dimensions
     fn visible_dimensions(&self) -> (f32, f32) {
-        let width = (self.board_range.x.1 - self.board_range.x.0) as f32 * self.vertex_size;
-        let height = (self.board_range.y.1 - self.board_range.y.0) as f32 * self.vertex_size;
+        let width = (self.board_range.x.1 - self.board_range.x.0 + 1) as f32 * self.vertex_size;
+        let height = (self.board_range.y.1 - self.board_range.y.0 + 1) as f32 * self.vertex_size;
         (width, height)
     }
 }
@@ -483,8 +483,8 @@ mod tests {
         let stones = Stones::new(range, 30.0, sign_map);
 
         let (width, height) = stones.visible_dimensions();
-        assert_eq!(width, 120.0); // (6-2) * 30 = 4 * 30
-        assert_eq!(height, 90.0); // (4-1) * 30 = 3 * 30
+        assert_eq!(width, 150.0); // (6-2+1) * 30 = 5 * 30
+        assert_eq!(height, 120.0); // (4-1+1) * 30 = 4 * 30
     }
 
     #[test]

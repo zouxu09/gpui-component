@@ -181,7 +181,7 @@ Convert the feature design into a series of prompts for a code-generation LLM th
     - Write tests for texture loading and random variation application
     - _Requirements: 10.2, 10.3_
 
-- [ ] 13. Implement bounded sizing and responsive behavior
+- [x] 13. Implement bounded sizing and responsive behavior
   - [x] 13.1 Create BoundedGoBoard component
     - Implement maxWidth/maxHeight constraints with automatic vertex size calculation
     - Add responsive scaling that maintains board proportions
@@ -189,7 +189,7 @@ Convert the feature design into a series of prompts for a code-generation LLM th
     - Write tests for responsive scaling calculations and constraint handling
     - _Requirements: 1.5_
 
-  - [ ] 13.2 Add board range support for partial boards
+  - [x] 13.2 Add board range support for partial boards
     - Implement rangeX and rangeY parameter support for displaying board sections
     - Ensure proper coordinate label updates for partial boards
     - Add efficient rendering that only processes visible board areas

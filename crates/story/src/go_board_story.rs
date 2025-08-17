@@ -41,6 +41,9 @@ pub struct GoBoardStory {
     bounded_medium_board: Entity<BoundedGoBoard>,
     bounded_large_board: Entity<BoundedGoBoard>,
     bounded_constrained_board: Entity<BoundedGoBoard>,
+    partial_board_center: Entity<BoundedGoBoard>,
+    partial_board_corner: Entity<BoundedGoBoard>,
+    partial_board_edge: Entity<BoundedGoBoard>,
 }
 
 impl GoBoardStory {
@@ -718,6 +721,60 @@ impl GoBoardStory {
                 bounded.set_sign_map(sign_map);
                 bounded
             }),
+            partial_board_center: cx.new(|_| {
+                // Partial board showing center area of a 19x19 board
+                let mut bounded = BoundedGoBoard::with_size(5, 5, 200.0, 200.0); // 5x5 visible area
+
+                bounded.set_show_coordinates(true);
+
+                // Create a 5x5 sign map for just the visible area (coordinates 0-4)
+                let sign_map = vec![
+                    vec![0, 0, 0, 0, 0],
+                    vec![0, -1, 0, 1, 0],
+                    vec![0, 0, 1, 0, 0],
+                    vec![0, 1, 0, -1, 0],
+                    vec![0, 0, 0, 0, 0],
+                ];
+
+                bounded.set_sign_map(sign_map);
+                bounded
+            }),
+            partial_board_corner: cx.new(|_| {
+                // Partial board showing corner area
+                let mut bounded = BoundedGoBoard::with_size(7, 7, 200.0, 200.0); // 7x7 visible area
+
+                bounded.set_show_coordinates(true);
+
+                // Create a 7x7 sign map showing typical corner pattern (coordinates 0-6)
+                let sign_map = vec![
+                    vec![0, 0, 0, 0, 0, 0, 0],
+                    vec![0, 0, 0, 0, 0, 0, 0],
+                    vec![0, 0, 1, 0, 0, 0, 0],
+                    vec![0, 0, 0, 0, -1, 0, 0],
+                    vec![0, 0, 0, -1, 0, 1, 0],
+                    vec![0, 0, 0, 0, 0, 0, 0],
+                    vec![0, 0, 0, 0, 0, 0, 0],
+                ];
+
+                bounded.set_sign_map(sign_map);
+                bounded
+            }),
+            partial_board_edge: cx.new(|_| {
+                // Partial board showing side edge
+                let mut bounded = BoundedGoBoard::with_size(19, 3, 300.0, 150.0); // 19x3 slice
+
+                bounded.set_show_coordinates(true);
+
+                // Create a 19x3 sign map for edge play (coordinates 0-18 x 0-2)
+                let sign_map = vec![
+                    vec![0, 0, 1, 0, 0, -1, 0, 0, 1, 0, 0, -1, 0, 0, 1, 0, 0, 0, 0],
+                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    vec![0, 1, 0, -1, 0, 1, 0, -1, 0, 1, 0, -1, 0, 1, 0, 0, 0, 0, 0],
+                ];
+
+                bounded.set_sign_map(sign_map);
+                bounded
+            }),
         }
     }
 
@@ -987,6 +1044,41 @@ impl Render for GoBoardStory {
                 ),
             )
             .child(
+                section("Partial Board Display - Range Support").child(
+                    v_flex()
+                        .gap_4()
+                        .child("Demonstrates partial board display with proper stone alignment")
+                        .child(
+                            h_flex()
+                                .gap_6()
+                                .child(
+                                    v_flex()
+                                        .gap_2()
+                                        .child("Center Area (5x5)")
+                                        .child("Typical center fighting pattern")
+                                        .child(format!("Vertex size: {:.1}px", self.partial_board_center.read(cx).vertex_size()))
+                                        .child(self.partial_board_center.clone()),
+                                )
+                                .child(
+                                    v_flex()
+                                        .gap_2()
+                                        .child("Corner Area (7x7)")
+                                        .child("Corner opening pattern")
+                                        .child(format!("Vertex size: {:.1}px", self.partial_board_corner.read(cx).vertex_size()))
+                                        .child(self.partial_board_corner.clone()),
+                                )
+                                .child(
+                                    v_flex()
+                                        .gap_2()
+                                        .child("Edge Slice (19x3)")
+                                        .child("Side edge patterns")
+                                        .child(format!("Vertex size: {:.1}px", self.partial_board_edge.read(cx).vertex_size()))
+                                        .child(self.partial_board_edge.clone()),
+                                ),
+                        ),
+                ),
+            )
+            .child(
                 section("Interactive Board").child(
                     v_flex()
                         .gap_2()
@@ -1053,6 +1145,12 @@ impl Render for GoBoardStory {
                         .child("  - Configurable vertex size limits (min/max bounds)")
                         .child("  - Width and height constraint detection")
                         .child("  - Support for extreme aspect ratios and small displays")
+                        .child("• Partial board display with range support")
+                        .child("  - Shudan-style rangeX and rangeY parameter support")
+                        .child("  - Efficient rendering that only processes visible board areas")
+                        .child("  - Automatic coordinate label updates for partial boards")
+                        .child("  - Support for arbitrary board sections (corners, edges, center)")
+                        .child("  - Dynamic range updates with automatic vertex size recalculation")
                         .child("• Responsive design with proper scaling")
                         .child("• Support for partial board ranges")
                         .child("• Comprehensive vertex interaction system")
