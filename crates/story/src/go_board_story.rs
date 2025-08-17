@@ -7,9 +7,9 @@ use gpui_component::{
     go_board::{
         BoardTheme, CornerPaint, DirectionalPaintMap, GhostStone, GhostStoneOverlay,
         GhostStoneType, GoBoard, GridTheme, HeatData, HeatOverlay, Line, LineOverlay, LineType,
-        Marker, MarkerType, PaintOverlay, SelectionDirection, Vertex, VertexClickEvent,
-        VertexEventHandlers, VertexMouseDownEvent, VertexMouseMoveEvent, VertexMouseUpEvent,
-        VertexSelection,
+        Marker, MarkerType, PaintOverlay, SelectionDirection, TextureThemeAdapter, TextureUtils,
+        Vertex, VertexClickEvent, VertexEventHandlers, VertexMouseDownEvent, VertexMouseMoveEvent,
+        VertexMouseUpEvent, VertexSelection,
     },
     h_flex, v_flex, ActiveTheme,
 };
@@ -25,6 +25,8 @@ pub struct GoBoardStory {
     dark_theme_board: Entity<GoBoard>,
     minimalist_theme_board: Entity<GoBoard>,
     high_contrast_board: Entity<GoBoard>,
+    textured_board: Entity<GoBoard>,
+    stone_variation_board: Entity<GoBoard>,
     coordinate_board: Entity<GoBoard>,
     stone_board: Entity<GoBoard>,
     fuzzy_stone_board: Entity<GoBoard>,
@@ -69,6 +71,57 @@ impl GoBoardStory {
             high_contrast_board: cx.new(|_| {
                 let mut board = GoBoard::with_size(9, 9).with_vertex_size(30.0);
                 board.set_theme(BoardTheme::high_contrast());
+                board
+            }),
+            textured_board: cx.new(|_| {
+                // Create a board with texture support demonstration
+                let textured_theme = BoardTheme::default()
+                    .with_board_texture("assets/wood_texture.png".to_string())
+                    .with_stone_textures(
+                        Some("assets/black_stone.png".to_string()),
+                        Some("assets/white_stone.png".to_string()),
+                    );
+
+                let mut board = GoBoard::with_size(9, 9).with_vertex_size(30.0);
+                board.set_theme(textured_theme);
+
+                // Add some stones to demonstrate textured stones
+                let sign_map = vec![
+                    vec![0, 0, 0, 1, 0, -1, 0, 0, 0],
+                    vec![0, 1, 0, 0, 0, 0, 0, -1, 0],
+                    vec![0, 0, 1, 0, 0, 0, -1, 0, 0],
+                    vec![1, 0, 0, 0, 0, 0, 0, 0, -1],
+                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    vec![-1, 0, 0, 0, 0, 0, 0, 0, 1],
+                    vec![0, 0, -1, 0, 0, 0, 1, 0, 0],
+                    vec![0, -1, 0, 0, 0, 0, 0, 1, 0],
+                    vec![0, 0, 0, -1, 0, 1, 0, 0, 0],
+                ];
+                board.set_sign_map(sign_map);
+                board
+            }),
+            stone_variation_board: cx.new(|_| {
+                // Create a board with random stone variations
+                let variation_theme = BoardTheme::default()
+                    .with_standard_stone_variations("assets/stone_variations")
+                    .with_random_variation(true, 8.0); // Enable rotation variation too
+
+                let mut board = GoBoard::with_size(9, 9).with_vertex_size(35.0);
+                board.set_theme(variation_theme);
+
+                // Add many stones to demonstrate variation
+                let sign_map = vec![
+                    vec![1, -1, 1, -1, 1, -1, 1, -1, 1],
+                    vec![-1, 1, -1, 1, -1, 1, -1, 1, -1],
+                    vec![1, -1, 1, -1, 1, -1, 1, -1, 1],
+                    vec![-1, 1, -1, 1, -1, 1, -1, 1, -1],
+                    vec![1, -1, 1, -1, 0, -1, 1, -1, 1],
+                    vec![-1, 1, -1, 1, -1, 1, -1, 1, -1],
+                    vec![1, -1, 1, -1, 1, -1, 1, -1, 1],
+                    vec![-1, 1, -1, 1, -1, 1, -1, 1, -1],
+                    vec![1, -1, 1, -1, 1, -1, 1, -1, 1],
+                ];
+                board.set_sign_map(sign_map);
                 board
             }),
             coordinate_board: cx.new(|_| {
@@ -692,6 +745,31 @@ impl Render for GoBoardStory {
                 ),
             )
             .child(
+                section("Texture and Asset Support").child(
+                    v_flex()
+                        .gap_4()
+                        .child("Advanced texture loading and stone variation system")
+                        .child(
+                            h_flex()
+                                .gap_6()
+                                .child(
+                                    v_flex()
+                                        .gap_2()
+                                        .child("Textured Board")
+                                        .child("Board texture + custom stone images")
+                                        .child(self.textured_board.clone()),
+                                )
+                                .child(
+                                    v_flex()
+                                        .gap_2()
+                                        .child("Stone Variations")
+                                        .child("Random texture variations (random_0-4)")
+                                        .child(self.stone_variation_board.clone()),
+                                ),
+                        ),
+                ),
+            )
+            .child(
                 section("Legacy Theme Support").child(
                     v_flex()
                         .gap_2()
@@ -839,6 +917,12 @@ impl Render for GoBoardStory {
                         .child("  - Theme builder pattern for easy customization")
                         .child("  - Predefined themes: default, dark, minimalist, high-contrast")
                         .child("  - Backward compatibility with GridTheme and StoneTheme")
+                        .child("• Advanced texture and asset support")
+                        .child("  - Board background textures with GPUI image rendering")
+                        .child("  - Custom stone images with fallback to solid colors")
+                        .child("  - Random stone variation textures (random_0 through random_4)")
+                        .child("  - Deterministic variation placement for consistent appearance")
+                        .child("  - Asset loading and caching system with error handling")
                         .child("• Responsive design with proper scaling")
                         .child("• Support for partial board ranges")
                         .child("• Comprehensive vertex interaction system")

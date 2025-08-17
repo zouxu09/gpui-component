@@ -286,6 +286,17 @@ impl Grid {
         }
     }
 
+    /// Renders the grid with texture support
+    pub fn render_with_texture(&self, texture_element: Option<impl IntoElement>) -> AnyElement {
+        if self.show_coordinates {
+            self.render_with_coordinates_and_texture(texture_element)
+                .into_any_element()
+        } else {
+            self.render_grid_only_with_texture(texture_element)
+                .into_any_element()
+        }
+    }
+
     /// Renders the grid without coordinates
     fn render_grid_only(&self) -> impl IntoElement {
         let (width, height) = self.visible_dimensions();
@@ -361,6 +372,104 @@ impl Grid {
         }
 
         // Add star points (hoshi)
+        for star_point in self.render_star_points() {
+            grid_container = grid_container.child(star_point);
+        }
+
+        main_container.child(grid_container)
+    }
+
+    /// Renders the grid without coordinates but with texture support
+    fn render_grid_only_with_texture(
+        &self,
+        texture_element: Option<impl IntoElement>,
+    ) -> impl IntoElement {
+        let (width, height) = self.visible_dimensions();
+
+        // Create container with background
+        let mut container = div()
+            .w(px(width))
+            .h(px(height))
+            .bg(self.theme.background_color)
+            .border_1()
+            .border_color(self.theme.border_color)
+            .relative();
+
+        // Add texture as background if provided
+        if let Some(texture) = texture_element {
+            container = container.child(div().absolute().inset_0().child(texture));
+        }
+
+        // Add horizontal lines
+        for line in self.render_horizontal_lines() {
+            container = container.child(line);
+        }
+
+        // Add vertical lines
+        for line in self.render_vertical_lines() {
+            container = container.child(line);
+        }
+
+        // Add star points
+        for star_point in self.render_star_points() {
+            container = container.child(star_point);
+        }
+
+        container
+    }
+
+    /// Renders the grid with coordinates and texture support
+    fn render_with_coordinates_and_texture(
+        &self,
+        texture_element: Option<impl IntoElement>,
+    ) -> impl IntoElement {
+        let coordinate_labels = CoordinateLabels::new(self.board_range.clone(), self.vertex_size)
+            .with_theme(self.coordinate_theme.clone())
+            .with_coord_functions(self.coord_x, self.coord_y);
+
+        let (grid_offset_x, grid_offset_y) = coordinate_labels.grid_offset();
+        let (total_width, total_height) = coordinate_labels.total_dimensions();
+        let (width, height) = self.visible_dimensions();
+
+        // Create main container with relative positioning
+        let mut main_container = div().relative().w(px(total_width)).h(px(total_height));
+
+        // Add coordinate labels as background layer
+        main_container = main_container.child(
+            div()
+                .absolute()
+                .inset_0()
+                .child(coordinate_labels.render_coordinates()),
+        );
+
+        // Create grid container positioned within the coordinate space with texture
+        let mut grid_container = div()
+            .absolute()
+            .left(px(grid_offset_x))
+            .top(px(grid_offset_y))
+            .w(px(width))
+            .h(px(height))
+            .bg(self.theme.background_color)
+            .border_1()
+            .border_color(self.theme.border_color)
+            .relative();
+
+        // Add texture as background if provided
+        if let Some(texture) = texture_element {
+            grid_container = grid_container.child(div().absolute().inset_0().child(texture));
+        }
+
+        // Add horizontal lines
+        for line in self.render_horizontal_lines() {
+            grid_container = grid_container.child(line);
+        }
+
+        // Add vertical lines
+        for line in self.render_vertical_lines() {
+            grid_container = grid_container.child(line);
+        }
+
+        // Add star points
         for star_point in self.render_star_points() {
             grid_container = grid_container.child(star_point);
         }

@@ -196,6 +196,82 @@ impl Stone {
 
         Some(stone_div)
     }
+
+    /// Renders with texture support using texture adapter
+    pub fn render_with_texture(
+        &self,
+        board_range: &BoardRange,
+        texture_adapter: &crate::go_board::TextureThemeAdapter,
+        board_theme: &crate::go_board::BoardTheme,
+    ) -> Option<impl IntoElement> {
+        if self.sign == 0 {
+            return None; // Empty vertex, no stone to render
+        }
+
+        let (base_pixel_x, base_pixel_y) = self.pixel_position(board_range);
+        let (fuzzy_x, fuzzy_y) = self.fuzzy_offset();
+        let pixel_x = base_pixel_x + fuzzy_x;
+        let pixel_y = base_pixel_y + fuzzy_y;
+
+        let stone_size = self.stone_size();
+        let radius = stone_size / 2.0;
+
+        let color = if self.sign == 1 {
+            self.theme.black_color
+        } else {
+            self.theme.white_color
+        };
+
+        // Get variation index if random variations are enabled
+        let variation_index = if board_theme.enable_random_stone_variation {
+            crate::go_board::TextureUtils::get_random_variation_index(
+                self.position.x,
+                self.position.y,
+                board_theme.stone_variation_textures.len(),
+            )
+        } else {
+            None
+        };
+
+        let mut stone_container = div()
+            .absolute()
+            .left(px(pixel_x - radius))
+            .top(px(pixel_y - radius))
+            .w(px(stone_size))
+            .h(px(stone_size))
+            .rounded_full()
+            .relative();
+
+        // Try to create texture element
+        if let Some(texture_element) = texture_adapter.create_stone_texture_element(
+            board_theme,
+            self.sign == 1,
+            variation_index,
+            px(stone_size),
+        ) {
+            // Add texture as background
+            stone_container = stone_container.child(
+                div()
+                    .absolute()
+                    .inset_0()
+                    .rounded_full()
+                    .overflow_hidden()
+                    .child(texture_element),
+            );
+        } else {
+            // Fall back to solid color
+            stone_container = stone_container.bg(color);
+        }
+
+        // Apply border if configured
+        if self.theme.border_width > 0.0 {
+            stone_container = stone_container
+                .border_color(self.theme.border_color)
+                .border_1();
+        }
+
+        Some(stone_container)
+    }
 }
 
 /// Stones component for rendering all stones on the board
@@ -267,6 +343,39 @@ impl Stones {
                             .with_theme(self.theme.clone());
 
                         if let Some(element) = stone.render(&self.board_range) {
+                            stones.push(element);
+                        }
+                    }
+                }
+            }
+        }
+
+        stones
+    }
+
+    /// Renders all stones on the board with texture support
+    pub fn render_stones_with_texture(
+        &self,
+        texture_adapter: &crate::go_board::TextureThemeAdapter,
+        board_theme: &crate::go_board::BoardTheme,
+    ) -> Vec<impl IntoElement> {
+        let mut stones = Vec::new();
+
+        // Iterate through the visible range
+        for y in self.board_range.y.0..=self.board_range.y.1 {
+            for x in self.board_range.x.0..=self.board_range.x.1 {
+                if y < self.sign_map.len() && x < self.sign_map[y].len() {
+                    let sign = self.sign_map[y][x];
+                    if sign != 0 {
+                        let position = Vertex::new(x, y);
+                        let stone = Stone::new(position, sign, self.vertex_size)
+                            .with_theme(self.theme.clone());
+
+                        if let Some(element) = stone.render_with_texture(
+                            &self.board_range,
+                            texture_adapter,
+                            board_theme,
+                        ) {
                             stones.push(element);
                         }
                     }
