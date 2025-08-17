@@ -104,8 +104,8 @@ impl Grid {
 
     /// Gets the visible board dimensions
     fn visible_dimensions(&self) -> (f32, f32) {
-        let width = (self.board_range.x.1 - self.board_range.x.0) as f32 * self.vertex_size;
-        let height = (self.board_range.y.1 - self.board_range.y.0) as f32 * self.vertex_size;
+        let width = (self.board_range.x.1 - self.board_range.x.0 + 1) as f32 * self.vertex_size;
+        let height = (self.board_range.y.1 - self.board_range.y.0 + 1) as f32 * self.vertex_size;
         (width, height)
     }
 
@@ -519,12 +519,12 @@ mod tests {
         let range = BoardRange::new((0, 18), (0, 18)); // 19x19 board
         let grid = Grid::new(range, 25.0);
 
-        assert_eq!(grid.visible_dimensions(), (450.0, 450.0)); // 18 * 25
+        assert_eq!(grid.visible_dimensions(), (475.0, 475.0)); // 19 * 25
 
         let partial_range = BoardRange::new((5, 14), (5, 14)); // 10x10 partial board
         let partial_grid = Grid::new(partial_range, 30.0);
 
-        assert_eq!(partial_grid.visible_dimensions(), (270.0, 270.0)); // 9 * 30
+        assert_eq!(partial_grid.visible_dimensions(), (300.0, 300.0)); // 10 * 30
     }
 
     #[test]
