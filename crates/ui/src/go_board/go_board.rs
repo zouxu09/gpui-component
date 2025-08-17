@@ -1,7 +1,8 @@
+use crate::go_board::memory_manager::{MarkerComponent, StoneComponent};
 use crate::go_board::{
     BoardTheme, DifferentialRenderer, GhostStoneOverlay, GoBoardState, Grid, GridTheme,
-    HeatOverlay, LineOverlay, Markers, PaintOverlay, StoneTheme, Stones, ThemeCSSAdapter, Vertex,
-    VertexEventHandlers, VertexInteractions, VertexSelections,
+    HeatOverlay, LineOverlay, Markers, MemoryManager, PaintOverlay, StoneTheme, Stones,
+    ThemeCSSAdapter, Vertex, VertexEventHandlers, VertexInteractions, VertexSelections,
 };
 use gpui::*;
 
@@ -12,6 +13,7 @@ pub struct GoBoard {
     theme: BoardTheme,
     css_adapter: ThemeCSSAdapter,
     differential_renderer: DifferentialRenderer,
+    memory_manager: MemoryManager,
 }
 
 impl GoBoard {
@@ -22,6 +24,7 @@ impl GoBoard {
             state: GoBoardState::standard(),
             css_adapter: ThemeCSSAdapter::from_theme(&theme),
             differential_renderer: DifferentialRenderer::new(),
+            memory_manager: MemoryManager::new(),
             theme,
         }
     }
@@ -33,6 +36,7 @@ impl GoBoard {
             state: GoBoardState::new(width, height),
             css_adapter: ThemeCSSAdapter::from_theme(&theme),
             differential_renderer: DifferentialRenderer::new(),
+            memory_manager: MemoryManager::new(),
             theme,
         }
     }
@@ -43,6 +47,7 @@ impl GoBoard {
             state: GoBoardState::standard(),
             css_adapter: ThemeCSSAdapter::from_theme(&theme),
             differential_renderer: DifferentialRenderer::new(),
+            memory_manager: MemoryManager::new(),
             theme,
         }
     }
@@ -99,14 +104,38 @@ impl GoBoard {
         }
     }
 
-    /// Updates sign map efficiently with change detection
+    /// Updates sign map efficiently with change detection and memory cleanup
     pub fn update_sign_map(&mut self, sign_map: crate::go_board::SignMap) -> bool {
-        self.state.update_sign_map(&sign_map)
+        // Perform memory cleanup before major updates if needed
+        if self.memory_manager.needs_cleanup() {
+            self.memory_manager.cleanup();
+        }
+
+        let result = self.state.update_sign_map(&sign_map);
+
+        // Clear differential renderer cache if the update was significant
+        if result {
+            self.differential_renderer.invalidate_cache();
+        }
+
+        result
     }
 
-    /// Updates individual stones efficiently
+    /// Updates individual stones efficiently with memory management
     pub fn update_stones(&mut self, updates: &[(Vertex, i8)]) -> bool {
-        self.state.update_stones(updates)
+        // For bulk updates, check if cleanup is needed
+        if updates.len() > 10 && self.memory_manager.needs_cleanup() {
+            self.memory_manager.cleanup();
+        }
+
+        let result = self.state.update_stones(updates);
+
+        // Invalidate cache for significant changes
+        if result && updates.len() > 5 {
+            self.differential_renderer.invalidate_cache();
+        }
+
+        result
     }
 
     /// Gets the differences between current and new sign map
@@ -224,20 +253,44 @@ impl GoBoard {
         }
     }
 
-    /// Updates ghost stone map efficiently with change detection
+    /// Updates ghost stone map efficiently with change detection and memory cleanup
     pub fn update_ghost_stone_map(
         &mut self,
         ghost_stone_map: crate::go_board::GhostStoneMap,
     ) -> bool {
-        self.state.update_ghost_stone_map(&ghost_stone_map)
+        // Perform memory cleanup before major updates if needed
+        if self.memory_manager.needs_cleanup() {
+            self.memory_manager.cleanup();
+        }
+
+        let result = self.state.update_ghost_stone_map(&ghost_stone_map);
+
+        // Clear differential renderer cache if the update was significant
+        if result {
+            self.differential_renderer.invalidate_cache();
+        }
+
+        result
     }
 
-    /// Updates individual ghost stones efficiently
+    /// Updates individual ghost stones efficiently with memory management
     pub fn update_ghost_stones(
         &mut self,
         updates: &[(Vertex, Option<crate::go_board::GhostStone>)],
     ) -> bool {
-        self.state.update_ghost_stones(updates)
+        // For bulk updates, check if cleanup is needed
+        if updates.len() > 10 && self.memory_manager.needs_cleanup() {
+            self.memory_manager.cleanup();
+        }
+
+        let result = self.state.update_ghost_stones(updates);
+
+        // Invalidate cache for significant changes
+        if result && updates.len() > 5 {
+            self.differential_renderer.invalidate_cache();
+        }
+
+        result
     }
 
     /// Gets the ghost stone at a specific vertex
@@ -299,16 +352,22 @@ impl GoBoard {
         self.state.busy = busy;
     }
 
-    /// Sets the board theme (replaces both grid and stone themes)
+    /// Sets the board theme (replaces both grid and stone themes) with memory cleanup
     pub fn set_theme(&mut self, theme: BoardTheme) {
+        // Cleanup old theme-related cached components
+        self.memory_manager.cleanup();
+
         self.theme = theme;
         self.css_adapter = ThemeCSSAdapter::from_theme(&self.theme);
+
         // Invalidate differential renderer cache since theme affects rendering
         self.differential_renderer.invalidate_cache();
     }
 
-    /// Forces a full re-render on next update (useful after major changes)
+    /// Forces a full re-render on next update with memory cleanup
     pub fn invalidate_render_cache(&mut self) {
+        // Clean up any cached components that may be invalidated
+        self.memory_manager.cleanup();
         self.differential_renderer.invalidate_cache();
     }
 
@@ -320,6 +379,183 @@ impl GoBoard {
     /// Checks if a vertex was changed in the last update
     pub fn vertex_changed(&self, vertex: &Vertex) -> bool {
         self.differential_renderer.vertex_changed(vertex)
+    }
+
+    /// Registers an animation timer for cleanup tracking
+    pub fn register_animation_timer(
+        &mut self,
+        timer_id: String,
+        cleanup_callback: Option<fn()>,
+    ) -> crate::go_board::TimerHandle {
+        self.memory_manager
+            .register_timer(timer_id, cleanup_callback)
+    }
+
+    /// Cleans up a specific animation timer
+    pub fn cleanup_animation_timer(&mut self, timer_id: &str) -> bool {
+        self.memory_manager.cleanup_timer(timer_id)
+    }
+
+    /// Cleans up all active animation timers
+    pub fn cleanup_all_timers(&mut self) {
+        self.memory_manager.cleanup_all_timers();
+    }
+
+    /// Performs memory cleanup (removes old pooled components and timers)
+    pub fn cleanup_memory(&mut self) {
+        self.memory_manager.cleanup();
+    }
+
+    /// Forces complete memory cleanup (removes all pooled components and timers)
+    pub fn force_memory_cleanup(&mut self) {
+        self.memory_manager.force_cleanup();
+    }
+
+    /// Gets current memory usage statistics
+    pub fn get_memory_stats(&self) -> &crate::go_board::MemoryStats {
+        self.memory_manager.get_memory_stats()
+    }
+
+    /// Gets component pool statistics
+    pub fn get_pool_stats(&self) -> crate::go_board::ComponentPoolStats {
+        self.memory_manager.get_pool_stats()
+    }
+
+    /// Checks if memory cleanup is needed based on configuration
+    pub fn needs_memory_cleanup(&self) -> bool {
+        self.memory_manager.needs_cleanup()
+    }
+
+    /// Gets memory efficiency ratio (reused vs created components)
+    pub fn get_memory_efficiency(&self) -> f64 {
+        self.memory_manager.get_efficiency_ratio()
+    }
+
+    /// Gets a pooled stone component for efficient rendering
+    pub fn get_pooled_stone_component(&mut self, vertex: Vertex, sign: i8) -> StoneComponent {
+        self.memory_manager
+            .get_stone_component(vertex, sign, self.state.vertex_size)
+    }
+
+    /// Returns a stone component to the pool for reuse
+    pub fn return_stone_component(&mut self, component: StoneComponent) {
+        self.memory_manager.return_stone_component(component);
+    }
+
+    /// Gets a pooled marker component for efficient rendering
+    pub fn get_pooled_marker_component(
+        &mut self,
+        vertex: Vertex,
+        marker_type: crate::go_board::MarkerType,
+    ) -> MarkerComponent {
+        self.memory_manager
+            .get_marker_component(vertex, marker_type, self.state.vertex_size)
+    }
+
+    /// Returns a marker component to the pool for reuse
+    pub fn return_marker_component(&mut self, component: MarkerComponent) {
+        self.memory_manager.return_marker_component(component);
+    }
+
+    /// Renders the board with component pooling for efficient memory usage
+    /// This method demonstrates how to use component pooling for large boards
+    pub fn render_with_pooling(&mut self, handlers: VertexEventHandlers) -> impl IntoElement {
+        // Perform automatic cleanup if needed
+        if self.memory_manager.needs_cleanup() {
+            self.memory_manager.cleanup();
+        }
+
+        // For demonstration, we'll show how to use pooled components
+        // In a real implementation, the Stones and Markers components would
+        // request pooled components from the memory manager
+
+        // Create grid component with theme-derived properties
+        let grid_theme = self.grid_theme();
+        let grid = Grid::new(self.state.board_range.clone(), self.state.vertex_size)
+            .with_theme(grid_theme)
+            .with_coordinates(self.state.show_coordinates);
+
+        // Create stones component with theme-derived properties and pooling hint
+        let stone_theme = self.stone_theme();
+        let stones = Stones::new(
+            self.state.board_range.clone(),
+            self.state.vertex_size,
+            self.state.sign_map.clone(),
+        )
+        .with_theme(stone_theme);
+
+        // Create markers component with pooling capabilities
+        let grid_offset = point(px(0.0), px(0.0));
+        let markers = Markers::new(self.state.vertex_size, grid_offset);
+
+        // Rest of the rendering remains the same but could be optimized
+        // with component pooling in a production implementation
+        let selections = VertexSelections::new(self.state.vertex_size, grid_offset);
+        let selection_data = VertexSelections::from_board_state(
+            &self.state.selected_vertices,
+            &self.state.dimmed_vertices,
+            &self.state.selected_left,
+            &self.state.selected_right,
+            &self.state.selected_top,
+            &self.state.selected_bottom,
+        );
+
+        let paint_overlay = PaintOverlay::new(self.state.vertex_size, grid_offset);
+        let heat_overlay = HeatOverlay::new(self.state.vertex_size, grid_offset);
+        let ghost_stone_overlay = GhostStoneOverlay::new(self.state.vertex_size, grid_offset);
+        let line_overlay = LineOverlay::new(self.state.vertex_size, grid_offset);
+
+        let mut board_div = div()
+            .id("go-board-pooled")
+            .relative()
+            .child(grid.render())
+            .child(div().absolute().inset_0().child(stones.render()))
+            .child(
+                div()
+                    .absolute()
+                    .inset_0()
+                    .child(ghost_stone_overlay.render_ghost_stones(&self.state.ghost_stone_map)),
+            )
+            .child(
+                div()
+                    .absolute()
+                    .inset_0()
+                    .child(paint_overlay.render_paint_overlay(&self.state.paint_map, None)),
+            )
+            .child(
+                div()
+                    .absolute()
+                    .inset_0()
+                    .child(heat_overlay.render_heat_overlay(&self.state.heat_map)),
+            )
+            .child(
+                div()
+                    .absolute()
+                    .inset_0()
+                    .child(line_overlay.render_lines(&self.state.lines)),
+            )
+            .child(
+                div()
+                    .absolute()
+                    .inset_0()
+                    .child(markers.render_markers(&self.state.marker_map)),
+            )
+            .child(
+                div()
+                    .absolute()
+                    .inset_0()
+                    .child(selections.render_selections(&selection_data)),
+            );
+
+        // Add interaction layer
+        let interactions =
+            VertexInteractions::new(self.state.board_range.clone(), self.state.vertex_size)
+                .with_busy(self.state.busy);
+
+        let interaction_layer = interactions.render_with_handlers(handlers);
+        board_div = board_div.child(div().absolute().inset_0().child(interaction_layer));
+
+        board_div
     }
 
     /// Sets the grid theme (for backward compatibility)
@@ -517,6 +753,11 @@ impl GoBoard {
         &mut self,
         handlers: VertexEventHandlers,
     ) -> AnyElement {
+        // Check if memory cleanup is needed and perform it automatically
+        if self.memory_manager.needs_cleanup() {
+            self.memory_manager.cleanup();
+        }
+
         // Note: In a real GPUI application, this would require more sophisticated
         // state management and component caching. For now, this demonstrates
         // the differential analysis capability.
@@ -545,6 +786,7 @@ impl GoBoard {
             // 2. Use CSS transforms for animations
             // 3. Batch DOM updates to prevent layout thrashing
             // 4. Use virtual DOM or similar diffing strategies
+            // 5. Use component pooling from memory manager for expensive components
 
             self.render_with_vertex_handlers(handlers)
                 .into_any_element()
@@ -565,5 +807,12 @@ impl Render for GoBoard {
     fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
         let handlers = VertexEventHandlers::new();
         self.render_with_vertex_handlers(handlers)
+    }
+}
+
+impl Drop for GoBoard {
+    fn drop(&mut self) {
+        // Ensure all timers and resources are cleaned up when GoBoard is dropped
+        self.force_memory_cleanup();
     }
 }
