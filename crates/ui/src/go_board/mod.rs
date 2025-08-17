@@ -1,3 +1,4 @@
+pub mod bounded_go_board;
 pub mod coordinates;
 pub mod ghost_stone;
 pub mod go_board;
@@ -28,6 +29,7 @@ mod integration_tests;
 #[cfg(test)]
 mod texture_integration_tests;
 
+pub use bounded_go_board::BoundedGoBoard;
 pub use coordinates::{default_coord_x, default_coord_y, CoordinateLabels, CoordinateTheme};
 pub use ghost_stone::{GhostStoneOverlay, GhostStoneRenderer, GhostStoneTheme};
 pub use go_board::GoBoard;
