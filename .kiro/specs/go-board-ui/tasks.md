@@ -114,7 +114,7 @@ Convert the feature design into a series of prompts for a code-generation LLM th
     - Write tests for paint overlay rendering and opacity calculations
     - _Requirements: 6.2, 6.5_
 
-  - [ ] 8.2 Add heat map visualization
+  - [x] 8.2 Add heat map visualization
     - Implement HeatOverlay component with strength values 0-9
     - Support optional text labels within heat map cells
     - Add gradient visualization for positional strength display

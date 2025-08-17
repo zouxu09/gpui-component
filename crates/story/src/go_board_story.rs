@@ -5,9 +5,10 @@ use gpui::{
 
 use gpui_component::{
     go_board::{
-        CornerPaint, DirectionalPaintMap, GoBoard, GridTheme, Marker, MarkerType, PaintOverlay,
-        SelectionDirection, Vertex, VertexClickEvent, VertexEventHandlers, VertexMouseDownEvent,
-        VertexMouseMoveEvent, VertexMouseUpEvent, VertexSelection,
+        CornerPaint, DirectionalPaintMap, GoBoard, GridTheme, HeatData, HeatOverlay, Marker,
+        MarkerType, PaintOverlay, SelectionDirection, Vertex, VertexClickEvent,
+        VertexEventHandlers, VertexMouseDownEvent, VertexMouseMoveEvent, VertexMouseUpEvent,
+        VertexSelection,
     },
     h_flex, v_flex, ActiveTheme,
 };
@@ -26,6 +27,7 @@ pub struct GoBoardStory {
     marker_board: Entity<GoBoard>,
     selection_board: Entity<GoBoard>,
     paint_overlay_board: Entity<GoBoard>,
+    heat_overlay_board: Entity<GoBoard>,
     interactive_board: Entity<GoBoard>,
 }
 
@@ -276,6 +278,129 @@ impl GoBoardStory {
 
                 board
             }),
+            heat_overlay_board: cx.new(|_| {
+                let mut board = GoBoard::with_size(9, 9).with_vertex_size(35.0);
+
+                // Create some stones for context
+                let sign_map = vec![
+                    vec![0, 0, 0, 1, 0, -1, 0, 0, 0],
+                    vec![0, 1, 0, 0, 0, 0, 0, -1, 0],
+                    vec![0, 0, 0, 1, 0, -1, 0, 0, 0],
+                    vec![1, 0, 0, 0, 0, 0, 0, 0, -1],
+                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    vec![-1, 0, 0, 0, 0, 0, 0, 0, 1],
+                    vec![0, 0, 0, -1, 0, 1, 0, 0, 0],
+                    vec![0, -1, 0, 0, 0, 0, 0, 1, 0],
+                    vec![0, 0, 0, -1, 0, 1, 0, 0, 0],
+                ];
+                board.set_sign_map(sign_map);
+
+                // Create heat map for influence analysis
+                let heat_map = vec![
+                    vec![
+                        Some(HeatData::with_text(2, "2".to_string())),
+                        Some(HeatData::new(4)),
+                        Some(HeatData::new(6)),
+                        Some(HeatData::new(3)),
+                        None,
+                        Some(HeatData::new(3)),
+                        Some(HeatData::new(6)),
+                        Some(HeatData::new(4)),
+                        Some(HeatData::with_text(2, "2".to_string())),
+                    ],
+                    vec![
+                        Some(HeatData::new(3)),
+                        None,
+                        Some(HeatData::new(5)),
+                        Some(HeatData::new(7)),
+                        Some(HeatData::new(8)),
+                        Some(HeatData::new(7)),
+                        Some(HeatData::new(5)),
+                        None,
+                        Some(HeatData::new(3)),
+                    ],
+                    vec![
+                        Some(HeatData::new(4)),
+                        Some(HeatData::new(6)),
+                        Some(HeatData::new(8)),
+                        None,
+                        Some(HeatData::with_text(9, "MAX".to_string())),
+                        None,
+                        Some(HeatData::new(8)),
+                        Some(HeatData::new(6)),
+                        Some(HeatData::new(4)),
+                    ],
+                    vec![
+                        None,
+                        Some(HeatData::new(7)),
+                        Some(HeatData::with_text(9, "H".to_string())),
+                        Some(HeatData::new(8)),
+                        Some(HeatData::new(7)),
+                        Some(HeatData::new(8)),
+                        Some(HeatData::with_text(9, "H".to_string())),
+                        Some(HeatData::new(7)),
+                        None,
+                    ],
+                    vec![
+                        Some(HeatData::new(5)),
+                        Some(HeatData::new(8)),
+                        Some(HeatData::new(7)),
+                        Some(HeatData::new(6)),
+                        Some(HeatData::new(5)),
+                        Some(HeatData::new(6)),
+                        Some(HeatData::new(7)),
+                        Some(HeatData::new(8)),
+                        Some(HeatData::new(5)),
+                    ],
+                    vec![
+                        None,
+                        Some(HeatData::new(7)),
+                        Some(HeatData::with_text(9, "H".to_string())),
+                        Some(HeatData::new(8)),
+                        Some(HeatData::new(7)),
+                        Some(HeatData::new(8)),
+                        Some(HeatData::with_text(9, "H".to_string())),
+                        Some(HeatData::new(7)),
+                        None,
+                    ],
+                    vec![
+                        Some(HeatData::new(4)),
+                        Some(HeatData::new(6)),
+                        Some(HeatData::new(8)),
+                        None,
+                        Some(HeatData::with_text(9, "MAX".to_string())),
+                        None,
+                        Some(HeatData::new(8)),
+                        Some(HeatData::new(6)),
+                        Some(HeatData::new(4)),
+                    ],
+                    vec![
+                        Some(HeatData::new(3)),
+                        None,
+                        Some(HeatData::new(5)),
+                        Some(HeatData::new(7)),
+                        Some(HeatData::new(8)),
+                        Some(HeatData::new(7)),
+                        Some(HeatData::new(5)),
+                        None,
+                        Some(HeatData::new(3)),
+                    ],
+                    vec![
+                        Some(HeatData::with_text(2, "2".to_string())),
+                        Some(HeatData::new(4)),
+                        Some(HeatData::new(6)),
+                        Some(HeatData::new(3)),
+                        None,
+                        Some(HeatData::new(3)),
+                        Some(HeatData::new(6)),
+                        Some(HeatData::new(4)),
+                        Some(HeatData::with_text(2, "2".to_string())),
+                    ],
+                ];
+                board.set_heat_map(heat_map);
+
+                board
+            }),
             interactive_board: cx.new(|_| GoBoard::with_size(9, 9).with_vertex_size(40.0)),
         }
     }
@@ -405,6 +530,16 @@ impl Render for GoBoardStory {
                         .child("Blue regions: Black territory (positive values), Gray regions: White territory (negative values)")
                         .child("Intensity varies with paint value strength (-1.0 to 1.0)")
                         .child(self.paint_overlay_board.clone()),
+                ),
+            )
+            .child(
+                section("Heat Map - Influence Visualization").child(
+                    v_flex()
+                        .gap_2()
+                        .child("9x9 Board with Heat Map for Positional Influence Analysis")
+                        .child("Color gradient: Blue (low influence) → Cyan → Yellow → Red (high influence)")
+                        .child("Strength values 0-9 with optional text labels (hover to see effect)")
+                        .child(self.heat_overlay_board.clone()),
                 ),
             )
             .child(
