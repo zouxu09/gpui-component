@@ -183,6 +183,41 @@ impl GoBoard {
         }
     }
 
+    /// Updates ghost stone map efficiently with change detection
+    pub fn update_ghost_stone_map(
+        &mut self,
+        ghost_stone_map: crate::go_board::GhostStoneMap,
+    ) -> bool {
+        self.state.update_ghost_stone_map(&ghost_stone_map)
+    }
+
+    /// Updates individual ghost stones efficiently
+    pub fn update_ghost_stones(
+        &mut self,
+        updates: &[(Vertex, Option<crate::go_board::GhostStone>)],
+    ) -> bool {
+        self.state.update_ghost_stones(updates)
+    }
+
+    /// Gets the ghost stone at a specific vertex
+    pub fn get_ghost_stone(&self, vertex: &Vertex) -> Option<&crate::go_board::GhostStone> {
+        self.state.get_ghost_stone(vertex)
+    }
+
+    /// Sets a single ghost stone at a vertex
+    pub fn set_ghost_stone(
+        &mut self,
+        vertex: &Vertex,
+        ghost_stone: Option<crate::go_board::GhostStone>,
+    ) -> bool {
+        self.state.set_ghost_stone(vertex, ghost_stone)
+    }
+
+    /// Clears all ghost stones from the board
+    pub fn clear_ghost_stones(&mut self) {
+        self.state.clear_ghost_stones();
+    }
+
     /// Sets the coordinate display visibility
     pub fn set_show_coordinates(&mut self, show: bool) {
         self.state.show_coordinates = show;
