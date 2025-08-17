@@ -1,5 +1,5 @@
 use crate::go_board::{
-    GoBoardState, Grid, GridTheme, Markers, PaintOverlay, StoneTheme, Stones, Vertex,
+    GoBoardState, Grid, GridTheme, HeatOverlay, Markers, PaintOverlay, StoneTheme, Stones, Vertex,
     VertexEventHandlers, VertexInteractions, VertexSelections,
 };
 use gpui::*;
@@ -157,6 +157,19 @@ impl GoBoard {
         }
     }
 
+    /// Sets the heat map for influence visualization
+    pub fn set_heat_map(&mut self, heat_map: crate::go_board::HeatMap) {
+        if !heat_map.is_empty() && !heat_map[0].is_empty() {
+            let height = heat_map.len();
+            let width = heat_map[0].len();
+            let (current_width, current_height) = self.state.dimensions();
+
+            if width == current_width && height == current_height {
+                self.state.heat_map = heat_map;
+            }
+        }
+    }
+
     /// Sets the coordinate display visibility
     pub fn set_show_coordinates(&mut self, show: bool) {
         self.state.show_coordinates = show;
@@ -241,6 +254,9 @@ impl GoBoard {
         // Create paint overlay component for territory visualization
         let paint_overlay = PaintOverlay::new(self.state.vertex_size, grid_offset);
 
+        // Create heat overlay component for influence visualization
+        let heat_overlay = HeatOverlay::new(self.state.vertex_size, grid_offset);
+
         // Create base board div with all layers
         let mut board_div = div()
             .id("go-board")
@@ -252,6 +268,12 @@ impl GoBoard {
                     .absolute()
                     .inset_0()
                     .child(paint_overlay.render_paint_overlay(&self.state.paint_map, None)),
+            )
+            .child(
+                div()
+                    .absolute()
+                    .inset_0()
+                    .child(heat_overlay.render_heat_overlay(&self.state.heat_map)),
             )
             .child(
                 div()

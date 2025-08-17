@@ -69,7 +69,10 @@ impl CornerPaint {
 
     /// Checks if any corner has paint
     pub fn has_paint(&self) -> bool {
-        self.top_left != 0.0 || self.top_right != 0.0 || self.bottom_left != 0.0 || self.bottom_right != 0.0
+        self.top_left != 0.0
+            || self.top_right != 0.0
+            || self.bottom_left != 0.0
+            || self.bottom_right != 0.0
     }
 }
 
@@ -106,7 +109,12 @@ impl PaintOverlayRenderer {
     }
 
     /// Renders directional paint on specific edges of a vertex
-    pub fn render_directional_paint(&self, vertex: &Vertex, direction: PaintDirection, intensity: f32) -> impl IntoElement {
+    pub fn render_directional_paint(
+        &self,
+        vertex: &Vertex,
+        direction: PaintDirection,
+        intensity: f32,
+    ) -> impl IntoElement {
         let base_position = self.calculate_paint_position(vertex);
         let (position, size) = self.calculate_directional_dimensions(base_position, direction);
         let color = self.get_paint_color(intensity);
@@ -122,7 +130,12 @@ impl PaintOverlayRenderer {
     }
 
     /// Renders corner paint with precise triangular regions
-    pub fn render_corner_paint(&self, vertex: &Vertex, corner: CornerPosition, intensity: f32) -> impl IntoElement {
+    pub fn render_corner_paint(
+        &self,
+        vertex: &Vertex,
+        corner: CornerPosition,
+        intensity: f32,
+    ) -> impl IntoElement {
         let base_position = self.calculate_paint_position(vertex);
         let corner_size = self.vertex_size * 0.2;
         let color = self.get_paint_color(intensity);
@@ -166,7 +179,10 @@ impl PaintOverlayRenderer {
                 size(px(edge_thickness), px(full_size)),
             ),
             PaintDirection::Right => (
-                point(base_position.x + px(full_size - edge_thickness), base_position.y),
+                point(
+                    base_position.x + px(full_size - edge_thickness),
+                    base_position.y,
+                ),
                 size(px(edge_thickness), px(full_size)),
             ),
             PaintDirection::Top => (
@@ -174,7 +190,10 @@ impl PaintOverlayRenderer {
                 size(px(full_size), px(edge_thickness)),
             ),
             PaintDirection::Bottom => (
-                point(base_position.x, base_position.y + px(full_size - edge_thickness)),
+                point(
+                    base_position.x,
+                    base_position.y + px(full_size - edge_thickness),
+                ),
                 size(px(full_size), px(edge_thickness)),
             ),
         }
@@ -191,25 +210,19 @@ impl PaintOverlayRenderer {
         match corner {
             CornerPosition::TopLeft => {
                 point(base_position.x + px(offset), base_position.y + px(offset))
-            },
-            CornerPosition::TopRight => {
-                point(
-                    base_position.x + px(self.vertex_size * 0.6),
-                    base_position.y + px(offset),
-                )
-            },
-            CornerPosition::BottomLeft => {
-                point(
-                    base_position.x + px(offset),
-                    base_position.y + px(self.vertex_size * 0.6),
-                )
-            },
-            CornerPosition::BottomRight => {
-                point(
-                    base_position.x + px(self.vertex_size * 0.6),
-                    base_position.y + px(self.vertex_size * 0.6),
-                )
-            },
+            }
+            CornerPosition::TopRight => point(
+                base_position.x + px(self.vertex_size * 0.6),
+                base_position.y + px(offset),
+            ),
+            CornerPosition::BottomLeft => point(
+                base_position.x + px(offset),
+                base_position.y + px(self.vertex_size * 0.6),
+            ),
+            CornerPosition::BottomRight => point(
+                base_position.x + px(self.vertex_size * 0.6),
+                base_position.y + px(self.vertex_size * 0.6),
+            ),
         }
     }
 
@@ -277,7 +290,11 @@ impl PaintOverlay {
             for (x, &intensity) in row.iter().enumerate() {
                 if intensity != 0.0 {
                     let vertex = Vertex::new(x, y);
-                    paint_elements.push(self.renderer.render_paint_cell(&vertex, intensity).into_any_element());
+                    paint_elements.push(
+                        self.renderer
+                            .render_paint_cell(&vertex, intensity)
+                            .into_any_element(),
+                    );
                 }
             }
         }
@@ -297,7 +314,10 @@ impl PaintOverlay {
     }
 
     /// Renders all directional paint elements
-    fn render_directional_overlay(&self, directional_paint: &DirectionalPaintMap) -> Vec<AnyElement> {
+    fn render_directional_overlay(
+        &self,
+        directional_paint: &DirectionalPaintMap,
+    ) -> Vec<AnyElement> {
         let mut elements = Vec::new();
 
         // Render edge-based directional paint
@@ -358,32 +378,48 @@ impl PaintOverlay {
             for (x, corner_paint) in row.iter().enumerate() {
                 if corner_paint.has_paint() {
                     let vertex = Vertex::new(x, y);
-                    
+
                     if corner_paint.top_left != 0.0 {
                         elements.push(
                             self.renderer
-                                .render_corner_paint(&vertex, CornerPosition::TopLeft, corner_paint.top_left)
+                                .render_corner_paint(
+                                    &vertex,
+                                    CornerPosition::TopLeft,
+                                    corner_paint.top_left,
+                                )
                                 .into_any_element(),
                         );
                     }
                     if corner_paint.top_right != 0.0 {
                         elements.push(
                             self.renderer
-                                .render_corner_paint(&vertex, CornerPosition::TopRight, corner_paint.top_right)
+                                .render_corner_paint(
+                                    &vertex,
+                                    CornerPosition::TopRight,
+                                    corner_paint.top_right,
+                                )
                                 .into_any_element(),
                         );
                     }
                     if corner_paint.bottom_left != 0.0 {
                         elements.push(
                             self.renderer
-                                .render_corner_paint(&vertex, CornerPosition::BottomLeft, corner_paint.bottom_left)
+                                .render_corner_paint(
+                                    &vertex,
+                                    CornerPosition::BottomLeft,
+                                    corner_paint.bottom_left,
+                                )
                                 .into_any_element(),
                         );
                     }
                     if corner_paint.bottom_right != 0.0 {
                         elements.push(
                             self.renderer
-                                .render_corner_paint(&vertex, CornerPosition::BottomRight, corner_paint.bottom_right)
+                                .render_corner_paint(
+                                    &vertex,
+                                    CornerPosition::BottomRight,
+                                    corner_paint.bottom_right,
+                                )
                                 .into_any_element(),
                         );
                     }
@@ -591,10 +627,7 @@ mod tests {
     #[test]
     fn test_paint_overlay_rendering() {
         let overlay = PaintOverlay::new(24.0, point(px(0.0), px(0.0)));
-        let paint_map = vec![
-            vec![0.5, 0.0, -0.3],
-            vec![0.0, 0.8, 0.0],
-        ];
+        let paint_map = vec![vec![0.5, 0.0, -0.3], vec![0.0, 0.8, 0.0]];
 
         let _element = overlay.render_paint_overlay(&paint_map, None);
         // Should render without panicking
@@ -641,13 +674,15 @@ mod tests {
         let base_position = point(px(10.0), px(10.0));
 
         // Test left direction
-        let (pos, size) = renderer.calculate_directional_dimensions(base_position, PaintDirection::Left);
+        let (pos, size) =
+            renderer.calculate_directional_dimensions(base_position, PaintDirection::Left);
         assert_eq!(pos, base_position);
         assert_eq!(size.width, px(30.0 * 0.15)); // Edge thickness
         assert_eq!(size.height, px(30.0 * 0.8)); // Full size
 
         // Test top direction
-        let (pos, size) = renderer.calculate_directional_dimensions(base_position, PaintDirection::Top);
+        let (pos, size) =
+            renderer.calculate_directional_dimensions(base_position, PaintDirection::Top);
         assert_eq!(pos, base_position);
         assert_eq!(size.width, px(30.0 * 0.8)); // Full size
         assert_eq!(size.height, px(30.0 * 0.15)); // Edge thickness

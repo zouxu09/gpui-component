@@ -1,6 +1,7 @@
 pub mod coordinates;
 pub mod go_board;
 pub mod grid;
+pub mod heat_overlay;
 pub mod interactions;
 pub mod keyboard_navigation;
 pub mod markers;
@@ -22,6 +23,7 @@ mod integration_tests;
 pub use coordinates::{default_coord_x, default_coord_y, CoordinateLabels, CoordinateTheme};
 pub use go_board::GoBoard;
 pub use grid::{Grid, GridTheme};
+pub use heat_overlay::{HeatOverlay, HeatOverlayRenderer};
 pub use interactions::{
     VertexButton, VertexClickEvent, VertexEventHandlers, VertexInteractions, VertexMouseDownEvent,
     VertexMouseMoveEvent, VertexMouseUpEvent,
