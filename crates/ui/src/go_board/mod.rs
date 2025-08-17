@@ -5,6 +5,7 @@ pub mod grid;
 pub mod heat_overlay;
 pub mod interactions;
 pub mod keyboard_navigation;
+pub mod line_overlay;
 pub mod markers;
 pub mod paint_overlay;
 pub mod selection;
@@ -33,6 +34,7 @@ pub use interactions::{
 pub use keyboard_navigation::{
     AccessibleSelectionManager, KeyboardNavigation, NavigationAction, SelectionUpdate,
 };
+pub use line_overlay::{LineOverlay, LineRenderer, LineTheme};
 pub use markers::{MarkerRenderer, Markers};
 pub use paint_overlay::{
     CornerPaint, CornerPosition, DirectionalPaintMap, PaintDirection, PaintOverlay,

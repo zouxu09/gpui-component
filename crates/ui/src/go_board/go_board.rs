@@ -1,6 +1,7 @@
 use crate::go_board::{
-    GhostStoneOverlay, GoBoardState, Grid, GridTheme, HeatOverlay, Markers, PaintOverlay,
-    StoneTheme, Stones, Vertex, VertexEventHandlers, VertexInteractions, VertexSelections,
+    GhostStoneOverlay, GoBoardState, Grid, GridTheme, HeatOverlay, LineOverlay, Markers,
+    PaintOverlay, StoneTheme, Stones, Vertex, VertexEventHandlers, VertexInteractions,
+    VertexSelections,
 };
 use gpui::*;
 
@@ -218,6 +219,26 @@ impl GoBoard {
         self.state.clear_ghost_stones();
     }
 
+    /// Sets the lines array for drawing connections between vertices
+    pub fn set_lines(&mut self, lines: Vec<crate::go_board::Line>) {
+        self.state.lines = lines;
+    }
+
+    /// Adds a single line to the board
+    pub fn add_line(&mut self, line: crate::go_board::Line) {
+        self.state.lines.push(line);
+    }
+
+    /// Clears all lines from the board
+    pub fn clear_lines(&mut self) {
+        self.state.lines.clear();
+    }
+
+    /// Gets all lines on the board
+    pub fn get_lines(&self) -> &[crate::go_board::Line] {
+        &self.state.lines
+    }
+
     /// Sets the coordinate display visibility
     pub fn set_show_coordinates(&mut self, show: bool) {
         self.state.show_coordinates = show;
@@ -308,6 +329,9 @@ impl GoBoard {
         // Create ghost stone overlay component for analysis visualization
         let ghost_stone_overlay = GhostStoneOverlay::new(self.state.vertex_size, grid_offset);
 
+        // Create line overlay component for drawing connections between vertices
+        let line_overlay = LineOverlay::new(self.state.vertex_size, grid_offset);
+
         // Create base board div with all layers
         let mut board_div = div()
             .id("go-board")
@@ -331,6 +355,12 @@ impl GoBoard {
                     .absolute()
                     .inset_0()
                     .child(heat_overlay.render_heat_overlay(&self.state.heat_map)),
+            )
+            .child(
+                div()
+                    .absolute()
+                    .inset_0()
+                    .child(line_overlay.render_lines(&self.state.lines)),
             )
             .child(
                 div()

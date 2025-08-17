@@ -121,7 +121,7 @@ Convert the feature design into a series of prompts for a code-generation LLM th
     - Write tests for heat map rendering and text label positioning
     - _Requirements: 6.3_
 
-- [ ] 9. Implement ghost stone and analysis features
+- [x] 9. Implement ghost stone and analysis features
   - [x] 9.1 Create ghost stone rendering
     - Implement GhostStone component with sign, type, and faint properties
     - Add visual styling for ghost stone types: good, interesting, doubtful, bad
@@ -136,15 +136,15 @@ Convert the feature design into a series of prompts for a code-generation LLM th
     - Write tests for ghost stone integration and layer management
     - _Requirements: 6.1, 6.5_
 
-- [ ] 10. Create line and arrow drawing system
-  - [ ] 10.1 Implement line drawing between vertices
+- [x] 10. Create line and arrow drawing system
+  - [x] 10.1 Implement line drawing between vertices
     - Create Line component supporting v1, v2 vertex coordinates
     - Implement line rendering using SVG paths for scalable graphics
     - Add support for different line types ('line', 'arrow')
     - Write tests for line positioning and rendering between arbitrary vertices
     - _Requirements: 7.1, 7.3_
 
-  - [ ] 10.2 Add arrow indicators and line styling
+  - [x] 10.2 Add arrow indicators and line styling
     - Implement directional arrows with proper arrow head rendering
     - Add customizable line styles (color, width, dash patterns)
     - Support multiple overlapping lines with proper visual clarity

@@ -6,9 +6,9 @@ use gpui::{
 use gpui_component::{
     go_board::{
         CornerPaint, DirectionalPaintMap, GhostStone, GhostStoneOverlay, GhostStoneType, GoBoard,
-        GridTheme, HeatData, HeatOverlay, Marker, MarkerType, PaintOverlay, SelectionDirection,
-        Vertex, VertexClickEvent, VertexEventHandlers, VertexMouseDownEvent, VertexMouseMoveEvent,
-        VertexMouseUpEvent, VertexSelection,
+        GridTheme, HeatData, HeatOverlay, Line, LineOverlay, LineType, Marker, MarkerType,
+        PaintOverlay, SelectionDirection, Vertex, VertexClickEvent, VertexEventHandlers,
+        VertexMouseDownEvent, VertexMouseMoveEvent, VertexMouseUpEvent, VertexSelection,
     },
     h_flex, v_flex, ActiveTheme,
 };
@@ -29,6 +29,7 @@ pub struct GoBoardStory {
     paint_overlay_board: Entity<GoBoard>,
     heat_overlay_board: Entity<GoBoard>,
     ghost_stone_board: Entity<GoBoard>,
+    line_board: Entity<GoBoard>,
     interactive_board: Entity<GoBoard>,
 }
 
@@ -525,6 +526,50 @@ impl GoBoardStory {
 
                 board
             }),
+            line_board: cx.new(|_| {
+                let mut board = GoBoard::with_size(9, 9).with_vertex_size(35.0);
+
+                // Create some stones for context
+                let sign_map = vec![
+                    vec![0, 0, 0, 1, 0, -1, 0, 0, 0],
+                    vec![0, 1, 0, 0, 0, 0, 0, -1, 0],
+                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    vec![1, 0, 0, 0, 0, 0, 0, 0, -1],
+                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    vec![-1, 0, 0, 0, 0, 0, 0, 0, 1],
+                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    vec![0, -1, 0, 0, 0, 0, 0, 1, 0],
+                    vec![0, 0, 0, -1, 0, 1, 0, 0, 0],
+                ];
+                board.set_sign_map(sign_map);
+
+                // Create line demonstrations
+                let lines = vec![
+                    // Horizontal line connecting stones
+                    Line::line(Vertex::new(3, 0), Vertex::new(5, 0)),
+                    // Vertical line
+                    Line::line(Vertex::new(1, 1), Vertex::new(1, 4)),
+                    // Diagonal line
+                    Line::line(Vertex::new(2, 2), Vertex::new(6, 6)),
+                    // Arrows showing analysis directions
+                    Line::arrow(Vertex::new(0, 3), Vertex::new(3, 6)),
+                    Line::arrow(Vertex::new(8, 3), Vertex::new(5, 6)),
+                    // Connection arrows between stones
+                    Line::arrow(Vertex::new(3, 8), Vertex::new(5, 8)),
+                    Line::arrow(Vertex::new(7, 7), Vertex::new(7, 4)),
+                    // Analysis arrows
+                    Line::arrow(Vertex::new(4, 4), Vertex::new(6, 2)),
+                    Line::arrow(Vertex::new(4, 4), Vertex::new(2, 6)),
+                    // Multiple line types demonstration
+                    Line::line(Vertex::new(0, 7), Vertex::new(2, 7)), // Short horizontal
+                    Line::line(Vertex::new(6, 1), Vertex::new(8, 1)), // Short horizontal
+                    Line::arrow(Vertex::new(1, 0), Vertex::new(1, 2)), // Short vertical arrow
+                    Line::arrow(Vertex::new(7, 8), Vertex::new(7, 6)), // Short vertical arrow
+                ];
+                board.set_lines(lines);
+
+                board
+            }),
             interactive_board: cx.new(|_| GoBoard::with_size(9, 9).with_vertex_size(40.0)),
         }
     }
@@ -674,6 +719,16 @@ impl Render for GoBoardStory {
                         .child("Green: Good moves, Blue: Interesting moves, Yellow: Doubtful moves, Red: Bad moves")
                         .child("Faint ghost stones have reduced opacity for subtle display")
                         .child(self.ghost_stone_board.clone()),
+                ),
+            )
+            .child(
+                section("Lines and Arrows - Connection Visualization").child(
+                    v_flex()
+                        .gap_2()
+                        .child("9x9 Board with Lines and Arrows for Board Analysis")
+                        .child("Gray lines: Simple connections, Dark arrows: Directional analysis")
+                        .child("Demonstrates various line orientations and arrow directions")
+                        .child(self.line_board.clone()),
                 ),
             )
             .child(
