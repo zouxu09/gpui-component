@@ -45,10 +45,11 @@ impl MarkerRenderer {
 
     /// Calculates the pixel position for a marker at the given vertex
     fn calculate_marker_position(&self, vertex: &Vertex) -> Point<Pixels> {
-        let x =
-            self.grid_offset.x + px(vertex.x as f32 * self.vertex_size - self.vertex_size * 0.5);
-        let y =
-            self.grid_offset.y + px(vertex.y as f32 * self.vertex_size - self.vertex_size * 0.5);
+        // Add half vertex size offset to center markers on grid intersections
+        // This matches the grid's vertex_to_pixel logic
+        let offset = self.vertex_size / 2.0;
+        let x = self.grid_offset.x + px(vertex.x as f32 * self.vertex_size + offset);
+        let y = self.grid_offset.y + px(vertex.y as f32 * self.vertex_size + offset);
         point(x, y)
     }
 
@@ -325,9 +326,12 @@ mod tests {
         let vertex = Vertex::new(5, 3);
         let position = renderer.calculate_marker_position(&vertex);
 
-        // Expected: offset + vertex * size - half_size
-        assert_eq!(position.x, px(10.0 + 5.0 * 24.0 - 12.0)); // 118.0
-        assert_eq!(position.y, px(10.0 + 3.0 * 24.0 - 12.0)); // 70.0
+        // Expected calculation with new alignment logic:
+        // offset = 24.0 / 2.0 = 12.0
+        // x = 10.0 + 5.0 * 24.0 + 12.0 = 142.0
+        // y = 10.0 + 3.0 * 24.0 + 12.0 = 94.0
+        assert_eq!(position.x, px(142.0));
+        assert_eq!(position.y, px(94.0));
     }
 
     #[test]

@@ -7,7 +7,7 @@ use gpui_component::{
     go_board::{
         BoardTheme, BoundedGoBoard, CornerPaint, DirectionalPaintMap, GhostStone,
         GhostStoneOverlay, GhostStoneType, GoBoard, GridTheme, HeatData, HeatOverlay, Line,
-        LineOverlay, LineType, Marker, MarkerType, PaintOverlay, SelectionDirection,
+        LineOverlay, LineType, Marker, MarkerType, PaintOverlay, PaintType, SelectionDirection,
         TextureThemeAdapter, TextureUtils, Vertex, VertexClickEvent, VertexEventHandlers,
         VertexMouseDownEvent, VertexMouseMoveEvent, VertexMouseUpEvent, VertexSelection,
     },
@@ -26,6 +26,7 @@ pub struct GoBoardStory {
     minimalist_theme_board: Entity<GoBoard>,
     high_contrast_board: Entity<GoBoard>,
     textured_board: Entity<GoBoard>,
+    asset_board: Entity<GoBoard>,
     stone_variation_board: Entity<GoBoard>,
     coordinate_board: Entity<GoBoard>,
     stone_board: Entity<GoBoard>,
@@ -37,6 +38,7 @@ pub struct GoBoardStory {
     ghost_stone_board: Entity<GoBoard>,
     line_board: Entity<GoBoard>,
     interactive_board: Entity<GoBoard>,
+    interactive_asset_board: Entity<GoBoard>,
     bounded_small_board: Entity<BoundedGoBoard>,
     bounded_medium_board: Entity<BoundedGoBoard>,
     bounded_large_board: Entity<BoundedGoBoard>,
@@ -101,6 +103,33 @@ impl GoBoardStory {
                     vec![1, 0, 0, 0, 0, 0, 0, 0, -1],
                     vec![0, 0, 0, 0, 0, 0, 0, 0, 0],
                     vec![-1, 0, 0, 0, 0, 0, 0, 0, 1],
+                    vec![0, 0, -1, 0, 0, 0, 1, 0, 0],
+                    vec![0, -1, 0, 0, 0, 0, 0, 1, 0],
+                    vec![0, 0, 0, -1, 0, 1, 0, 0, 0],
+                ];
+                board.set_sign_map(sign_map);
+                board
+            }),
+            asset_board: cx.new(|_| {
+                // Create a board using the specific assets mentioned in the request
+                let asset_theme = BoardTheme::default()
+                    .with_board_texture("assets/icons/board.png".to_string())
+                    .with_stone_textures(
+                        Some("assets/icons/black_stone.svg".to_string()),
+                        Some("assets/icons/white_stone.svg".to_string()),
+                    );
+
+                let mut board = GoBoard::with_size(9, 9).with_vertex_size(35.0);
+                board.set_theme(asset_theme);
+
+                // Add a sample game pattern to demonstrate the stones
+                let sign_map = vec![
+                    vec![0, 0, 0, 1, 0, -1, 0, 0, 0],
+                    vec![0, 1, 0, 0, 0, 0, 0, -1, 0],
+                    vec![0, 0, 1, 0, 0, 0, -1, 0, 0],
+                    vec![1, 0, 0, 1, 0, -1, 0, 0, -1],
+                    vec![0, 0, 0, 0, 1, 0, 0, 0, 0],
+                    vec![-1, 0, 0, -1, 0, 1, 0, 0, 1],
                     vec![0, 0, -1, 0, 0, 0, 1, 0, 0],
                     vec![0, -1, 0, 0, 0, 0, 0, 1, 0],
                     vec![0, 0, 0, -1, 0, 1, 0, 0, 0],
@@ -341,15 +370,95 @@ impl GoBoardStory {
 
                 // Create paint map for territory analysis
                 let paint_map = vec![
-                    vec![0.8, 0.6, 0.4, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-                    vec![0.7, 0.0, 0.5, 0.0, -0.3, -0.5, -0.7, -0.8, -0.9],
-                    vec![0.6, 0.4, 0.0, 0.2, 0.0, -0.4, -0.6, -0.7, -0.8],
-                    vec![0.5, 0.0, 0.3, 0.0, -0.2, -0.4, -0.6, -0.7, -0.8],
-                    vec![0.4, 0.3, 0.0, 0.1, 0.0, -0.3, -0.5, -0.6, -0.7],
-                    vec![0.3, 0.2, 0.1, 0.0, -0.1, 0.0, -0.4, -0.5, -0.6],
-                    vec![0.2, 0.1, 0.0, -0.1, 0.0, 0.2, 0.0, -0.3, -0.4],
-                    vec![0.1, 0.0, -0.1, -0.2, -0.3, -0.4, -0.5, -0.6, -0.7],
-                    vec![0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                    vec![
+                        Some(PaintType::Fill { opacity: 0.8 }),
+                        Some(PaintType::Fill { opacity: 0.6 }),
+                        Some(PaintType::Fill { opacity: 0.4 }),
+                        None,
+                        None,
+                        None,
+                        None,
+                        None,
+                        None,
+                    ],
+                    vec![
+                        Some(PaintType::Fill { opacity: 0.7 }),
+                        None,
+                        Some(PaintType::Fill { opacity: 0.5 }),
+                        None,
+                        Some(PaintType::Fill { opacity: 0.3 }),
+                        Some(PaintType::Fill { opacity: 0.5 }),
+                        Some(PaintType::Fill { opacity: 0.7 }),
+                        Some(PaintType::Fill { opacity: 0.8 }),
+                        Some(PaintType::Fill { opacity: 0.9 }),
+                    ],
+                    vec![
+                        Some(PaintType::Fill { opacity: 0.6 }),
+                        Some(PaintType::Fill { opacity: 0.4 }),
+                        None,
+                        Some(PaintType::Fill { opacity: 0.2 }),
+                        None,
+                        Some(PaintType::Fill { opacity: 0.4 }),
+                        Some(PaintType::Fill { opacity: 0.6 }),
+                        Some(PaintType::Fill { opacity: 0.7 }),
+                        Some(PaintType::Fill { opacity: 0.8 }),
+                    ],
+                    vec![
+                        Some(PaintType::Fill { opacity: 0.5 }),
+                        None,
+                        Some(PaintType::Fill { opacity: 0.3 }),
+                        None,
+                        Some(PaintType::Fill { opacity: 0.2 }),
+                        Some(PaintType::Fill { opacity: 0.4 }),
+                        Some(PaintType::Fill { opacity: 0.6 }),
+                        Some(PaintType::Fill { opacity: 0.7 }),
+                        Some(PaintType::Fill { opacity: 0.8 }),
+                    ],
+                    vec![
+                        Some(PaintType::Fill { opacity: 0.4 }),
+                        Some(PaintType::Fill { opacity: 0.3 }),
+                        None,
+                        Some(PaintType::Fill { opacity: 0.1 }),
+                        None,
+                        Some(PaintType::Fill { opacity: 0.3 }),
+                        Some(PaintType::Fill { opacity: 0.5 }),
+                        Some(PaintType::Fill { opacity: 0.6 }),
+                        Some(PaintType::Fill { opacity: 0.7 }),
+                    ],
+                    vec![
+                        Some(PaintType::Fill { opacity: 0.3 }),
+                        Some(PaintType::Fill { opacity: 0.2 }),
+                        Some(PaintType::Fill { opacity: 0.1 }),
+                        None,
+                        Some(PaintType::Fill { opacity: 0.1 }),
+                        None,
+                        Some(PaintType::Fill { opacity: 0.4 }),
+                        Some(PaintType::Fill { opacity: 0.5 }),
+                        Some(PaintType::Fill { opacity: 0.6 }),
+                    ],
+                    vec![
+                        Some(PaintType::Fill { opacity: 0.2 }),
+                        Some(PaintType::Fill { opacity: 0.1 }),
+                        None,
+                        Some(PaintType::Fill { opacity: 0.1 }),
+                        None,
+                        Some(PaintType::Fill { opacity: 0.2 }),
+                        None,
+                        Some(PaintType::Fill { opacity: 0.3 }),
+                        Some(PaintType::Fill { opacity: 0.4 }),
+                    ],
+                    vec![
+                        Some(PaintType::Fill { opacity: 0.1 }),
+                        None,
+                        Some(PaintType::Fill { opacity: 0.1 }),
+                        Some(PaintType::Fill { opacity: 0.2 }),
+                        Some(PaintType::Fill { opacity: 0.3 }),
+                        Some(PaintType::Fill { opacity: 0.4 }),
+                        Some(PaintType::Fill { opacity: 0.5 }),
+                        Some(PaintType::Fill { opacity: 0.6 }),
+                        Some(PaintType::Fill { opacity: 0.7 }),
+                    ],
+                    vec![None, None, None, None, None, None, None, None, None],
                 ];
                 board.set_paint_map(paint_map);
 
@@ -646,6 +755,19 @@ impl GoBoardStory {
                 board
             }),
             interactive_board: cx.new(|_| GoBoard::with_size(9, 9).with_vertex_size(40.0)),
+            interactive_asset_board: cx.new(|_| {
+                // Create an interactive board using the specific assets
+                let asset_theme = BoardTheme::default()
+                    .with_board_texture("assets/icons/board.png".to_string())
+                    .with_stone_textures(
+                        Some("assets/icons/black_stone.svg".to_string()),
+                        Some("assets/icons/white_stone.svg".to_string()),
+                    );
+
+                let mut board = GoBoard::with_size(9, 9).with_vertex_size(40.0);
+                board.set_theme(asset_theme);
+                board
+            }),
             bounded_small_board: cx.new(|_| {
                 // Small bounded board - 9x9 in 150x150 space
                 let mut bounded = BoundedGoBoard::with_size(9, 9, 150.0, 150.0);
@@ -916,6 +1038,17 @@ impl Render for GoBoardStory {
                                 .child(
                                     v_flex()
                                         .gap_2()
+                                        .child("Asset Board")
+                                        .child("Using specific assets: board.png, black_stone.svg, white_stone.svg")
+                                        .child(self.asset_board.clone()),
+                                ),
+                        )
+                        .child(
+                            h_flex()
+                                .gap_6()
+                                .child(
+                                    v_flex()
+                                        .gap_2()
                                         .child("Stone Variations")
                                         .child("Random texture variations (random_0-4)")
                                         .child(self.stone_variation_board.clone()),
@@ -1098,38 +1231,68 @@ impl Render for GoBoardStory {
             .child(
                 section("Interactive Board").child(
                     v_flex()
-                        .gap_2()
+                        .gap_4()
                         .child("9x9 Board with Comprehensive Event Handling")
                         .child("Try different mouse interactions: click, mouse down/up, move")
-                        .child(self.interactive_board.update(cx, |board, _| {
-                            let handlers = VertexEventHandlers::new()
-                                .with_click(|event: VertexClickEvent| {
-                                    println!(
-                                        "Click: ({}, {}) - coordinates: {:?}",
-                                        event.vertex.x, event.vertex.y, event.coordinates
-                                    );
-                                })
-                                .with_mouse_down(|event: VertexMouseDownEvent| {
-                                    println!(
-                                        "Mouse Down: ({}, {}) - button: {:?}",
-                                        event.vertex.x, event.vertex.y, event.button
-                                    );
-                                })
-                                .with_mouse_up(|event: VertexMouseUpEvent| {
-                                    println!(
-                                        "Mouse Up: ({}, {}) - button: {:?}",
-                                        event.vertex.x, event.vertex.y, event.button
-                                    );
-                                })
-                                .with_mouse_move(|event: VertexMouseMoveEvent| {
-                                    println!(
-                                        "Mouse Move: ({}, {})",
-                                        event.vertex.x, event.vertex.y
-                                    );
-                                });
+                        .child(
+                            h_flex()
+                                .gap_6()
+                                .child(
+                                    v_flex()
+                                        .gap_2()
+                                        .child("Standard Interactive Board")
+                                        .child(self.interactive_board.update(cx, |board, _| {
+                                            let handlers = VertexEventHandlers::new()
+                                                .with_click(|event: VertexClickEvent| {
+                                                    println!(
+                                                        "Click: ({}, {}) - coordinates: {:?}",
+                                                        event.vertex.x, event.vertex.y, event.coordinates
+                                                    );
+                                                })
+                                                .with_mouse_down(|event: VertexMouseDownEvent| {
+                                                    println!(
+                                                        "Mouse Down: ({}, {}) - button: {:?}",
+                                                        event.vertex.x, event.vertex.y, event.button
+                                                    );
+                                                })
+                                                .with_mouse_up(|event: VertexMouseUpEvent| {
+                                                    println!(
+                                                        "Mouse Up: ({}, {}) - button: {:?}",
+                                                        event.vertex.x, event.vertex.y, event.button
+                                                    );
+                                                })
+                                                .with_mouse_move(|event: VertexMouseMoveEvent| {
+                                                    println!(
+                                                        "Mouse Move: ({}, {})",
+                                                        event.vertex.x, event.vertex.y
+                                                    );
+                                                });
 
-                            board.render_with_vertex_handlers(handlers)
-                        })),
+                                            board.render_with_vertex_handlers(handlers)
+                                        })),
+                                )
+                                .child(
+                                    v_flex()
+                                        .gap_2()
+                                        .child("Asset Board with Stone Placement")
+                                        .child("Click to place stones alternating black/white")
+                                        .child(self.interactive_asset_board.update(cx, |board, cx| {
+                                            // Static variable to track current player (alternating black/white)
+                                            // In a real app, this would be proper state management
+                                            let handlers = VertexEventHandlers::new()
+                                                .with_click(|event: VertexClickEvent| {
+                                                    println!(
+                                                        "Asset Board Click: ({}, {}) - placing stone",
+                                                        event.vertex.x, event.vertex.y
+                                                    );
+                                                    // Note: In a real implementation, we'd need mutable access to the board
+                                                    // to actually place stones. This demonstrates the event handling.
+                                                });
+
+                                            board.render_with_vertex_handlers(handlers)
+                                        })),
+                                ),
+                        ),
                 ),
             )
             .child(

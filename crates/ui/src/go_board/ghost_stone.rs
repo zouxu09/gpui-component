@@ -92,10 +92,16 @@ impl GhostStoneRenderer {
 
     /// Calculates the pixel position for ghost stone at the given vertex
     fn calculate_ghost_stone_position(&self, vertex: &Vertex) -> Point<Pixels> {
+        // Add half vertex size offset to center ghost stones on grid intersections
+        // This matches the grid's vertex_to_pixel logic
+        let grid_offset = self.vertex_size / 2.0;
         let stone_size = self.calculate_ghost_stone_size();
-        let offset = stone_size / 2.0;
-        let x = self.grid_offset.x + px(vertex.x as f32 * self.vertex_size - offset);
-        let y = self.grid_offset.y + px(vertex.y as f32 * self.vertex_size - offset);
+        let stone_center_offset = stone_size / 2.0;
+
+        let x = self.grid_offset.x
+            + px(vertex.x as f32 * self.vertex_size + grid_offset - stone_center_offset);
+        let y = self.grid_offset.y
+            + px(vertex.y as f32 * self.vertex_size + grid_offset - stone_center_offset);
         point(x, y)
     }
 
@@ -332,10 +338,14 @@ mod tests {
         let vertex = Vertex::new(2, 3);
         let position = renderer.calculate_ghost_stone_position(&vertex);
 
-        let expected_size = 24.0 * (1.0 - 0.15);
-        let expected_offset = expected_size / 2.0;
-        let expected_x = px(10.0 + 2.0 * 24.0 - expected_offset);
-        let expected_y = px(10.0 + 3.0 * 24.0 - expected_offset);
+        // Expected calculation with new alignment logic:
+        // grid_offset = 24.0 / 2.0 = 12.0
+        // stone_size = 24.0 * (1.0 - 0.15) = 20.4
+        // stone_center_offset = 20.4 / 2.0 = 10.2
+        // x = 10.0 + 2.0 * 24.0 + 12.0 - 10.2 = 59.8
+        // y = 10.0 + 3.0 * 24.0 + 12.0 - 10.2 = 83.8
+        let expected_x = px(59.8);
+        let expected_y = px(83.8);
 
         assert_eq!(position.x, expected_x);
         assert_eq!(position.y, expected_y);

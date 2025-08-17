@@ -39,11 +39,16 @@ impl SelectionRenderer {
 
     /// Calculates the pixel position for a selection at the given vertex
     fn calculate_selection_position(&self, vertex: &Vertex) -> Point<Pixels> {
-        let offset = self.vertex_size * 0.05; // Small offset to center the selection
+        // Add half vertex size offset to center selection on grid intersections
+        // This matches the grid's vertex_to_pixel logic
+        let grid_offset = self.vertex_size / 2.0;
+        let selection_size = self.vertex_size * 0.9; // Selection area size
+        let selection_center_offset = selection_size / 2.0; // Offset to center the selection
+
         let x = self.grid_offset.x
-            + px(vertex.x as f32 * self.vertex_size - self.vertex_size * 0.5 + offset);
+            + px(vertex.x as f32 * self.vertex_size + grid_offset - selection_center_offset);
         let y = self.grid_offset.y
-            + px(vertex.y as f32 * self.vertex_size - self.vertex_size * 0.5 + offset);
+            + px(vertex.y as f32 * self.vertex_size + grid_offset - selection_center_offset);
         point(x, y)
     }
 
@@ -337,9 +342,14 @@ mod tests {
         let vertex = Vertex::new(3, 2);
         let position = renderer.calculate_selection_position(&vertex);
 
-        // Expected: offset + vertex * size - half_size + small_offset
-        let expected_x = px(10.0 + 3.0 * 24.0 - 12.0 + 24.0 * 0.05); // 79.2
-        let expected_y = px(10.0 + 2.0 * 24.0 - 12.0 + 24.0 * 0.05); // 47.2
+        // Expected calculation with grid intersection alignment:
+        // grid_offset = 24.0 / 2.0 = 12.0
+        // selection_size = 24.0 * 0.9 = 21.6
+        // selection_center_offset = 21.6 / 2.0 = 10.8
+        // x = 10.0 + 3.0 * 24.0 + 12.0 - 10.8 = 83.2
+        // y = 10.0 + 2.0 * 24.0 + 12.0 - 10.8 = 59.2
+        let expected_x = px(83.2);
+        let expected_y = px(59.2);
         assert_eq!(position.x, expected_x);
         assert_eq!(position.y, expected_y);
     }

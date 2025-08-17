@@ -103,8 +103,11 @@ impl CoordinateLabels {
 
     /// Calculates the total dimensions including coordinate labels
     pub fn total_dimensions(&self) -> (f32, f32) {
-        let grid_width = (self.board_range.x.1 - self.board_range.x.0) as f32 * self.vertex_size;
-        let grid_height = (self.board_range.y.1 - self.board_range.y.0) as f32 * self.vertex_size;
+        // Use the same dimension calculation as the grid
+        let grid_intervals_x = (self.board_range.x.1 - self.board_range.x.0) as f32;
+        let grid_intervals_y = (self.board_range.y.1 - self.board_range.y.0) as f32;
+        let grid_width = grid_intervals_x * self.vertex_size + self.vertex_size;
+        let grid_height = grid_intervals_y * self.vertex_size + self.vertex_size;
 
         let margin = self.theme.margin + self.theme.font_size;
 
@@ -140,7 +143,9 @@ impl CoordinateLabels {
         if self.show_top {
             for x in self.board_range.x.0..=self.board_range.x.1 {
                 let relative_x = (x - self.board_range.x.0) as f32;
-                let pixel_x = grid_offset_x + relative_x * self.vertex_size;
+                // Add half vertex size offset to align with grid intersections
+                let pixel_x =
+                    grid_offset_x + relative_x * self.vertex_size + self.vertex_size / 2.0;
                 let label = (self.coord_x)(x);
 
                 container = container.child(
@@ -164,7 +169,9 @@ impl CoordinateLabels {
         if self.show_bottom {
             for x in self.board_range.x.0..=self.board_range.x.1 {
                 let relative_x = (x - self.board_range.x.0) as f32;
-                let pixel_x = grid_offset_x + relative_x * self.vertex_size;
+                // Add half vertex size offset to align with grid intersections
+                let pixel_x =
+                    grid_offset_x + relative_x * self.vertex_size + self.vertex_size / 2.0;
                 let label = (self.coord_x)(x);
 
                 container = container.child(
@@ -188,7 +195,9 @@ impl CoordinateLabels {
         if self.show_left {
             for y in self.board_range.y.0..=self.board_range.y.1 {
                 let relative_y = (y - self.board_range.y.0) as f32;
-                let pixel_y = grid_offset_y + relative_y * self.vertex_size;
+                // Add half vertex size offset to align with grid intersections
+                let pixel_y =
+                    grid_offset_y + relative_y * self.vertex_size + self.vertex_size / 2.0;
                 // For Go boards, y=0 is top, but coordinate 1 should be at bottom
                 let inverted_y = self.board_range.y.1 - y + self.board_range.y.0;
                 let label = (self.coord_y)(inverted_y);
@@ -214,7 +223,9 @@ impl CoordinateLabels {
         if self.show_right {
             for y in self.board_range.y.0..=self.board_range.y.1 {
                 let relative_y = (y - self.board_range.y.0) as f32;
-                let pixel_y = grid_offset_y + relative_y * self.vertex_size;
+                // Add half vertex size offset to align with grid intersections
+                let pixel_y =
+                    grid_offset_y + relative_y * self.vertex_size + self.vertex_size / 2.0;
                 // For Go boards, y=0 is top, but coordinate 1 should be at bottom
                 let inverted_y = self.board_range.y.1 - y + self.board_range.y.0;
                 let label = (self.coord_y)(inverted_y);

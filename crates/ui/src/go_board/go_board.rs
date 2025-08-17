@@ -1,6 +1,6 @@
 use crate::go_board::memory_manager::{MarkerComponent, StoneComponent};
 use crate::go_board::{
-    BoardTheme, DifferentialRenderer, GhostStoneOverlay, GoBoardError, GoBoardResult, GoBoardState,
+    BoardTheme, DifferentialRenderer, GhostStoneOverlay, GoBoardResult, GoBoardState,
     GoBoardValidator, Grid, GridTheme, HeatOverlay, LineOverlay, Markers, MemoryManager,
     PaintOverlay, StoneTheme, Stones, ThemeCSSAdapter, Vertex, VertexEventHandlers,
     VertexInteractions, VertexSelections,

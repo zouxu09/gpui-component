@@ -99,13 +99,24 @@ impl Grid {
         let relative_x = vertex.x.saturating_sub(self.board_range.x.0) as f32;
         let relative_y = vertex.y.saturating_sub(self.board_range.y.0) as f32;
 
-        (relative_x * self.vertex_size, relative_y * self.vertex_size)
+        // Add half vertex size offset to center stones on grid intersections
+        let offset = self.vertex_size / 2.0;
+        (
+            relative_x * self.vertex_size + offset,
+            relative_y * self.vertex_size + offset,
+        )
     }
 
     /// Gets the visible board dimensions
     fn visible_dimensions(&self) -> (f32, f32) {
-        let width = (self.board_range.x.1 - self.board_range.x.0 + 1) as f32 * self.vertex_size;
-        let height = (self.board_range.y.1 - self.board_range.y.0 + 1) as f32 * self.vertex_size;
+        // Calculate dimensions based on the number of grid intervals, not vertices
+        // For n vertices, we need (n-1) intervals plus some padding for the border
+        let grid_intervals_x = (self.board_range.x.1 - self.board_range.x.0) as f32;
+        let grid_intervals_y = (self.board_range.y.1 - self.board_range.y.0) as f32;
+
+        // Add half vertex size padding on each side for proper stone placement
+        let width = grid_intervals_x * self.vertex_size + self.vertex_size;
+        let height = grid_intervals_y * self.vertex_size + self.vertex_size;
         (width, height)
     }
 
@@ -216,17 +227,18 @@ impl Grid {
     fn render_horizontal_lines(&self) -> Vec<impl IntoElement> {
         let mut lines = Vec::new();
         let (grid_width, _) = self.visible_dimensions();
+        let offset = self.vertex_size / 2.0;
 
         for y in self.board_range.y.0..=self.board_range.y.1 {
             let relative_y = (y - self.board_range.y.0) as f32;
-            let pixel_y = relative_y * self.vertex_size;
+            let pixel_y = relative_y * self.vertex_size + offset;
 
             lines.push(
                 div()
                     .absolute()
-                    .left(px(0.0))
-                    .top(px(pixel_y))
-                    .w(px(grid_width))
+                    .left(px(offset))
+                    .top(px(pixel_y - self.theme.grid_line_width / 2.0))
+                    .w(px(grid_width - self.vertex_size))
                     .h(px(self.theme.grid_line_width))
                     .bg(self.theme.grid_line_color),
             );
@@ -239,18 +251,19 @@ impl Grid {
     fn render_vertical_lines(&self) -> Vec<impl IntoElement> {
         let mut lines = Vec::new();
         let (_, grid_height) = self.visible_dimensions();
+        let offset = self.vertex_size / 2.0;
 
         for x in self.board_range.x.0..=self.board_range.x.1 {
             let relative_x = (x - self.board_range.x.0) as f32;
-            let pixel_x = relative_x * self.vertex_size;
+            let pixel_x = relative_x * self.vertex_size + offset;
 
             lines.push(
                 div()
                     .absolute()
-                    .left(px(pixel_x))
-                    .top(px(0.0))
+                    .left(px(pixel_x - self.theme.grid_line_width / 2.0))
+                    .top(px(offset))
                     .w(px(self.theme.grid_line_width))
-                    .h(px(grid_height))
+                    .h(px(grid_height - self.vertex_size))
                     .bg(self.theme.grid_line_color),
             );
         }
@@ -497,10 +510,10 @@ mod tests {
         let range = BoardRange::new((0, 18), (0, 18));
         let grid = Grid::new(range, 20.0);
 
-        // Test corner vertices
-        assert_eq!(grid.vertex_to_pixel(&Vertex::new(0, 0)), (0.0, 0.0));
-        assert_eq!(grid.vertex_to_pixel(&Vertex::new(18, 18)), (360.0, 360.0)); // 18 * 20
-        assert_eq!(grid.vertex_to_pixel(&Vertex::new(9, 9)), (180.0, 180.0)); // 9 * 20
+        // Test corner vertices (now centered on grid intersections)
+        assert_eq!(grid.vertex_to_pixel(&Vertex::new(0, 0)), (10.0, 10.0)); // Half vertex offset
+        assert_eq!(grid.vertex_to_pixel(&Vertex::new(18, 18)), (370.0, 370.0)); // 18 * 20 + 10
+        assert_eq!(grid.vertex_to_pixel(&Vertex::new(9, 9)), (190.0, 190.0)); // 9 * 20 + 10
     }
 
     #[test]
@@ -508,10 +521,10 @@ mod tests {
         let range = BoardRange::new((3, 15), (3, 15)); // 13x13 visible area
         let grid = Grid::new(range, 20.0);
 
-        // Vertices relative to the range
-        assert_eq!(grid.vertex_to_pixel(&Vertex::new(3, 3)), (0.0, 0.0)); // Top-left of range
-        assert_eq!(grid.vertex_to_pixel(&Vertex::new(15, 15)), (240.0, 240.0)); // Bottom-right: (15-3)*20 = 240
-        assert_eq!(grid.vertex_to_pixel(&Vertex::new(9, 9)), (120.0, 120.0)); // Center: (9-3)*20 = 120
+        // Vertices relative to the range (now centered on grid intersections)
+        assert_eq!(grid.vertex_to_pixel(&Vertex::new(3, 3)), (10.0, 10.0)); // Top-left of range + offset
+        assert_eq!(grid.vertex_to_pixel(&Vertex::new(15, 15)), (250.0, 250.0)); // Bottom-right: (15-3)*20 + 10 = 250
+        assert_eq!(grid.vertex_to_pixel(&Vertex::new(9, 9)), (130.0, 130.0)); // Center: (9-3)*20 + 10 = 130
     }
 
     #[test]
@@ -519,12 +532,12 @@ mod tests {
         let range = BoardRange::new((0, 18), (0, 18)); // 19x19 board
         let grid = Grid::new(range, 25.0);
 
-        assert_eq!(grid.visible_dimensions(), (475.0, 475.0)); // 19 * 25
+        assert_eq!(grid.visible_dimensions(), (475.0, 475.0)); // 18 * 25 + 25 = 475
 
         let partial_range = BoardRange::new((5, 14), (5, 14)); // 10x10 partial board
         let partial_grid = Grid::new(partial_range, 30.0);
 
-        assert_eq!(partial_grid.visible_dimensions(), (300.0, 300.0)); // 10 * 30
+        assert_eq!(partial_grid.visible_dimensions(), (300.0, 300.0)); // 9 * 30 + 30 = 300
     }
 
     #[test]
