@@ -226,15 +226,15 @@ Convert the feature design into a series of prompts for a code-generation LLM th
     - Write tests for error recovery and fallback behavior
     - _Requirements: 11.4_
 
-- [ ] 16. Integration testing and component wiring
-  - [ ] 16.1 Create comprehensive integration tests
+- [x] 16. Integration testing and component wiring
+  - [x] 16.1 Create comprehensive integration tests
     - Write tests that combine multiple features (stones + markers + overlays)
     - Add performance benchmarks for complex board states
     - Test event handling with multiple simultaneous interactions
     - Verify proper integration of all layers and components
     - _Requirements: All_
 
-  - [ ] 16.2 Create example usage and demo applications
+  - [x] 16.2 Create example usage and demo applications
     - Implement example applications demonstrating all widget features
     - Create demos showing signMap, markerMap, heatMap, and ghostStoneMap usage
     - Add examples of custom theming and event handling

@@ -14,6 +14,7 @@ mod description_list_story;
 mod drawer_story;
 mod dropdown_story;
 mod form_story;
+mod go_board_examples;
 mod go_board_story;
 mod group_box_story;
 mod icon_story;
