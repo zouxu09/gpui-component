@@ -279,6 +279,28 @@ impl BoardTheme {
         self
     }
 
+    /// Sets board background texture
+    pub fn with_board_texture(mut self, texture: String) -> Self {
+        self.board_texture = Some(texture);
+        self
+    }
+
+    /// Sets stone variation textures for natural randomness
+    pub fn with_stone_variations(mut self, variations: Vec<String>) -> Self {
+        let is_empty = variations.is_empty();
+        self.stone_variation_textures = variations;
+        self.enable_random_stone_variation = !is_empty;
+        self
+    }
+
+    /// Enables random stone variation with standard texture paths
+    pub fn with_standard_stone_variations(self, base_path: &str) -> Self {
+        let variations = (0..5)
+            .map(|i| format!("{}/random_{}.png", base_path, i))
+            .collect();
+        self.with_stone_variations(variations)
+    }
+
     /// Sets coordinate styling
     pub fn with_coordinates(mut self, color: Rgba, font_size: f32, opacity: f32) -> Self {
         self.coordinate_color = color;

@@ -166,15 +166,15 @@ Convert the feature design into a series of prompts for a code-generation LLM th
     - Write tests for animation performance and memory management
     - _Requirements: 9.2, 9.5_
 
-- [ ] 12. Create comprehensive theming system
-  - [ ] 12.1 Implement BoardTheme with CSS custom properties
+- [x] 12. Create comprehensive theming system
+  - [x] 12.1 Implement BoardTheme with CSS custom properties
     - Create BoardTheme struct with all visual configuration options
     - Add support for CSS custom property equivalents (--board-background-color, etc.)
     - Implement theme application to all board components
     - Write tests for theme configuration and CSS property generation
     - _Requirements: 10.1, 10.4_
 
-  - [ ] 12.2 Add custom texture and background image support
+  - [x] 12.2 Add custom texture and background image support
     - Implement board texture loading and display
     - Add custom stone image support with background-image overrides
     - Support random stone variation textures (random_0 through random_4)

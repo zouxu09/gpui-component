@@ -11,6 +11,7 @@ pub mod paint_overlay;
 pub mod selection;
 pub mod state;
 pub mod stones;
+pub mod texture_loader;
 pub mod theme;
 pub mod theme_adapter;
 pub mod types;
@@ -23,6 +24,9 @@ mod grid_tests;
 
 #[cfg(test)]
 mod integration_tests;
+
+#[cfg(test)]
+mod texture_integration_tests;
 
 pub use coordinates::{default_coord_x, default_coord_y, CoordinateLabels, CoordinateTheme};
 pub use ghost_stone::{GhostStoneOverlay, GhostStoneRenderer, GhostStoneTheme};
@@ -45,6 +49,7 @@ pub use paint_overlay::{
 pub use selection::{SelectionRenderer, VertexSelections};
 pub use state::GoBoardState;
 pub use stones::{Stone, StoneTheme, Stones};
+pub use texture_loader::{TextureAssetLoader, TextureThemeAdapter, TextureUtils};
 pub use theme::BoardTheme;
 pub use theme_adapter::ThemeCSSAdapter;
 pub use types::*;
