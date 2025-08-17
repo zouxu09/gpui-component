@@ -196,7 +196,7 @@ Convert the feature design into a series of prompts for a code-generation LLM th
     - Write tests for partial board rendering and coordinate accuracy
     - _Requirements: 1.2_
 
-- [ ] 14. Optimize performance and implement differential updates
+- [x] 14. Optimize performance and implement differential updates
   - [x] 14.1 Implement efficient signMap update handling
     - Create differential rendering system that only updates changed vertices
     - Add proper z-index layering with minimal DOM manipulation
@@ -204,7 +204,7 @@ Convert the feature design into a series of prompts for a code-generation LLM th
     - Write performance tests for large board updates and animation smoothness
     - _Requirements: 9.1, 9.4_
 
-  - [ ] 14.2 Add memory optimization and cleanup systems
+  - [x] 14.2 Add memory optimization and cleanup systems
     - Implement proper cleanup of animation timers and event handlers
     - Add component pooling for large boards to reduce memory allocation
     - Ensure no memory leaks during repeated state updates
