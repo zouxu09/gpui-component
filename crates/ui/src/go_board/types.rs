@@ -3,7 +3,15 @@ pub type SignMap = Vec<Vec<i8>>; // -1: white, 0: empty, 1: black
 pub type MarkerMap = Vec<Vec<Option<Marker>>>;
 pub type GhostStoneMap = Vec<Vec<Option<GhostStone>>>;
 pub type HeatMap = Vec<Vec<Option<HeatData>>>;
-pub type PaintMap = Vec<Vec<f32>>; // -1.0 to 1.0 for paint intensity
+pub type PaintMap = Vec<Vec<Option<PaintType>>>; // Changed to use PaintType enum
+
+/// Paint types for territory visualization
+#[derive(Clone, Debug, PartialEq)]
+pub enum PaintType {
+    Fill { opacity: f32 },
+    Border { width: f32, color: String },
+    Pattern { name: String, opacity: f32 },
+}
 
 /// Represents a position on the Go board using zero-based coordinates
 /// [0, 0] denotes the upper left position of the board
@@ -134,6 +142,7 @@ pub enum GhostStoneType {
 pub struct GhostStone {
     pub sign: i8, // -1: white, 0: empty, 1: black
     pub stone_type: GhostStoneType,
+    pub ghost_type: Option<String>, // Additional type identifier for analysis
     pub faint: bool,
 }
 
@@ -142,8 +151,14 @@ impl GhostStone {
         Self {
             sign,
             stone_type,
+            ghost_type: None,
             faint: false,
         }
+    }
+
+    pub fn with_ghost_type(mut self, ghost_type: String) -> Self {
+        self.ghost_type = Some(ghost_type);
+        self
     }
 
     pub fn faint(mut self) -> Self {
@@ -188,6 +203,20 @@ pub struct Line {
     pub v1: Vertex,
     pub v2: Vertex,
     pub line_type: LineType,
+}
+
+impl Line {
+    pub fn new(v1: Vertex, v2: Vertex, line_type: LineType) -> Self {
+        Self { v1, v2, line_type }
+    }
+
+    pub fn line(v1: Vertex, v2: Vertex) -> Self {
+        Self::new(v1, v2, LineType::Line)
+    }
+
+    pub fn arrow(v1: Vertex, v2: Vertex) -> Self {
+        Self::new(v1, v2, LineType::Arrow)
+    }
 }
 
 /// Selection types for directional vertex highlighting
@@ -299,20 +328,6 @@ impl SelectionStateSnapshot {
             || self.selected_right != other.selected_right
             || self.selected_top != other.selected_top
             || self.selected_bottom != other.selected_bottom
-    }
-}
-
-impl Line {
-    pub fn new(v1: Vertex, v2: Vertex, line_type: LineType) -> Self {
-        Self { v1, v2, line_type }
-    }
-
-    pub fn line(v1: Vertex, v2: Vertex) -> Self {
-        Self::new(v1, v2, LineType::Line)
-    }
-
-    pub fn arrow(v1: Vertex, v2: Vertex) -> Self {
-        Self::new(v1, v2, LineType::Arrow)
     }
 }
 

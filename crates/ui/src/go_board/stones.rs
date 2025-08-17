@@ -103,7 +103,14 @@ impl Stone {
     pub fn pixel_position(&self, board_range: &BoardRange) -> (f32, f32) {
         let relative_x = (self.position.x - board_range.x.0) as f32;
         let relative_y = (self.position.y - board_range.y.0) as f32;
-        (relative_x * self.vertex_size, relative_y * self.vertex_size)
+
+        // Add half vertex size offset to center stones on grid intersections
+        // This matches the grid's vertex_to_pixel logic
+        let offset = self.vertex_size / 2.0;
+        (
+            relative_x * self.vertex_size + offset,
+            relative_y * self.vertex_size + offset,
+        )
     }
 
     /// Calculates the stone size in pixels

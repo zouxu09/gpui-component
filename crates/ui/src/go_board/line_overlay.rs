@@ -61,8 +61,11 @@ impl LineRenderer {
 
     /// Calculates the center position of a vertex in pixels
     fn calculate_vertex_center(&self, vertex: &Vertex) -> Point<Pixels> {
-        let x = self.grid_offset.x + px(vertex.x as f32 * self.vertex_size);
-        let y = self.grid_offset.y + px(vertex.y as f32 * self.vertex_size);
+        // Add half vertex size offset to center on grid intersections
+        // This matches the grid's vertex_to_pixel logic
+        let grid_offset = self.vertex_size / 2.0;
+        let x = self.grid_offset.x + px(vertex.x as f32 * self.vertex_size + grid_offset);
+        let y = self.grid_offset.y + px(vertex.y as f32 * self.vertex_size + grid_offset);
         point(x, y)
     }
 
@@ -271,8 +274,12 @@ mod tests {
         let vertex = Vertex::new(2, 3);
         let center = renderer.calculate_vertex_center(&vertex);
 
-        let expected_x = px(10.0 + 2.0 * 24.0); // 58.0
-        let expected_y = px(10.0 + 3.0 * 24.0); // 82.0
+        // Expected calculation with grid intersection alignment:
+        // grid_offset = 24.0 / 2.0 = 12.0
+        // x = 10.0 + 2.0 * 24.0 + 12.0 = 70.0
+        // y = 10.0 + 3.0 * 24.0 + 12.0 = 94.0
+        let expected_x = px(70.0);
+        let expected_y = px(94.0);
         assert_eq!(center.x, expected_x);
         assert_eq!(center.y, expected_y);
     }

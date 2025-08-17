@@ -1,4 +1,4 @@
-use crate::go_board::types::{PaintMap, Vertex};
+use crate::go_board::types::{PaintMap, PaintType, Vertex};
 use gpui::*;
 
 /// Directional paint mapping for edge-based territory marking
@@ -156,11 +156,16 @@ impl PaintOverlayRenderer {
 
     /// Calculates the pixel position for paint at the given vertex
     fn calculate_paint_position(&self, vertex: &Vertex) -> Point<Pixels> {
-        let offset = self.vertex_size * 0.1; // Small offset to center the paint
+        // Add half vertex size offset to center paint on grid intersections
+        // This matches the grid's vertex_to_pixel logic
+        let grid_offset = self.vertex_size / 2.0;
+        let paint_size = self.vertex_size * 0.8; // Paint area size
+        let paint_center_offset = paint_size / 2.0; // Offset to center the paint area
+
         let x = self.grid_offset.x
-            + px(vertex.x as f32 * self.vertex_size - self.vertex_size * 0.4 + offset);
+            + px(vertex.x as f32 * self.vertex_size + grid_offset - paint_center_offset);
         let y = self.grid_offset.y
-            + px(vertex.y as f32 * self.vertex_size - self.vertex_size * 0.4 + offset);
+            + px(vertex.y as f32 * self.vertex_size + grid_offset - paint_center_offset);
         point(x, y)
     }
 
@@ -277,7 +282,7 @@ impl PaintOverlay {
         }
     }
 
-    /// Renders the complete paint overlay from paint map data
+    /// Renders the complete paint overlay with optional directional paint
     pub fn render_paint_overlay(
         &self,
         paint_map: &PaintMap,
@@ -287,14 +292,22 @@ impl PaintOverlay {
 
         // Render basic paint map
         for (y, row) in paint_map.iter().enumerate() {
-            for (x, &intensity) in row.iter().enumerate() {
-                if intensity != 0.0 {
+            for (x, paint_type) in row.iter().enumerate() {
+                if let Some(paint_type) = paint_type {
                     let vertex = Vertex::new(x, y);
-                    paint_elements.push(
-                        self.renderer
-                            .render_paint_cell(&vertex, intensity)
-                            .into_any_element(),
-                    );
+                    let intensity = match paint_type {
+                        PaintType::Fill { opacity } => *opacity,
+                        PaintType::Border { width: _, color: _ } => 0.5, // Default intensity for borders
+                        PaintType::Pattern { name: _, opacity } => *opacity,
+                    };
+
+                    if intensity > 0.0 {
+                        paint_elements.push(
+                            self.renderer
+                                .render_paint_cell(&vertex, intensity)
+                                .into_any_element(),
+                        );
+                    }
                 }
             }
         }
@@ -435,9 +448,17 @@ impl PaintOverlay {
         let mut paint_data = Vec::new();
 
         for (y, row) in paint_map.iter().enumerate() {
-            for (x, &intensity) in row.iter().enumerate() {
-                if intensity != 0.0 {
-                    paint_data.push((Vertex::new(x, y), intensity));
+            for (x, paint_type) in row.iter().enumerate() {
+                if let Some(paint_type) = paint_type {
+                    let intensity = match paint_type {
+                        PaintType::Fill { opacity } => *opacity,
+                        PaintType::Border { width: _, color: _ } => 0.5, // Default intensity for borders
+                        PaintType::Pattern { name: _, opacity } => *opacity,
+                    };
+
+                    if intensity > 0.0 {
+                        paint_data.push((Vertex::new(x, y), intensity));
+                    }
                 }
             }
         }
@@ -539,9 +560,14 @@ mod tests {
         let vertex = Vertex::new(2, 3);
         let position = renderer.calculate_paint_position(&vertex);
 
-        // Expected: offset + vertex * size - paint_offset + small_offset
-        let expected_x = px(10.0 + 2.0 * 24.0 - 24.0 * 0.4 + 24.0 * 0.1); // 56.4
-        let expected_y = px(10.0 + 3.0 * 24.0 - 24.0 * 0.4 + 24.0 * 0.1); // 80.4
+        // Expected calculation with grid intersection alignment:
+        // grid_offset = 24.0 / 2.0 = 12.0
+        // paint_size = 24.0 * 0.8 = 19.2
+        // paint_center_offset = 19.2 / 2.0 = 9.6
+        // x = 10.0 + 2.0 * 24.0 + 12.0 - 9.6 = 60.4
+        // y = 10.0 + 3.0 * 24.0 + 12.0 - 9.6 = 84.4
+        let expected_x = px(60.4);
+        let expected_y = px(84.4);
         assert_eq!(position.x, expected_x);
         assert_eq!(position.y, expected_y);
     }

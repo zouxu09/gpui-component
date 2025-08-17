@@ -188,7 +188,14 @@ impl VertexButton {
     fn pixel_position(&self) -> (f32, f32) {
         let relative_x = (self.vertex.x - self.board_range.x.0) as f32;
         let relative_y = (self.vertex.y - self.board_range.y.0) as f32;
-        (relative_x * self.vertex_size, relative_y * self.vertex_size)
+
+        // Add half vertex size offset to center on grid intersections
+        // This matches the grid's vertex_to_pixel logic
+        let grid_offset = self.vertex_size / 2.0;
+        (
+            relative_x * self.vertex_size + grid_offset,
+            relative_y * self.vertex_size + grid_offset,
+        )
     }
 
     /// Calculates the clickable area size (larger than vertex for easier clicking)
@@ -371,8 +378,11 @@ impl VertexInteractions {
 
     /// Calculates the visible dimensions
     fn visible_dimensions(&self) -> (f32, f32) {
-        let width = (self.board_range.x.1 - self.board_range.x.0) as f32 * self.vertex_size;
-        let height = (self.board_range.y.1 - self.board_range.y.0) as f32 * self.vertex_size;
+        // Use the same dimension calculation as the grid to ensure alignment
+        let grid_intervals_x = (self.board_range.x.1 - self.board_range.x.0) as f32;
+        let grid_intervals_y = (self.board_range.y.1 - self.board_range.y.0) as f32;
+        let width = grid_intervals_x * self.vertex_size + self.vertex_size;
+        let height = grid_intervals_y * self.vertex_size + self.vertex_size;
         (width, height)
     }
 }
@@ -409,8 +419,12 @@ mod tests {
         let button = VertexButton::new(vertex, 20.0, board_range);
 
         let (pixel_x, pixel_y) = button.pixel_position();
-        assert_eq!(pixel_x, 40.0); // 2 * 20
-        assert_eq!(pixel_y, 60.0); // 3 * 20
+        // Expected calculation with grid intersection alignment:
+        // grid_offset = 20.0 / 2.0 = 10.0
+        // x = 2.0 * 20.0 + 10.0 = 50.0
+        // y = 3.0 * 20.0 + 10.0 = 70.0
+        assert_eq!(pixel_x, 50.0);
+        assert_eq!(pixel_y, 70.0);
     }
 
     #[test]
@@ -452,8 +466,12 @@ mod tests {
         let interactions = VertexInteractions::new(board_range, 30.0);
 
         let (width, height) = interactions.visible_dimensions();
-        assert_eq!(width, 120.0); // (6-2) * 30 = 4 * 30
-        assert_eq!(height, 90.0); // (4-1) * 30 = 3 * 30
+        // Expected calculation with grid alignment:
+        // grid_intervals_x = (6-2) = 4, grid_intervals_y = (4-1) = 3
+        // width = 4 * 30 + 30 = 150.0
+        // height = 3 * 30 + 30 = 120.0
+        assert_eq!(width, 150.0);
+        assert_eq!(height, 120.0);
     }
 
     #[test]

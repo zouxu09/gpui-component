@@ -74,9 +74,12 @@ fn test_stones_markers_overlays_integration() {
 
     // Add markers to annotate key positions
     let mut marker_map = vec![vec![None; 9]; 9];
-    marker_map[3][3] = Some(MarkerType::Circle);
-    marker_map[5][5] = Some(MarkerType::Triangle);
-    marker_map[4][4] = Some(MarkerType::Label("A1".to_string()));
+    marker_map[3][3] = Some(Marker::new(MarkerType::Circle));
+    marker_map[5][5] = Some(Marker::new(MarkerType::Triangle));
+    marker_map[4][4] = Some(Marker::with_label(
+        MarkerType::Label("A1".to_string()),
+        "Point A1".to_string(),
+    ));
     board.set_marker_map(marker_map.clone());
 
     // Add paint overlay for territory
@@ -89,24 +92,21 @@ fn test_stones_markers_overlays_integration() {
     board.set_paint_map(paint_map.clone());
 
     // Add heat map for influence
-    let mut heat_map = vec![vec![0; 9]; 9];
-    heat_map[3][3] = 7; // High influence
-    heat_map[4][4] = 5; // Medium influence
-    heat_map[5][5] = 8; // Very high influence
+    let mut heat_map = vec![vec![None; 9]; 9];
+    heat_map[3][3] = Some(HeatData::new(7)); // High influence
+    heat_map[4][4] = Some(HeatData::new(5)); // Medium influence
+    heat_map[5][5] = Some(HeatData::new(8)); // Very high influence
     board.set_heat_map(heat_map.clone());
 
     // Add ghost stones for analysis
     let mut ghost_map = vec![vec![None; 9]; 9];
-    ghost_map[2][2] = Some(GhostStone {
-        sign: 1,
-        ghost_type: Some("good".to_string()),
-        faint: false,
-    });
-    ghost_map[6][6] = Some(GhostStone {
-        sign: -1,
-        ghost_type: Some("interesting".to_string()),
-        faint: true,
-    });
+    ghost_map[2][2] =
+        Some(GhostStone::new(1, GhostStoneType::Good).with_ghost_type("good".to_string()));
+    ghost_map[6][6] = Some(
+        GhostStone::new(-1, GhostStoneType::Interesting)
+            .with_ghost_type("interesting".to_string())
+            .faint(),
+    );
     board.set_ghost_stone_map(ghost_map.clone());
 
     // Add selection states
@@ -115,16 +115,8 @@ fn test_stones_markers_overlays_integration() {
 
     // Add lines connecting important positions
     let lines = vec![
-        Line {
-            v1: Vertex::new(3, 3),
-            v2: Vertex::new(5, 5),
-            line_type: "arrow".to_string(),
-        },
-        Line {
-            v1: Vertex::new(3, 5),
-            v2: Vertex::new(5, 3),
-            line_type: "line".to_string(),
-        },
+        Line::arrow(Vertex::new(3, 3), Vertex::new(5, 5)),
+        Line::line(Vertex::new(3, 5), Vertex::new(5, 3)),
     ];
     board.set_lines(lines.clone());
 
@@ -366,53 +358,46 @@ fn test_all_layers_integration() {
     marker_map[9][9] = Some(MarkerType::Triangle);
     board.set_marker_map(marker_map);
 
-    // Layer 5: Heat map for influence
-    let mut heat_map = vec![vec![0; 13]; 13];
+    // Layer 5: Heat map for influence visualization
+    let mut heat_map = vec![vec![None; 13]; 13];
     // High influence around corners
     for i in 2..6 {
         for j in 2..6 {
-            heat_map[i][j] = 6;
+            heat_map[i][j] = Some(HeatData::new(6));
         }
     }
-    heat_map[6][6] = 9; // Very high influence at center
+    heat_map[6][6] = Some(HeatData::new(9)); // Very high influence at center
     board.set_heat_map(heat_map);
 
     // Layer 6: Paint overlay for territory
-    let mut paint_map = vec![vec![None; 13]; 13];
-    // Black territory in top-left
-    for i in 0..6 {
-        for j in 0..6 {
-            paint_map[i][j] = Some(PaintType::Fill { opacity: 0.25 });
+    let paint_start = Instant::now();
+    let mut paint_map = vec![vec![None; 19]; 19];
+    for i in 0..19 {
+        for j in 0..19 {
+            if (i + j) % 4 == 0 {
+                paint_map[i][j] = Some(PaintType::Fill {
+                    opacity: 0.1 + (i + j) as f32 * 0.01,
+                });
+            }
         }
     }
     board.set_paint_map(paint_map);
 
     // Layer 7: Ghost stones for analysis
     let mut ghost_map = vec![vec![None; 13]; 13];
-    ghost_map[5][5] = Some(GhostStone {
-        sign: 1,
-        ghost_type: Some("good".to_string()),
-        faint: false,
-    });
-    ghost_map[7][7] = Some(GhostStone {
-        sign: -1,
-        ghost_type: Some("doubtful".to_string()),
-        faint: true,
-    });
+    ghost_map[5][5] =
+        Some(GhostStone::new(1, GhostStoneType::Good).with_ghost_type("good".to_string()));
+    ghost_map[7][7] = Some(
+        GhostStone::new(-1, GhostStoneType::Doubtful)
+            .with_ghost_type("doubtful".to_string())
+            .faint(),
+    );
     board.set_ghost_stone_map(ghost_map);
 
     // Layer 8: Lines connecting related stones
     let lines = vec![
-        Line {
-            v1: Vertex::new(3, 3),
-            v2: Vertex::new(6, 6),
-            line_type: "arrow".to_string(),
-        },
-        Line {
-            v1: Vertex::new(9, 9),
-            v2: Vertex::new(6, 6),
-            line_type: "line".to_string(),
-        },
+        Line::arrow(Vertex::new(3, 3), Vertex::new(6, 6)),
+        Line::line(Vertex::new(9, 9), Vertex::new(6, 6)),
     ];
     board.set_lines(lines);
 

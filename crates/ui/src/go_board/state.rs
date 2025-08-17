@@ -45,7 +45,7 @@ impl GoBoardState {
             marker_map: vec![vec![None; width]; height],
             ghost_stone_map: vec![vec![None; width]; height],
             heat_map: vec![vec![None; width]; height],
-            paint_map: vec![vec![0.0; width]; height],
+            paint_map: vec![vec![None; width]; height],
 
             selected_vertices: Vec::new(),
             dimmed_vertices: Vec::new(),
@@ -185,55 +185,60 @@ impl GoBoardState {
 
     /// Resizes the board to new dimensions, preserving existing data where possible
     pub fn resize(&mut self, new_width: usize, new_height: usize) {
-        // Resize sign_map
+        // Resize sign map
         self.sign_map.resize(new_height, vec![0; new_width]);
         for row in &mut self.sign_map {
             row.resize(new_width, 0);
         }
 
-        // Resize marker_map
+        // Resize marker map
         self.marker_map.resize(new_height, vec![None; new_width]);
         for row in &mut self.marker_map {
             row.resize(new_width, None);
         }
 
-        // Resize ghost_stone_map
+        // Resize ghost stone map
         self.ghost_stone_map
             .resize(new_height, vec![None; new_width]);
         for row in &mut self.ghost_stone_map {
             row.resize(new_width, None);
         }
 
-        // Resize heat_map
+        // Resize heat map
         self.heat_map.resize(new_height, vec![None; new_width]);
         for row in &mut self.heat_map {
             row.resize(new_width, None);
         }
 
-        // Resize paint_map
-        self.paint_map.resize(new_height, vec![0.0; new_width]);
+        // Resize paint map
+        self.paint_map.resize(new_height, vec![None; new_width]);
         for row in &mut self.paint_map {
-            row.resize(new_width, 0.0);
+            row.resize(new_width, None);
         }
 
         // Update board range
         self.board_range = BoardRange::full(new_width, new_height);
 
-        // Clear invalid vertices from selection lists
-        let (width, height) = (new_width, new_height);
+        // Clear selections that are now out of bounds
         self.selected_vertices
-            .retain(|v| v.x < width && v.y < height);
-        self.dimmed_vertices.retain(|v| v.x < width && v.y < height);
-        self.selected_left.retain(|v| v.x < width && v.y < height);
-        self.selected_right.retain(|v| v.x < width && v.y < height);
-        self.selected_top.retain(|v| v.x < width && v.y < height);
-        self.selected_bottom.retain(|v| v.x < width && v.y < height);
-        self.animated_vertices
-            .retain(|v| v.x < width && v.y < height);
+            .retain(|v| v.x < new_width && v.y < new_height);
+        self.dimmed_vertices
+            .retain(|v| v.x < new_width && v.y < new_height);
+        self.selected_left
+            .retain(|v| v.x < new_width && v.y < new_height);
+        self.selected_right
+            .retain(|v| v.x < new_width && v.y < new_height);
+        self.selected_top
+            .retain(|v| v.x < new_width && v.y < new_height);
+        self.selected_bottom
+            .retain(|v| v.x < new_width && v.y < new_height);
 
-        // Clear invalid lines
+        // Clear lines that are now out of bounds
         self.lines.retain(|line| {
-            line.v1.x < width && line.v1.y < height && line.v2.x < width && line.v2.y < height
+            line.v1.x < new_width
+                && line.v1.y < new_height
+                && line.v2.x < new_width
+                && line.v2.y < new_height
         });
     }
 

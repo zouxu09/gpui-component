@@ -52,11 +52,16 @@ impl HeatOverlayRenderer {
 
     /// Calculates the pixel position for heat visualization at the given vertex
     fn calculate_heat_position(&self, vertex: &Vertex) -> Point<Pixels> {
-        let offset = self.vertex_size * 0.125; // Center the heat cell within the vertex
+        // Add half vertex size offset to center heat on grid intersections
+        // This matches the grid's vertex_to_pixel logic
+        let grid_offset = self.vertex_size / 2.0;
+        let heat_size = self.vertex_size * 0.75; // Heat cell size
+        let heat_center_offset = heat_size / 2.0; // Offset to center the heat cell
+
         let x = self.grid_offset.x
-            + px(vertex.x as f32 * self.vertex_size - self.vertex_size * 0.375 + offset);
+            + px(vertex.x as f32 * self.vertex_size + grid_offset - heat_center_offset);
         let y = self.grid_offset.y
-            + px(vertex.y as f32 * self.vertex_size - self.vertex_size * 0.375 + offset);
+            + px(vertex.y as f32 * self.vertex_size + grid_offset - heat_center_offset);
         point(x, y)
     }
 
@@ -281,9 +286,14 @@ mod tests {
         let vertex = Vertex::new(2, 3);
         let position = renderer.calculate_heat_position(&vertex);
 
-        // Expected: offset + vertex * size - heat_offset + centering_offset
-        let expected_x = px(10.0 + 2.0 * 24.0 - 24.0 * 0.375 + 24.0 * 0.125); // 55.0
-        let expected_y = px(10.0 + 3.0 * 24.0 - 24.0 * 0.375 + 24.0 * 0.125); // 79.0
+        // Expected calculation with new alignment logic:
+        // grid_offset = 24.0 / 2.0 = 12.0
+        // heat_size = 24.0 * 0.75 = 18.0
+        // heat_center_offset = 18.0 / 2.0 = 9.0
+        // x = 10.0 + 2.0 * 24.0 + 12.0 - 9.0 = 61.0
+        // y = 10.0 + 3.0 * 24.0 + 12.0 - 9.0 = 85.0
+        let expected_x = px(61.0);
+        let expected_y = px(85.0);
         assert_eq!(position.x, expected_x);
         assert_eq!(position.y, expected_y);
     }
