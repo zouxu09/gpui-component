@@ -122,14 +122,14 @@ Convert the feature design into a series of prompts for a code-generation LLM th
     - _Requirements: 6.3_
 
 - [ ] 9. Implement ghost stone and analysis features
-  - [ ] 9.1 Create ghost stone rendering
+  - [x] 9.1 Create ghost stone rendering
     - Implement GhostStone component with sign, type, and faint properties
     - Add visual styling for ghost stone types: good, interesting, doubtful, bad
     - Support faint rendering for subtle ghost stone display
     - Write tests for ghost stone visual appearance and type-based styling
     - _Requirements: 6.1, 6.4_
 
-  - [ ] 9.2 Integrate ghost stones with main rendering system
+  - [x] 9.2 Integrate ghost stones with main rendering system
     - Add ghostStoneMap support to main board state
     - Ensure proper layering between regular stones and ghost stones
     - Implement efficient updates when ghost stone data changes

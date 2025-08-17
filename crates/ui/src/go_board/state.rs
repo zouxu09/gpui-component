@@ -137,6 +137,34 @@ impl GoBoardState {
         }
     }
 
+    /// Gets the ghost stone at a vertex, returning None if out of bounds or no ghost stone
+    pub fn get_ghost_stone(&self, vertex: &Vertex) -> Option<&GhostStone> {
+        if self.is_valid_vertex(vertex) {
+            self.ghost_stone_map[vertex.y][vertex.x].as_ref()
+        } else {
+            None
+        }
+    }
+
+    /// Sets a ghost stone at a vertex if valid
+    pub fn set_ghost_stone(&mut self, vertex: &Vertex, ghost_stone: Option<GhostStone>) -> bool {
+        if self.is_valid_vertex(vertex) {
+            self.ghost_stone_map[vertex.y][vertex.x] = ghost_stone;
+            true
+        } else {
+            false
+        }
+    }
+
+    /// Clears all ghost stones from the board
+    pub fn clear_ghost_stones(&mut self) {
+        for row in &mut self.ghost_stone_map {
+            for cell in row {
+                *cell = None;
+            }
+        }
+    }
+
     /// Clears all stones from the board
     pub fn clear_stones(&mut self) {
         for row in &mut self.sign_map {
@@ -225,6 +253,71 @@ impl GoBoardState {
             }
             None => true, // No previous state means it's changed
         }
+    }
+
+    /// Updates multiple ghost stones efficiently with change tracking
+    pub fn update_ghost_stones(&mut self, updates: &[(Vertex, Option<GhostStone>)]) -> bool {
+        let mut changed = false;
+
+        for (vertex, ghost_stone) in updates {
+            if self.is_valid_vertex(vertex) {
+                let current = &self.ghost_stone_map[vertex.y][vertex.x];
+                let different = match (current, ghost_stone) {
+                    (None, None) => false,
+                    (Some(_), None) | (None, Some(_)) => true,
+                    (Some(a), Some(b)) => a != b,
+                };
+
+                if different {
+                    self.ghost_stone_map[vertex.y][vertex.x] = ghost_stone.clone();
+                    changed = true;
+                }
+            }
+        }
+
+        changed
+    }
+
+    /// Bulk update ghost stones from a complete map with change tracking
+    pub fn update_ghost_stone_map(&mut self, new_ghost_map: &GhostStoneMap) -> bool {
+        if new_ghost_map.is_empty() || new_ghost_map[0].is_empty() {
+            return false;
+        }
+
+        let height = new_ghost_map.len();
+        let width = new_ghost_map[0].len();
+        let (current_width, current_height) = self.dimensions();
+
+        if width != current_width || height != current_height {
+            return false; // Size mismatch
+        }
+
+        // Check if the new map differs from current
+        let mut changed = false;
+        for (y, row) in new_ghost_map.iter().enumerate() {
+            for (x, new_ghost) in row.iter().enumerate() {
+                let current_ghost = &self.ghost_stone_map[y][x];
+                let different = match (current_ghost, new_ghost) {
+                    (None, None) => false,
+                    (Some(_), None) | (None, Some(_)) => true,
+                    (Some(a), Some(b)) => a != b,
+                };
+
+                if different {
+                    changed = true;
+                    break;
+                }
+            }
+            if changed {
+                break;
+            }
+        }
+
+        if changed {
+            self.ghost_stone_map = new_ghost_map.clone();
+        }
+
+        changed
     }
 
     /// Updates selection state efficiently with change tracking
@@ -505,5 +598,163 @@ mod tests {
         assert!(snapshot1.differs_from(&snapshot2));
         assert!(snapshot2.differs_from(&snapshot1));
         assert!(!snapshot1.differs_from(&snapshot1));
+    }
+
+    #[test]
+    fn test_ghost_stone_operations() {
+        let mut state = GoBoardState::new(9, 9);
+        let vertex = Vertex::new(3, 3);
+        let ghost_stone = GhostStone::new(1, GhostStoneType::Good);
+
+        // Test initial state
+        assert!(state.get_ghost_stone(&vertex).is_none());
+
+        // Test setting ghost stone
+        assert!(state.set_ghost_stone(&vertex, Some(ghost_stone.clone())));
+        assert_eq!(state.get_ghost_stone(&vertex), Some(&ghost_stone));
+
+        // Test clearing ghost stone
+        assert!(state.set_ghost_stone(&vertex, None));
+        assert!(state.get_ghost_stone(&vertex).is_none());
+
+        // Test out of bounds
+        let invalid_vertex = Vertex::new(10, 10);
+        assert!(!state.set_ghost_stone(&invalid_vertex, Some(ghost_stone)));
+        assert_eq!(state.get_ghost_stone(&invalid_vertex), None);
+    }
+
+    #[test]
+    fn test_clear_ghost_stones() {
+        let mut state = GoBoardState::new(9, 9);
+
+        // Set some ghost stones
+        state.set_ghost_stone(
+            &Vertex::new(0, 0),
+            Some(GhostStone::new(1, GhostStoneType::Good)),
+        );
+        state.set_ghost_stone(
+            &Vertex::new(1, 1),
+            Some(GhostStone::new(-1, GhostStoneType::Bad)),
+        );
+
+        // Clear all ghost stones
+        state.clear_ghost_stones();
+        assert!(state.get_ghost_stone(&Vertex::new(0, 0)).is_none());
+        assert!(state.get_ghost_stone(&Vertex::new(1, 1)).is_none());
+    }
+
+    #[test]
+    fn test_update_ghost_stones() {
+        let mut state = GoBoardState::new(9, 9);
+
+        // Test bulk updates
+        let updates = vec![
+            (
+                Vertex::new(1, 1),
+                Some(GhostStone::new(1, GhostStoneType::Good)),
+            ),
+            (
+                Vertex::new(2, 2),
+                Some(GhostStone::new(-1, GhostStoneType::Bad)),
+            ),
+            (Vertex::new(3, 3), None), // Should clear if exists
+        ];
+
+        // First update should return true (changes made)
+        assert!(state.update_ghost_stones(&updates));
+
+        // Verify the updates were applied
+        assert!(state.get_ghost_stone(&Vertex::new(1, 1)).is_some());
+        assert!(state.get_ghost_stone(&Vertex::new(2, 2)).is_some());
+        assert!(state.get_ghost_stone(&Vertex::new(3, 3)).is_none());
+
+        // Same updates should return false (no changes)
+        assert!(!state.update_ghost_stones(&updates));
+    }
+
+    #[test]
+    fn test_update_ghost_stone_map() {
+        let mut state = GoBoardState::new(3, 3);
+
+        // Create a test ghost stone map
+        let ghost_map = vec![
+            vec![Some(GhostStone::new(1, GhostStoneType::Good)), None, None],
+            vec![None, Some(GhostStone::new(-1, GhostStoneType::Bad)), None],
+            vec![
+                None,
+                None,
+                Some(GhostStone::new(1, GhostStoneType::Interesting)),
+            ],
+        ];
+
+        // First update should return true
+        assert!(state.update_ghost_stone_map(&ghost_map));
+
+        // Verify the map was updated
+        assert!(state.get_ghost_stone(&Vertex::new(0, 0)).is_some());
+        assert!(state.get_ghost_stone(&Vertex::new(1, 1)).is_some());
+        assert!(state.get_ghost_stone(&Vertex::new(2, 2)).is_some());
+
+        // Same map should return false
+        assert!(!state.update_ghost_stone_map(&ghost_map));
+
+        // Different map should return true
+        let mut different_map = ghost_map.clone();
+        different_map[0][0] = None;
+        assert!(state.update_ghost_stone_map(&different_map));
+
+        // Test size mismatch
+        let wrong_size_map = vec![vec![None; 2]; 2];
+        assert!(!state.update_ghost_stone_map(&wrong_size_map));
+    }
+
+    #[test]
+    fn test_ghost_stone_resize() {
+        let mut state = GoBoardState::new(3, 3);
+
+        // Set some ghost stones
+        state.set_ghost_stone(
+            &Vertex::new(0, 0),
+            Some(GhostStone::new(1, GhostStoneType::Good)),
+        );
+        state.set_ghost_stone(
+            &Vertex::new(2, 2),
+            Some(GhostStone::new(-1, GhostStoneType::Bad)),
+        );
+
+        // Resize to larger
+        state.resize(5, 5);
+        assert_eq!(state.dimensions(), (5, 5));
+        assert!(state.get_ghost_stone(&Vertex::new(0, 0)).is_some()); // Preserved
+        assert!(state.get_ghost_stone(&Vertex::new(2, 2)).is_some()); // Preserved
+
+        // Resize to smaller
+        state.resize(2, 2);
+        assert_eq!(state.dimensions(), (2, 2));
+        assert!(state.get_ghost_stone(&Vertex::new(0, 0)).is_some()); // Preserved
+        assert!(state.get_ghost_stone(&Vertex::new(2, 2)).is_none()); // Lost due to resize
+    }
+
+    #[test]
+    fn test_ghost_stone_layer_management() {
+        let mut state = GoBoardState::new(5, 5);
+        let vertex = Vertex::new(2, 2);
+
+        // Set a regular stone
+        assert!(state.set_sign(&vertex, 1));
+        assert_eq!(state.get_sign(&vertex), Some(1));
+
+        // Set a ghost stone at the same position
+        let ghost_stone = GhostStone::new(-1, GhostStoneType::Good);
+        assert!(state.set_ghost_stone(&vertex, Some(ghost_stone.clone())));
+
+        // Both should coexist (layering is handled by rendering)
+        assert_eq!(state.get_sign(&vertex), Some(1));
+        assert_eq!(state.get_ghost_stone(&vertex), Some(&ghost_stone));
+
+        // Clear ghost stone but keep regular stone
+        assert!(state.set_ghost_stone(&vertex, None));
+        assert_eq!(state.get_sign(&vertex), Some(1)); // Stone remains
+        assert!(state.get_ghost_stone(&vertex).is_none()); // Ghost stone cleared
     }
 }
