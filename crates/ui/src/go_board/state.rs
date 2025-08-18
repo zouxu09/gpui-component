@@ -24,16 +24,11 @@ pub struct GoBoardState {
     // Selection state tracking for efficient updates
     pub previous_selection_state: Option<SelectionStateSnapshot>,
 
-    // Animation state
-    pub animated_vertices: Vec<Vertex>,
-    pub animation_duration: Duration,
-
     // Configuration
     pub vertex_size: f32,
     pub board_range: BoardRange,
     pub show_coordinates: bool,
     pub fuzzy_stone_placement: bool,
-    pub animate_stone_placement: bool,
     pub busy: bool,
 }
 
@@ -57,14 +52,10 @@ impl GoBoardState {
 
             previous_selection_state: None,
 
-            animated_vertices: Vec::new(),
-            animation_duration: Duration::from_millis(200),
-
             vertex_size: 24.0,
             board_range: BoardRange::full(width, height),
             show_coordinates: false,
             fuzzy_stone_placement: false,
-            animate_stone_placement: false,
             busy: false,
         }
     }

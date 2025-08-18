@@ -58,9 +58,7 @@ pub use keyboard_navigation::{
 };
 pub use line_overlay::{LineOverlay, LineRenderer, LineTheme};
 pub use markers::{MarkerRenderer, Markers};
-pub use memory_manager::{
-    CleanupConfig, ComponentPoolStats, MemoryManager, MemoryStats, TimerHandle,
-};
+pub use memory_manager::{CleanupConfig, ComponentPoolStats, MemoryManager, MemoryStats};
 pub use paint_overlay::{
     CornerPaint, CornerPosition, DirectionalPaintMap, PaintDirection, PaintOverlay,
     PaintOverlayRenderer,
