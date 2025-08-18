@@ -3,14 +3,11 @@ use std::collections::HashMap;
 use std::time::{Duration, Instant};
 
 /// Memory optimization and cleanup system for Go board components
-/// Manages component pooling, timer cleanup, and prevents memory leaks
+/// Manages component pooling and prevents memory leaks
 pub struct MemoryManager {
     /// Component pools for reuse
     stone_pool: ComponentPool<StoneComponent>,
     marker_pool: ComponentPool<MarkerComponent>,
-
-    /// Active timers that need cleanup
-    active_timers: HashMap<String, TimerHandle>,
 
     /// Memory usage tracking
     memory_stats: MemoryStats,
@@ -48,19 +45,10 @@ impl Default for CleanupConfig {
 pub struct MemoryStats {
     pub pooled_stones: usize,
     pub pooled_markers: usize,
-    pub active_timers: usize,
     pub total_allocations: u64,
     pub total_deallocations: u64,
     pub peak_pool_size: usize,
     pub last_cleanup: Option<Instant>,
-}
-
-/// Handle for managing timers that need cleanup
-#[derive(Clone, Debug)]
-pub struct TimerHandle {
-    pub id: String,
-    pub created_at: Instant,
-    pub cleanup_callback: Option<fn()>,
 }
 
 /// Generic component pool for reusing expensive-to-create components
@@ -163,47 +151,9 @@ impl MemoryManager {
         Self {
             stone_pool: ComponentPool::new(config.max_pool_size),
             marker_pool: ComponentPool::new(config.max_pool_size),
-            active_timers: HashMap::new(),
             memory_stats: MemoryStats::default(),
             cleanup_config: config,
         }
-    }
-
-    /// Register a timer that needs cleanup
-    pub fn register_timer(&mut self, id: String, cleanup_callback: Option<fn()>) -> TimerHandle {
-        let handle = TimerHandle {
-            id: id.clone(),
-            created_at: Instant::now(),
-            cleanup_callback,
-        };
-
-        self.active_timers.insert(id, handle.clone());
-        self.memory_stats.active_timers = self.active_timers.len();
-
-        handle
-    }
-
-    /// Clean up a specific timer
-    pub fn cleanup_timer(&mut self, timer_id: &str) -> bool {
-        if let Some(timer) = self.active_timers.remove(timer_id) {
-            if let Some(cleanup_fn) = timer.cleanup_callback {
-                cleanup_fn();
-            }
-            self.memory_stats.active_timers = self.active_timers.len();
-            true
-        } else {
-            false
-        }
-    }
-
-    /// Clean up all timers
-    pub fn cleanup_all_timers(&mut self) {
-        for (_, timer) in self.active_timers.drain() {
-            if let Some(cleanup_fn) = timer.cleanup_callback {
-                cleanup_fn();
-            }
-        }
-        self.memory_stats.active_timers = 0;
     }
 
     /// Get a stone component from the pool
@@ -264,26 +214,10 @@ impl MemoryManager {
         self.stone_pool.cleanup(max_age);
         self.marker_pool.cleanup(max_age);
 
-        // Clean up old timers
-        let now = Instant::now();
-        let timer_max_age = Duration::from_millis(self.cleanup_config.component_max_age);
-
-        let expired_timers: Vec<String> = self
-            .active_timers
-            .iter()
-            .filter(|(_, timer)| now.duration_since(timer.created_at) > timer_max_age)
-            .map(|(id, _)| id.clone())
-            .collect();
-
-        for timer_id in expired_timers {
-            self.cleanup_timer(&timer_id);
-        }
-
         // Update statistics
         self.memory_stats.pooled_stones = self.stone_pool.available.len();
         self.memory_stats.pooled_markers = self.marker_pool.available.len();
-        self.memory_stats.active_timers = self.active_timers.len();
-        self.memory_stats.last_cleanup = Some(now);
+        self.memory_stats.last_cleanup = Some(Instant::now());
 
         // Track peak pool size
         let current_pool_size = self.memory_stats.pooled_stones + self.memory_stats.pooled_markers;
@@ -294,13 +228,11 @@ impl MemoryManager {
 
     /// Force cleanup of all resources
     pub fn force_cleanup(&mut self) {
-        self.cleanup_all_timers();
         self.stone_pool.clear();
         self.marker_pool.clear();
 
         self.memory_stats.pooled_stones = 0;
         self.memory_stats.pooled_markers = 0;
-        self.memory_stats.active_timers = 0;
         self.memory_stats.last_cleanup = Some(Instant::now());
     }
 
@@ -383,7 +315,6 @@ mod tests {
 
         assert_eq!(stats.pooled_stones, 0);
         assert_eq!(stats.pooled_markers, 0);
-        assert_eq!(stats.active_timers, 0);
     }
 
     #[test]
@@ -402,25 +333,6 @@ mod tests {
         assert_eq!(stats.pooled_stones, 2);
         assert_eq!(stats.total_allocations, 2);
         assert_eq!(stats.total_deallocations, 2);
-    }
-
-    #[test]
-    fn test_timer_management() {
-        let mut manager = MemoryManager::new();
-
-        // Register timers
-        manager.register_timer("timer1".to_string(), None);
-        manager.register_timer("timer2".to_string(), None);
-
-        assert_eq!(manager.get_memory_stats().active_timers, 2);
-
-        // Clean up specific timer
-        assert!(manager.cleanup_timer("timer1"));
-        assert_eq!(manager.get_memory_stats().active_timers, 1);
-
-        // Clean up all timers
-        manager.cleanup_all_timers();
-        assert_eq!(manager.get_memory_stats().active_timers, 0);
     }
 
     #[test]
@@ -474,20 +386,17 @@ mod tests {
     fn test_force_cleanup() {
         let mut manager = MemoryManager::new();
 
-        // Add some components and timers
+        // Add some components
         let stone = manager.get_stone_component(Vertex::new(0, 0), 1, 20.0);
         manager.return_stone_component(stone);
-        manager.register_timer("test_timer".to_string(), None);
 
         assert!(manager.get_memory_stats().pooled_stones > 0);
-        assert!(manager.get_memory_stats().active_timers > 0);
 
         // Force cleanup should clear everything
         manager.force_cleanup();
 
         let stats = manager.get_memory_stats();
         assert_eq!(stats.pooled_stones, 0);
-        assert_eq!(stats.active_timers, 0);
     }
 
     #[test]

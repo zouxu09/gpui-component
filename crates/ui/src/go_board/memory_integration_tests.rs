@@ -13,13 +13,8 @@ mod memory_integration_tests {
     fn test_go_board_memory_cleanup_on_theme_change() {
         let mut board = GoBoard::new();
 
-        // Register some timers
-        board.register_animation_timer("test_timer_1".to_string(), None);
-        board.register_animation_timer("test_timer_2".to_string(), None);
-
         // Get initial stats
         let initial_stats = board.get_memory_stats();
-        assert_eq!(initial_stats.active_timers, 2);
 
         // Change theme - should trigger cleanup
         let new_theme = BoardTheme::default();
@@ -27,7 +22,7 @@ mod memory_integration_tests {
 
         // Memory should be cleaned up
         let stats_after_theme = board.get_memory_stats();
-        // Timers might be cleaned if they're old enough or if cleanup was forced
+        // Cleanup should have happened
         assert!(stats_after_theme.last_cleanup.is_some());
     }
 
@@ -114,34 +109,6 @@ mod memory_integration_tests {
     }
 
     #[test]
-    fn test_timer_cleanup_lifecycle() {
-        let mut board = GoBoard::new();
-
-        // Register timers with cleanup callbacks
-        let timer1 = board.register_animation_timer("animation_1".to_string(), None);
-        let timer2 = board.register_animation_timer(
-            "animation_2".to_string(),
-            Some(|| {
-                // Mock cleanup callback
-            }),
-        );
-
-        assert_eq!(board.get_memory_stats().active_timers, 2);
-
-        // Clean up specific timer
-        assert!(board.cleanup_animation_timer("animation_1"));
-        assert_eq!(board.get_memory_stats().active_timers, 1);
-
-        // Try to clean up non-existent timer
-        assert!(!board.cleanup_animation_timer("non_existent"));
-        assert_eq!(board.get_memory_stats().active_timers, 1);
-
-        // Clean up all timers
-        board.cleanup_all_timers();
-        assert_eq!(board.get_memory_stats().active_timers, 0);
-    }
-
-    #[test]
     fn test_differential_rendering_with_memory_cleanup() {
         let mut board = GoBoard::new();
 
@@ -149,8 +116,7 @@ mod memory_integration_tests {
         board.set_stone(&Vertex::new(3, 3), 1);
         board.set_stone(&Vertex::new(4, 4), -1);
 
-        // Force memory manager to need cleanup
-        board.register_animation_timer("test_timer".to_string(), None);
+        // Wait to make cleanup timing trigger
         thread::sleep(Duration::from_millis(10));
 
         // Render with differential updates - should trigger cleanup
@@ -189,14 +155,6 @@ mod memory_integration_tests {
                 })
                 .collect();
             board.update_ghost_stones(&ghost_updates);
-
-            // Register and cleanup timers
-            let timer_id = format!("timer_{}", iteration);
-            board.register_animation_timer(timer_id.clone(), None);
-            if iteration > 10 {
-                let old_timer_id = format!("timer_{}", iteration - 10);
-                board.cleanup_animation_timer(&old_timer_id);
-            }
         }
 
         // Check final memory state
@@ -204,7 +162,6 @@ mod memory_integration_tests {
         let pool_stats = board.get_pool_stats();
 
         // Should have reasonable memory usage (not growing unbounded)
-        assert!(final_stats.active_timers < 50); // Should not keep all 50 timers
         assert!(pool_stats.stone_pool_size < 100); // Pool should be bounded
         assert!(pool_stats.marker_pool_size < 100); // Pool should be bounded
 
@@ -215,22 +172,13 @@ mod memory_integration_tests {
     #[test]
     fn test_memory_manager_drop_cleanup() {
         // Create a scope where GoBoard will be dropped
-        let final_stats = {
+        {
             let mut board = GoBoard::new();
-
-            // Create some timers and pooled components
-            board.register_animation_timer("temp_timer_1".to_string(), None);
-            board.register_animation_timer("temp_timer_2".to_string(), None);
 
             let stone = board.get_pooled_stone_component(Vertex::new(0, 0), 1);
             board.return_stone_component(stone);
-
-            // Get stats before drop
-            board.get_memory_stats().clone()
         }; // board is dropped here, should trigger cleanup
 
-        // Verify that timers existed before drop
-        assert!(final_stats.active_timers > 0);
         // The actual cleanup verification would require more sophisticated testing
         // in a real implementation, possibly with mock objects or memory profiling
     }
@@ -273,7 +221,6 @@ mod memory_integration_tests {
         let initial_stats = board.get_memory_stats();
         assert_eq!(initial_stats.pooled_stones, 0);
         assert_eq!(initial_stats.pooled_markers, 0);
-        assert_eq!(initial_stats.active_timers, 0);
         assert_eq!(initial_stats.total_allocations, 0);
         assert_eq!(initial_stats.total_deallocations, 0);
 
@@ -286,9 +233,5 @@ mod memory_integration_tests {
         let stats_after_return = board.get_memory_stats();
         assert_eq!(stats_after_return.total_deallocations, 1);
         assert_eq!(stats_after_return.pooled_stones, 1);
-
-        board.register_animation_timer("stat_test_timer".to_string(), None);
-        let stats_after_timer = board.get_memory_stats();
-        assert_eq!(stats_after_timer.active_timers, 1);
     }
 }

@@ -26,9 +26,8 @@ This specification outlines the requirements for creating a reusable Go board UI
 
 1. WHEN stones are displayed THEN the widget SHALL support signMap representation with -1 (white), 0 (empty), 1 (black) values
 2. WHEN fuzzy placement is enabled THEN stones SHALL render slightly off-grid for natural appearance
-3. WHEN stone animations are enabled THEN placement SHALL include slide-in animations with duration control
-4. WHEN multiple stone types are used THEN the widget SHALL support random visual variation using rotation and texture classes
-5. IF custom stone images are provided THEN the widget SHALL support different stone patterns via CSS background-image overrides
+3. WHEN multiple stone types are used THEN the widget SHALL support random visual variation using rotation and texture classes
+4. IF custom stone images are provided THEN the widget SHALL support different stone patterns via CSS background-image overrides
 
 ### Requirement 3
 
@@ -109,10 +108,9 @@ This specification outlines the requirements for creating a reusable Go board UI
 #### Acceptance Criteria
 
 1. WHEN signMap updates THEN the widget SHALL use differential rendering to update only changed vertices
-2. WHEN animations are active THEN frame rates SHALL remain smooth with proper requestAnimationFrame usage
-3. WHEN large boards are displayed THEN performance SHALL not degrade significantly through efficient DOM structure
-4. WHEN multiple overlays exist THEN the widget SHALL use proper z-index layering and minimal DOM manipulation
-5. IF memory optimization is needed THEN the widget SHALL clean up animation timers and prevent memory leaks
+2. WHEN large boards are displayed THEN performance SHALL not degrade significantly through efficient DOM structure
+3. WHEN multiple overlays exist THEN the widget SHALL use proper z-index layering and minimal DOM manipulation
+4. IF memory optimization is needed THEN the widget SHALL clean up timers and prevent memory leaks
 
 ### Requirement 10
 
@@ -136,4 +134,4 @@ This specification outlines the requirements for creating a reusable Go board UI
 2. WHEN implementing features THEN code examples SHALL demonstrate signMap, markerMap, heatMap, ghostStoneMap, and other advanced features
 3. WHEN integrating with GPUI THEN examples SHALL show proper reactive state management and event handling patterns
 4. WHEN troubleshooting THEN clear error messages SHALL guide developers toward correct usage patterns
-5. IF advanced features are used THEN examples SHALL demonstrate combinations of markers, overlays, animations, and custom styling
+5. IF advanced features are used THEN examples SHALL demonstrate combinations of markers, overlays, and custom styling

@@ -61,12 +61,6 @@ pub enum GoBoardError {
         message: String,
     },
 
-    /// Animation configuration error
-    InvalidAnimation {
-        animation_type: String,
-        message: String,
-    },
-
     /// Memory management error
     MemoryError { operation: String, message: String },
 
@@ -163,17 +157,6 @@ impl fmt::Display for GoBoardError {
                     asset_type, message
                 ),
             },
-
-            GoBoardError::InvalidAnimation {
-                animation_type,
-                message,
-            } => {
-                write!(
-                    f,
-                    "Invalid {} animation: {}. Check animation duration and timing settings.",
-                    animation_type, message
-                )
-            }
 
             GoBoardError::MemoryError { operation, message } => {
                 write!(f, "Memory management error during '{}': {}. This may indicate resource cleanup issues.", 
@@ -386,17 +369,6 @@ impl GoBoardValidator {
         Ok(())
     }
 
-    /// Validates animation duration
-    pub fn validate_animation_duration(duration_ms: u64) -> GoBoardResult<()> {
-        if duration_ms > 10000 {
-            return Err(GoBoardError::InvalidAnimation {
-                animation_type: "duration".to_string(),
-                message: "Animation duration should not exceed 10 seconds".to_string(),
-            });
-        }
-        Ok(())
-    }
-
     /// Validates bulk updates for performance
     pub fn validate_bulk_update_size(update_count: usize, max_size: usize) -> GoBoardResult<()> {
         if update_count > max_size {
@@ -527,18 +499,6 @@ mod tests {
         assert!(GoBoardValidator::validate_color("background", "").is_err());
         assert!(GoBoardValidator::validate_color("background", "#00").is_err());
         assert!(GoBoardValidator::validate_color("background", "#0000000").is_err());
-    }
-
-    #[test]
-    fn test_validate_animation_duration() {
-        // Valid durations
-        assert!(GoBoardValidator::validate_animation_duration(100).is_ok());
-        assert!(GoBoardValidator::validate_animation_duration(1000).is_ok());
-        assert!(GoBoardValidator::validate_animation_duration(5000).is_ok());
-
-        // Invalid durations
-        assert!(GoBoardValidator::validate_animation_duration(15000).is_err());
-        assert!(GoBoardValidator::validate_animation_duration(20000).is_err());
     }
 
     #[test]

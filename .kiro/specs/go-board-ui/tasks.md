@@ -151,20 +151,7 @@ Convert the feature design into a series of prompts for a code-generation LLM th
     - Write tests for arrow rendering and line style application
     - _Requirements: 7.2, 7.4, 7.5_
 
-- [ ] 11. Implement stone animation system
-  - [ ] 11.1 Create stone placement animations
-    - Implement animation state management for animatedVertices
-    - Add slide-in animations with configurable duration
-    - Support stone shift adjustments during animations for natural placement
-    - Write tests for animation timing and stone position interpolation
-    - _Requirements: 2.3_
 
-  - [ ] 11.2 Add animation cleanup and performance optimization
-    - Implement proper animation timer cleanup to prevent memory leaks
-    - Add smooth 60fps animation using requestAnimationFrame equivalent
-    - Ensure animations don't block other board interactions
-    - Write tests for animation performance and memory management
-    - _Requirements: 9.2, 9.5_
 
 - [x] 12. Create comprehensive theming system
   - [x] 12.1 Implement BoardTheme with CSS custom properties
@@ -201,11 +188,11 @@ Convert the feature design into a series of prompts for a code-generation LLM th
     - Create differential rendering system that only updates changed vertices
     - Add proper z-index layering with minimal DOM manipulation
     - Implement efficient stone placement and removal without full re-render
-    - Write performance tests for large board updates and animation smoothness
+    - Write performance tests for large board updates and rendering smoothness
     - _Requirements: 9.1, 9.4_
 
   - [x] 14.2 Add memory optimization and cleanup systems
-    - Implement proper cleanup of animation timers and event handlers
+    - Implement proper cleanup of timers and event handlers
     - Add component pooling for large boards to reduce memory allocation
     - Ensure no memory leaks during repeated state updates
     - Write tests for memory usage patterns and cleanup verification

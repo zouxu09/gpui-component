@@ -399,11 +399,6 @@ impl GoBoard {
         self.state.fuzzy_stone_placement = fuzzy;
     }
 
-    /// Sets the stone placement animation mode
-    pub fn set_animate_stone_placement(&mut self, animate: bool) {
-        self.state.animate_stone_placement = animate;
-    }
-
     /// Sets the busy state (disables interactions)
     pub fn set_busy(&mut self, busy: bool) {
         self.state.busy = busy;
@@ -438,32 +433,12 @@ impl GoBoard {
         self.differential_renderer.vertex_changed(vertex)
     }
 
-    /// Registers an animation timer for cleanup tracking
-    pub fn register_animation_timer(
-        &mut self,
-        timer_id: String,
-        cleanup_callback: Option<fn()>,
-    ) -> crate::go_board::TimerHandle {
-        self.memory_manager
-            .register_timer(timer_id, cleanup_callback)
-    }
-
-    /// Cleans up a specific animation timer
-    pub fn cleanup_animation_timer(&mut self, timer_id: &str) -> bool {
-        self.memory_manager.cleanup_timer(timer_id)
-    }
-
-    /// Cleans up all active animation timers
-    pub fn cleanup_all_timers(&mut self) {
-        self.memory_manager.cleanup_all_timers();
-    }
-
-    /// Performs memory cleanup (removes old pooled components and timers)
+    /// Performs memory cleanup (removes old pooled components)
     pub fn cleanup_memory(&mut self) {
         self.memory_manager.cleanup();
     }
 
-    /// Forces complete memory cleanup (removes all pooled components and timers)
+    /// Forces complete memory cleanup (removes all pooled components)
     pub fn force_memory_cleanup(&mut self) {
         self.memory_manager.force_cleanup();
     }
@@ -840,10 +815,9 @@ impl GoBoard {
         {
             // In a real implementation, this is where we would:
             // 1. Only update the DOM elements that changed
-            // 2. Use CSS transforms for animations
-            // 3. Batch DOM updates to prevent layout thrashing
-            // 4. Use virtual DOM or similar diffing strategies
-            // 5. Use component pooling from memory manager for expensive components
+            // 2. Batch DOM updates to prevent layout thrashing
+            // 3. Use virtual DOM or similar diffing strategies
+            // 4. Use component pooling from memory manager for expensive components
 
             self.render_with_vertex_handlers(handlers)
                 .into_any_element()
@@ -869,7 +843,7 @@ impl Render for GoBoard {
 
 impl Drop for GoBoard {
     fn drop(&mut self) {
-        // Ensure all timers and resources are cleaned up when GoBoard is dropped
+        // Ensure all resources are cleaned up when GoBoard is dropped
         self.force_memory_cleanup();
     }
 }

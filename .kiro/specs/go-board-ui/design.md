@@ -2,7 +2,7 @@
 
 ## Overview
 
-This design document outlines the architecture for a high-performance Go board UI widget component in GPUI, inspired by the proven Shudan architecture. The component will provide a flexible, customizable, and performant Go board display system that supports advanced features like markers, overlays, animations, and comprehensive theming while maintaining clean separation between UI presentation and game logic.
+This design document outlines the architecture for a high-performance Go board UI widget component in GPUI, inspired by the proven Shudan architecture. The component will provide a flexible, customizable, and performant Go board display system that supports advanced features like markers, overlays, and comprehensive theming while maintaining clean separation between UI presentation and game logic.
 
 The design follows GPUI's reactive architecture patterns and leverages Rust's type safety to create a robust component suitable for professional Go applications, educational tools, and game analysis software.
 
@@ -76,16 +76,11 @@ pub struct GoBoardState {
     pub dimmed_vertices: Vec<Vertex>,
     pub lines: Vec<Line>,
 
-    // Animation state
-    pub animated_vertices: Vec<Vertex>,
-    pub animation_duration: Duration,
-
     // Configuration
     pub vertex_size: f32,
     pub board_range: BoardRange,
     pub show_coordinates: bool,
     pub fuzzy_stone_placement: bool,
-    pub animate_stone_placement: bool,
     pub busy: bool,
 }
 ```
@@ -146,7 +141,7 @@ impl Grid {
 
 ### 3. Stone Components
 
-Handles stone rendering with support for fuzzy positioning and animations:
+Handles stone rendering with support for fuzzy positioning:
 
 ```rust
 pub struct Stone {
@@ -154,7 +149,6 @@ pub struct Stone {
     sign: i8, // -1, 0, 1
     shift: Option<(f32, f32)>, // Fuzzy positioning offset
     random_class: u8, // 0-4 for visual variation
-    animated: bool,
 }
 
 pub struct GhostStone {
@@ -332,34 +326,6 @@ impl Default for BoardTheme {
 }
 ```
 
-### Animation System
-
-Stone placement animations with configurable duration:
-
-```rust
-pub struct AnimationState {
-    pub animated_vertices: Vec<Vertex>,
-    pub animation_start_time: Instant,
-    pub animation_duration: Duration,
-    pub animation_type: AnimationType,
-}
-
-#[derive(Clone, Debug)]
-pub enum AnimationType {
-    StonePlace,
-    StoneRemove,
-    MarkerFadeIn,
-    MarkerFadeOut,
-    OverlayTransition,
-}
-
-pub struct AnimationConfig {
-    pub stone_placement_duration: Duration,
-    pub marker_fade_duration: Duration,
-    pub overlay_transition_duration: Duration,
-    pub easing_function: EasingFunction,
-}
-```
 
 ## Error Handling
 
@@ -374,7 +340,6 @@ pub enum GoBoardError {
     InvalidSignValue { value: i8, position: Vertex },
     InvalidMarkerType { marker_type: String },
     ThemeLoadError { theme_path: String, error: String },
-    AnimationError { message: String },
 }
 
 impl std::fmt::Display for GoBoardError {
@@ -407,7 +372,6 @@ impl std::fmt::Display for GoBoardError {
 
 - **Component Interaction**: Test communication between Grid, Stone, and Marker layers
 - **Performance Testing**: Benchmark rendering performance with large boards and many overlays
-- **Animation Testing**: Verify smooth animations and proper cleanup
 - **Memory Testing**: Ensure no memory leaks during repeated state updates
 
 ### Visual Testing
@@ -436,8 +400,7 @@ impl std::fmt::Display for GoBoardError {
 
 1. **Component Pooling**: Reuse stone and marker components for large boards
 2. **Texture Sharing**: Share stone textures across multiple instances
-3. **Animation Cleanup**: Properly clean up animation timers and handlers
-4. **State Normalization**: Use normalized state structures for efficient updates
+3. **State Normalization**: Use normalized state structures for efficient updates
 
 ### Event Handling Optimization
 

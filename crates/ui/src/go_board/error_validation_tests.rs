@@ -250,19 +250,6 @@ mod error_handling_tests {
     }
 
     #[test]
-    fn test_validator_animation_duration() {
-        // Valid durations
-        assert!(GoBoardValidator::validate_animation_duration(100).is_ok());
-        assert!(GoBoardValidator::validate_animation_duration(1000).is_ok());
-        assert!(GoBoardValidator::validate_animation_duration(5000).is_ok());
-        assert!(GoBoardValidator::validate_animation_duration(10000).is_ok());
-
-        // Invalid durations
-        assert!(GoBoardValidator::validate_animation_duration(10001).is_err());
-        assert!(GoBoardValidator::validate_animation_duration(20000).is_err());
-    }
-
-    #[test]
     fn test_validator_bulk_update_limits() {
         // Valid update sizes
         assert!(GoBoardValidator::validate_bulk_update_size(0, 100).is_ok());

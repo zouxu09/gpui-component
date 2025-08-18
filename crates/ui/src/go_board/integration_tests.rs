@@ -298,10 +298,7 @@ fn test_multiple_simultaneous_interactions() {
     board.set_show_coordinates(false);
     assert!(!board.state().show_coordinates);
 
-    // Test animation settings
-    board.set_animate_stone_placement(true);
-    assert!(board.state().animate_stone_placement);
-
+    // Test fuzzy stone placement
     board.set_fuzzy_stone_placement(true);
     assert!(board.state().fuzzy_stone_placement);
 }
@@ -581,12 +578,6 @@ fn test_memory_management_integration() {
     let initial_stats = board.get_memory_stats().clone();
     println!("Initial memory stats: {:?}", initial_stats);
 
-    // Create complex state that uses memory
-    for i in 0..10 {
-        let timer_id = format!("test_timer_{}", i);
-        board.register_animation_timer(timer_id, None);
-    }
-
     // Use component pooling
     let vertices_to_test = vec![
         Vertex::new(3, 3),
@@ -629,12 +620,6 @@ fn test_memory_management_integration() {
     board.cleanup_memory();
     let after_cleanup_stats = board.get_memory_stats();
     println!("After cleanup stats: {:?}", after_cleanup_stats);
-
-    // Test timer cleanup
-    assert!(board.cleanup_animation_timer("test_timer_0"));
-    assert!(!board.cleanup_animation_timer("nonexistent_timer"));
-
-    board.cleanup_all_timers();
 
     // Force complete cleanup
     board.force_memory_cleanup();
