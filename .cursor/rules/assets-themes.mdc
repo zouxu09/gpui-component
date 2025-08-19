@@ -1,0 +1,14 @@
+---
+globs: assets/**,themes/**,crates/ui/src/theme/**
+description: Asset and theme usage guidelines
+---
+### Assets
+
+- Shared icons and images live under `assets/`. Prefer existing icons such as [assets/icons/search.svg](mdc:assets/icons/search.svg) or [assets/icons/plus.svg](mdc:assets/icons/plus.svg).
+- Keep filenames kebab-cased and descriptive; avoid duplicates.
+
+### Themes
+
+- Global theme presets live under `themes/`, e.g., [themes/tokyonight.json](mdc:themes/tokyonight.json). UI-library-specific defaults live in [crates/ui/src/theme/default-colors.json](mdc:crates/ui/src/theme/default-colors.json).
+- Extend the UI theme system rather than hardcoding colors or spacing in components.
+

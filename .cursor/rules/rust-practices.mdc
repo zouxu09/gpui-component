@@ -1,0 +1,25 @@
+---
+globs: *.rs
+description: Rust code style and practices for this workspace
+---
+### Rust Practices
+
+- Prefer explicit type annotations for public APIs and exported functions.
+- Keep module trees shallow; create `mod.rs` only where grouping is meaningful.
+- Favor early returns and guard clauses; avoid deep nesting.
+- Handle `Result` and `Option` conscientiously; do not `unwrap` in library code.
+- When adding features to UI components, update or create corresponding stories in `crates/story/src/`.
+- Keep error enums local to the crate; expose stable error types where needed.
+
+### Lints and Formatting
+
+- Match existing formatting; do not reformat unrelated code.
+- Avoid `unsafe` unless required; document the safety contract above any `unsafe` block.
+- Keep functions small and readable; extract helpers rather than growing long functions.
+
+### Testing and Examples
+
+- Add unit tests close to code when practical.
+- Add a story or example when behavior is visual or interactive.
+- Run relevant packages: `cargo test -p <crate>` and `cargo run -p story --example <name>`.
+

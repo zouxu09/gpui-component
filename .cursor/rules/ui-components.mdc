@@ -1,0 +1,26 @@
+---
+globs: crates/ui/**
+description: Guidelines for authoring UI components, theming, and stories
+---
+### UI Components Guidelines
+
+- Place components under `crates/ui/src/` using a clear module structure. For examples, see [crates/ui/src/button/button.rs](mdc:crates/ui/src/button/button.rs) or [crates/ui/src/accordion.rs](mdc:crates/ui/src/accordion.rs).
+- Re-export public types and builders from parent modules to keep import paths clean.
+- Expose clear, typed "props" via builders or constructors. Avoid boolean flag bloat; prefer enums where variants are meaningful.
+- Avoid `unwrap`/`expect` in library code; bubble errors via `Result` or validate inputs at boundaries.
+
+### Theming and Locales
+
+- Use the theme system defined in [crates/ui/src/theme/mod.rs](mdc:crates/ui/src/theme/mod.rs) and color tokens rather than hardcoded colors.
+- Keep UI copy in [crates/ui/locales/ui.yml](mdc:crates/ui/locales/ui.yml) when strings are reused or user-facing.
+
+### Stories and Demos
+
+- For every new component or major feature, create or update a story in [crates/story/src/](mdc:crates/story/src/).
+- If an interactive demo helps, add an example in [crates/story/examples/](mdc:crates/story/examples/) and show typical and edge cases.
+
+### Assets and Icons
+
+- Prefer shared icons from [assets/icons/](mdc:assets/icons/) to keep visual consistency.
+- When adding icons, place them under `assets/icons/` and reference them through stories or assets helpers.
+

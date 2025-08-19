@@ -1,0 +1,12 @@
+---
+globs: crates/story/**
+description: Conventions for stories and runnable examples
+---
+### Story and Example Conventions
+
+- Stories live alongside components, e.g., [crates/story/src/button_story.rs](mdc:crates/story/src/button_story.rs), and should compile quickly; keep dependencies minimal.
+- Runnable examples live in `crates/story/examples/` (e.g., [crates/story/examples/tiles.rs](mdc:crates/story/examples/tiles.rs)) and can be launched with `cargo run -p story --example <name>`.
+- Prefer deterministic data (fixed seeds, fixtures such as [crates/story/src/fixtures/countries.json](mdc:crates/story/src/fixtures/countries.json)) to keep demos stable.
+- Showcase both typical usage and edge cases (empty states, loading states, error states).
+- Reuse shared assets from [assets/](mdc:assets/) and helper loaders in [crates/story/src/assets.rs](mdc:crates/story/src/assets.rs).
+
