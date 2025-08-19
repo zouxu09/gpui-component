@@ -492,8 +492,13 @@ impl Stones {
         &self,
         texture_adapter: &crate::go_board::TextureThemeAdapter,
         board_theme: &crate::go_board::BoardTheme,
-    ) -> Vec<impl IntoElement> {
-        let mut stones = Vec::new();
+    ) -> impl IntoElement {
+        let (width, height) = self.visible_dimensions();
+        let mut container = div()
+            .relative()
+            .w(px(width))
+            .h(px(height))
+            .overflow_hidden();
 
         // Iterate through the visible range
         for y in self.board_range.y.0..=self.board_range.y.1 {
@@ -510,14 +515,14 @@ impl Stones {
                             texture_adapter,
                             board_theme,
                         ) {
-                            stones.push(element);
+                            container = container.child(element);
                         }
                     }
                 }
             }
         }
 
-        stones
+        container
     }
 
     /// Renders all stones in a container

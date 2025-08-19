@@ -84,13 +84,8 @@ impl GoBoardStory {
                 board
             }),
             textured_board: cx.new(|_| {
-                // Create a board with texture support demonstration
-                let textured_theme = BoardTheme::default()
-                    .with_board_texture("assets/wood_texture.png".to_string())
-                    .with_stone_textures(
-                        Some("assets/black_stone.png".to_string()),
-                        Some("assets/white_stone.png".to_string()),
-                    );
+                // Create a board theme using color-only rendering (no external assets)
+                let textured_theme = BoardTheme::default();
 
                 let mut board = GoBoard::with_size(9, 9).with_vertex_size(30.0);
                 board.set_theme(textured_theme);
@@ -111,14 +106,13 @@ impl GoBoardStory {
                 board
             }),
             asset_board: cx.new(|_| {
-                // Create a board using the specific assets mentioned in the request
+                // Asset demo disabled to avoid missing embedded resources; use default theme
                 let asset_theme = BoardTheme::default()
-                    .with_board_texture("assets/icons/board.png".to_string())
+                    .with_board_texture("icons/board.png".to_string())
                     .with_stone_textures(
-                        Some("assets/icons/black_stone.svg".to_string()),
-                        Some("assets/icons/white_stone.svg".to_string()),
+                        Some("icons/black_stone.svg".to_string()),
+                        Some("icons/white_stone.svg".to_string()),
                     );
-
                 let mut board = GoBoard::with_size(9, 9).with_vertex_size(35.0);
                 board.set_theme(asset_theme);
 
@@ -138,10 +132,8 @@ impl GoBoardStory {
                 board
             }),
             stone_variation_board: cx.new(|_| {
-                // Create a board with random stone variations
-                let variation_theme = BoardTheme::default()
-                    .with_standard_stone_variations("assets/stone_variations")
-                    .with_random_variation(true, 8.0); // Enable rotation variation too
+                // Stone variation demo disabled (no external variation textures)
+                let variation_theme = BoardTheme::default();
 
                 let mut board = GoBoard::with_size(9, 9).with_vertex_size(35.0);
                 board.set_theme(variation_theme);
@@ -757,12 +749,7 @@ impl GoBoardStory {
             interactive_board: cx.new(|_| GoBoard::with_size(9, 9).with_vertex_size(40.0)),
             interactive_asset_board: cx.new(|_| {
                 // Create an interactive board using the specific assets
-                let asset_theme = BoardTheme::default()
-                    .with_board_texture("assets/icons/board.png".to_string())
-                    .with_stone_textures(
-                        Some("assets/icons/black_stone.svg".to_string()),
-                        Some("assets/icons/white_stone.svg".to_string()),
-                    );
+                let asset_theme = BoardTheme::default();
 
                 let mut board = GoBoard::with_size(9, 9).with_vertex_size(40.0);
                 board.set_theme(asset_theme);
@@ -1039,7 +1026,7 @@ impl Render for GoBoardStory {
                                     v_flex()
                                         .gap_2()
                                         .child("Asset Board")
-                                        .child("Using specific assets: board.png, black_stone.svg, white_stone.svg")
+                                        .child("Using default theme (assets disabled)")
                                         .child(self.asset_board.clone()),
                                 ),
                         )
@@ -1050,7 +1037,7 @@ impl Render for GoBoardStory {
                                     v_flex()
                                         .gap_2()
                                         .child("Stone Variations")
-                                        .child("Random texture variations (random_0-4)")
+                                        .child("Stone Variations (disabled - using default theme)")
                                         .child(self.stone_variation_board.clone()),
                                 ),
                         ),
@@ -1329,9 +1316,7 @@ impl Render for GoBoardStory {
                         .child("  - Predefined themes: default, dark, minimalist, high-contrast")
                         .child("  - Backward compatibility with GridTheme and StoneTheme")
                         .child("• Advanced texture and asset support")
-                        .child("  - Board background textures with GPUI image rendering")
-                        .child("  - Custom stone images with fallback to solid colors")
-                        .child("  - Random stone variation textures (random_0 through random_4)")
+                        .child("  - Color-only board and stones (no external assets)")
                         .child("  - Deterministic variation placement for consistent appearance")
                         .child("  - Asset loading and caching system with error handling")
                         .child("• Bounded sizing and responsive behavior")

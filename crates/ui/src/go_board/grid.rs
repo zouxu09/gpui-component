@@ -321,7 +321,8 @@ impl Grid {
             .bg(self.theme.background_color)
             .border_1()
             .border_color(self.theme.border_color)
-            .relative();
+            .relative()
+            .overflow_hidden();
 
         // Add horizontal lines
         for line in self.render_horizontal_lines() {
@@ -372,7 +373,8 @@ impl Grid {
             .bg(self.theme.background_color)
             .border_1()
             .border_color(self.theme.border_color)
-            .relative();
+            .relative()
+            .overflow_hidden();
 
         // Add horizontal lines
         for line in self.render_horizontal_lines() {
@@ -406,7 +408,8 @@ impl Grid {
             .bg(self.theme.background_color)
             .border_1()
             .border_color(self.theme.border_color)
-            .relative();
+            .relative()
+            .overflow_hidden();
 
         // Add texture as background if provided
         if let Some(texture) = texture_element {
@@ -465,7 +468,8 @@ impl Grid {
             .bg(self.theme.background_color)
             .border_1()
             .border_color(self.theme.border_color)
-            .relative();
+            .relative()
+            .overflow_hidden();
 
         // Add texture as background if provided
         if let Some(texture) = texture_element {
