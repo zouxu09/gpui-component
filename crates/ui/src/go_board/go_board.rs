@@ -2,8 +2,8 @@ use crate::go_board::memory_manager::{MarkerComponent, StoneComponent};
 use crate::go_board::{
     BoardTheme, DifferentialRenderer, GhostStoneOverlay, GoBoardResult, GoBoardState,
     GoBoardValidator, Grid, GridTheme, HeatOverlay, LineOverlay, Markers, MemoryManager,
-    PaintOverlay, StoneTheme, Stones, ThemeCSSAdapter, Vertex, VertexEventHandlers,
-    VertexInteractions, VertexSelections,
+    PaintOverlay, StoneTheme, Stones, TextureThemeAdapter, ThemeCSSAdapter, Vertex,
+    VertexEventHandlers, VertexInteractions, VertexSelections,
 };
 use gpui::*;
 
@@ -725,12 +725,31 @@ impl GoBoard {
         // Create line overlay component for drawing connections between vertices
         let line_overlay = LineOverlay::new(self.state.vertex_size, grid_offset);
 
-        // Create base board div with all layers
+        // Create base board div with all layers. Apply board texture if present.
+        let texture_adapter = TextureThemeAdapter::new(&self.theme);
+        let board_texture_element = texture_adapter.create_board_texture_element(&self.theme);
+
         let mut board_div = div()
             .id("go-board")
             .relative()
-            .child(grid.render())
-            .child(div().absolute().inset_0().child(stones.render()))
+            .child(match board_texture_element {
+                Some(tex) => grid.render_with_texture(Some(tex)),
+                None => grid.render(),
+            })
+            .child({
+                let has_stone_textures = self.theme.black_stone_texture.is_some()
+                    || self.theme.white_stone_texture.is_some()
+                    || self.theme.enable_random_stone_variation;
+                let stones_layer = if has_stone_textures {
+                    div()
+                        .absolute()
+                        .inset_0()
+                        .child(stones.render_stones_with_texture(&texture_adapter, &self.theme))
+                } else {
+                    div().absolute().inset_0().child(stones.render())
+                };
+                stones_layer
+            })
             .child(
                 div()
                     .absolute()

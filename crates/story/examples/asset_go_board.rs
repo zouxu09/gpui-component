@@ -17,15 +17,15 @@ impl AssetGoBoardDemo {
         let board = cx.new(|_| {
             // Create a board using the specific assets mentioned in the request
             let asset_theme = BoardTheme::default()
-                .with_board_texture("assets/icons/board.png".to_string())
+                .with_board_texture("icons/board.png".to_string())
                 .with_stone_textures(
-                    Some("assets/icons/black_stone.svg".to_string()),
-                    Some("assets/icons/white_stone.svg".to_string()),
+                    Some("icons/black_stone.svg".to_string()),
+                    Some("icons/white_stone.svg".to_string()),
                 );
 
             let mut board = GoBoard::with_size(9, 9).with_vertex_size(40.0);
             board.set_theme(asset_theme);
-            board.set_show_coordinates(true);
+            board.set_show_coordinates(false);
 
             // Add a sample game pattern to demonstrate the stones
             let sign_map = vec![
@@ -71,8 +71,8 @@ impl Render for AssetGoBoardDemo {
                 h_flex().justify_center().child(
                     v_flex()
                         .gap_2()
-                        .child("Go Board with Custom Assets")
-                        .child("Uses assets/icons/board.png, black_stone.svg, white_stone.svg"),
+                        .child("Go Board (default theme)")
+                        .child("Assets disabled in this demo"),
                 ),
             )
             .child(
@@ -96,9 +96,7 @@ impl Render for AssetGoBoardDemo {
                     v_flex()
                         .gap_2()
                         .child("Features Demonstrated:")
-                        .child("• Board background using board.png")
-                        .child("• Black stones using black_stone.svg")
-                        .child("• White stones using white_stone.svg")
+                        .child("• Color-only board and stones")
                         .child("• Coordinate labels for reference")
                         .child("• Click interactions (see console output)"),
                 ),

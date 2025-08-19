@@ -293,6 +293,37 @@ impl BoardTheme {
         self
     }
 
+    /// Sets board and stone textures in one call. Pass `None` to leave a texture unchanged.
+    pub fn with_assets(
+        mut self,
+        board_texture: Option<String>,
+        black_stone_texture: Option<String>,
+        white_stone_texture: Option<String>,
+    ) -> Self {
+        if let Some(board) = board_texture {
+            self.board_texture = Some(board);
+        }
+        if let Some(black) = black_stone_texture {
+            self.black_stone_texture = Some(black);
+        }
+        if let Some(white) = white_stone_texture {
+            self.white_stone_texture = Some(white);
+        }
+        self
+    }
+
+    /// Convenience: use repository default assets for board background and stones.
+    /// - Board: icons/board.png
+    /// - Black stone: icons/black_stone.svg
+    /// - White stone: icons/white_stone.svg
+    pub fn with_default_assets(self) -> Self {
+        self.with_assets(
+            Some("icons/board.png".to_string()),
+            Some("icons/black_stone.svg".to_string()),
+            Some("icons/white_stone.svg".to_string()),
+        )
+    }
+
     /// Enables random stone variation with standard texture paths
     pub fn with_standard_stone_variations(self, base_path: &str) -> Self {
         let variations = (0..5)
