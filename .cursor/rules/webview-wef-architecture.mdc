@@ -1,0 +1,19 @@
+---
+globs: crates/webview/**,crates/wef/**
+description: Architecture notes for WebView integration and WEF host
+---
+### WebView and WEF Overview
+
+- `crates/webview` provides Rust-side abstractions for embedding and interacting with a browser view. See [crates/webview/src/element.rs](mdc:crates/webview/src/element.rs) and [crates/webview/src/browser_handler.rs](mdc:crates/webview/src/browser_handler.rs).
+- `crates/wef` hosts the platform runtime (CEF-based) with native code such as [crates/wef/cpp/app.h](mdc:crates/wef/cpp/app.h) and Rust bindings like [crates/wef/src/browser.rs](mdc:crates/wef/src/browser.rs).
+
+### Build and Examples
+
+- Build or run examples as needed: `cargo run -p wef --example wef-winit` (see [crates/wef/examples/wef-winit/src/main.rs](mdc:crates/wef/examples/wef-winit/src/main.rs)).
+- Keep cross-language boundaries narrow and well-typed; prefer small FFI surfaces.
+
+### Guidelines
+
+- Avoid leaking platform specifics into higher-level crates; keep abstractions in `crates/webview` stable.
+- Document threading and lifetime assumptions explicitly when interfacing with native code.
+

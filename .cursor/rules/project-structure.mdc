@@ -1,0 +1,52 @@
+---
+alwaysApply: true
+---
+### Project Structure Overview
+
+This workspace is a Rust monorepo with multiple crates under `crates/` and shared assets at the root.
+
+- **Workspace manifest**: [Cargo.toml](mdc:Cargo.toml)
+- **Top-level docs**: [README.md](mdc:README.md), [DEVELOPMENT.md](mdc:DEVELOPMENT.md)
+
+### Crates
+
+- **UI components**: `crates/ui`
+  - Source example: [crates/ui/src/button/button.rs](mdc:crates/ui/src/button/button.rs)
+  - Theme defaults: [crates/ui/src/theme/default-colors.json](mdc:crates/ui/src/theme/default-colors.json)
+  - Locales: [crates/ui/locales/ui.yml](mdc:crates/ui/locales/ui.yml)
+
+- **Story/demo app**: `crates/story`
+  - Story example: [crates/story/src/accordion_story.rs](mdc:crates/story/src/accordion_story.rs)
+  - Example (run with `cargo run -p story --example tiles`): [crates/story/examples/tiles.rs](mdc:crates/story/examples/tiles.rs)
+  - Shared assets: [crates/story/src/assets.rs](mdc:crates/story/src/assets.rs)
+
+- **Webview integration**: `crates/webview`
+  - Rust-side abstraction example: [crates/webview/src/element.rs](mdc:crates/webview/src/element.rs)
+
+- **WEF (CEF bindings + host)**: `crates/wef`
+  - Rust API example: [crates/wef/src/browser.rs](mdc:crates/wef/src/browser.rs)
+  - Native sources example (C++): [crates/wef/cpp/app.h](mdc:crates/wef/cpp/app.h)
+  - Build orchestration: [crates/wef/build.rs](mdc:crates/wef/build.rs)
+
+- **Macros**: `crates/macros`
+  - Proc-macros and derives example: [crates/macros/src/lib.rs](mdc:crates/macros/src/lib.rs)
+
+- **Hello world**: `crates/hello_world` (simple example binary)
+
+### Assets and Themes
+
+- Shared icons and images example: [assets/icons/search.svg](mdc:assets/icons/search.svg)
+- Global theme preset example: [themes/tokyonight.json](mdc:themes/tokyonight.json)
+
+### Common Tasks
+
+- Run a story example: `cargo run -p story --example tiles`
+- Run UI tests: `cargo test -p ui`
+- Build WEF example app: `cargo run -p wef --example wef-winit`
+
+### Conventions
+
+- New UI components live under a submodule in `crates/ui/src/` and are re-exported via the module tree.
+- Add a corresponding story under `crates/story/src/` and, if needed, an example under `crates/story/examples/`.
+- Themes are JSON-based; prefer extending `crates/ui/src/theme` rather than `themes/` when the change is UI-library specific.
+
