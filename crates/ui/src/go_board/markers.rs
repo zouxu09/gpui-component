@@ -36,7 +36,7 @@ impl MarkerRenderer {
             .child(self.render_marker_shape(marker, size));
 
         // Apply custom style class if provided
-        if let Some(style_class) = &marker.style_class {
+        if let Some(_style_class) = &marker.style_class {
             base_div.id("custom-marker")
         } else {
             base_div.id("default-marker")

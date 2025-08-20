@@ -1,5 +1,4 @@
 use crate::go_board::types::*;
-use std::time::Duration;
 
 /// Central state management for the Go board widget
 /// Follows Shudan's reactive architecture with efficient state updates
