@@ -150,62 +150,21 @@ impl TextureAssetLoader {
 /// Enhanced theme adapter with texture support
 pub struct TextureThemeAdapter {
     asset_loader: TextureAssetLoader,
-    css_adapter: super::theme_adapter::ThemeCSSAdapter,
 }
 
 impl TextureThemeAdapter {
     /// Creates a new texture theme adapter
-    pub fn new(theme: &BoardTheme) -> Self {
+    pub fn new(_theme: &BoardTheme) -> Self {
         Self {
             asset_loader: TextureAssetLoader::new(),
-            css_adapter: super::theme_adapter::ThemeCSSAdapter::from_theme(theme),
         }
     }
 
     /// Preloads all textures from the theme
-    pub fn preload_theme_textures(&mut self, theme: &BoardTheme) -> Vec<String> {
-        let mut errors = Vec::new();
-        let mut paths_to_load = Vec::new();
-
-        // Collect all texture paths
-        if let Some(ref path) = theme.board_texture {
-            if self.asset_loader.validate_path(path) {
-                paths_to_load.push(path.as_str());
-            } else {
-                errors.push(format!("Invalid board texture path: {}", path));
-            }
-        }
-        if let Some(ref path) = theme.black_stone_texture {
-            if self.asset_loader.validate_path(path) {
-                paths_to_load.push(path.as_str());
-            } else {
-                errors.push(format!("Invalid black stone texture path: {}", path));
-            }
-        }
-        if let Some(ref path) = theme.white_stone_texture {
-            if self.asset_loader.validate_path(path) {
-                paths_to_load.push(path.as_str());
-            } else {
-                errors.push(format!("Invalid white stone texture path: {}", path));
-            }
-        }
-        for path in &theme.stone_variation_textures {
-            if self.asset_loader.validate_path(path) {
-                paths_to_load.push(path.as_str());
-            } else {
-                errors.push(format!("Invalid stone variation texture path: {}", path));
-            }
-        }
-
-        // Load all textures using GPUI's asset system
-        let results = self.asset_loader.preload_textures(&paths_to_load);
-        for (path, result) in results {
-            if let Err(error) = result {
-                errors.push(format!("{}: {}", path, error));
-            }
-        }
-
-        errors
+    pub fn preload_theme_textures(&mut self, _theme: &BoardTheme) -> Vec<String> {
+        // Note: Texture properties have been removed from BoardTheme
+        // This method now returns an empty result since no textures are available
+        vec![]
     }
 
     /// Applies board background with texture support
@@ -214,20 +173,9 @@ impl TextureThemeAdapter {
         element: E,
         theme: &BoardTheme,
     ) -> E {
-        let mut styled = element.bg(theme.board_background_color);
-
-        // Apply texture if available and loaded
-        if let Some(ref texture_path) = theme.board_texture {
-            if let Some(_asset_path) = self.asset_loader.get_texture(texture_path) {
-                // Note: GPUI doesn't have direct background-image support like CSS
-                // For now, we'll use the background color as fallback
-                // In a real implementation, you'd need to create a custom element
-                // with image rendering capability
-                styled = styled.bg(theme.board_background_color);
-            }
-        }
-
-        styled
+        // Note: Texture properties have been removed from BoardTheme
+        // This method now just applies the background color
+        element.bg(theme.board_background_color)
     }
 
     /// Applies stone styling with texture support
@@ -236,8 +184,10 @@ impl TextureThemeAdapter {
         element: E,
         theme: &BoardTheme,
         is_black: bool,
-        variation_index: Option<usize>,
+        _variation_index: Option<usize>,
     ) -> E {
+        // Note: Texture properties have been removed from BoardTheme
+        // This method now just applies the stone color and border
         let base_color = if is_black {
             theme.black_stone_color
         } else {
@@ -245,32 +195,6 @@ impl TextureThemeAdapter {
         };
 
         let mut styled = element.bg(base_color);
-
-        // Apply base stone texture if available
-        let texture_path = if is_black {
-            &theme.black_stone_texture
-        } else {
-            &theme.white_stone_texture
-        };
-
-        if let Some(ref path) = texture_path {
-            if let Some(_asset_path) = self.asset_loader.get_texture(path) {
-                // Texture is loaded and ready
-                // For GPUI, we'd need to create a custom image element
-                styled = styled.bg(base_color);
-            }
-        }
-
-        // Apply variation texture if specified and available
-        if let Some(index) = variation_index {
-            if index < theme.stone_variation_textures.len() {
-                let variation_path = &theme.stone_variation_textures[index];
-                if let Some(_asset_path) = self.asset_loader.get_texture(variation_path) {
-                    // Apply variation texture
-                    styled = styled.bg(base_color);
-                }
-            }
-        }
 
         // Apply border if configured
         if theme.stone_border_width > 0.0 {
@@ -281,52 +205,22 @@ impl TextureThemeAdapter {
     }
 
     /// Creates an image element for board background texture
-    pub fn create_board_texture_element(&self, theme: &BoardTheme) -> Option<impl IntoElement> {
-        if let Some(ref texture_path) = theme.board_texture {
-            // Mirror Avatar: construct ImageSource directly; GPUI will resolve at render time.
-            let src = ImageSource::from(texture_path.clone());
-            // Wrap the img in an absolutely positioned layer to ensure it clips to the grid
-            return Some(
-                div().absolute().inset_0().overflow_hidden().child(
-                    img(src)
-                        .w_full()
-                        .h_full()
-                        .object_fit(gpui::ObjectFit::Cover),
-                ),
-            );
-        }
+    pub fn create_board_texture_element(&self, _theme: &BoardTheme) -> Option<Div> {
+        // Note: Texture properties have been removed from BoardTheme
+        // This method now returns None since no textures are available
         None
     }
 
     /// Creates an image element for stone texture
     pub fn create_stone_texture_element(
         &self,
-        theme: &BoardTheme,
-        is_black: bool,
-        variation_index: Option<usize>,
-        size: Pixels,
-    ) -> Option<impl IntoElement> {
-        // Check for variation texture first (construct ImageSource directly like Avatar)
-        if let Some(index) = variation_index {
-            if index < theme.stone_variation_textures.len() {
-                let variation_path = &theme.stone_variation_textures[index];
-                let src = ImageSource::from(variation_path.clone());
-                return Some(img(src).size(size).object_fit(gpui::ObjectFit::Cover));
-            }
-        }
-
-        // Fall back to base stone texture
-        let texture_path = if is_black {
-            &theme.black_stone_texture
-        } else {
-            &theme.white_stone_texture
-        };
-
-        if let Some(ref path) = texture_path {
-            let src = ImageSource::from(path.clone());
-            return Some(img(src).size(size).object_fit(gpui::ObjectFit::Cover));
-        }
-
+        _theme: &BoardTheme,
+        _is_black: bool,
+        _variation_index: Option<usize>,
+        _size: Pixels,
+    ) -> Option<Img> {
+        // Note: Texture properties have been removed from BoardTheme
+        // This method now returns None since no textures are available
         None
     }
 
@@ -347,47 +241,10 @@ impl TextureThemeAdapter {
 
     /// Demonstrates how to use the texture system
     /// This method shows the proper workflow for loading and using textures
-    pub fn demonstrate_texture_usage(&mut self, theme: &BoardTheme) -> Vec<String> {
-        let mut results = Vec::new();
-
-        // Load board texture if specified
-        if let Some(ref board_path) = theme.board_texture {
-            match self.asset_loader.load_texture(board_path) {
-                Ok(_) => results.push(format!("✓ Board texture loaded: {}", board_path)),
-                Err(e) => results.push(format!("✗ Board texture failed: {} - {}", board_path, e)),
-            }
-        }
-
-        // Load stone textures if specified
-        if let Some(ref black_path) = theme.black_stone_texture {
-            match self.asset_loader.load_texture(black_path) {
-                Ok(_) => results.push(format!("✓ Black stone texture loaded: {}", black_path)),
-                Err(e) => results.push(format!(
-                    "✗ Black stone texture failed: {} - {}",
-                    black_path, e
-                )),
-            }
-        }
-
-        if let Some(ref white_path) = theme.white_stone_texture {
-            match self.asset_loader.load_texture(white_path) {
-                Ok(_) => results.push(format!("✓ White stone texture loaded: {}", white_path)),
-                Err(e) => results.push(format!(
-                    "✗ White stone texture failed: {} - {}",
-                    white_path, e
-                )),
-            }
-        }
-
-        // Load variation textures if specified
-        for (i, path) in theme.stone_variation_textures.iter().enumerate() {
-            match self.asset_loader.load_texture(path) {
-                Ok(_) => results.push(format!("✓ Stone variation {} loaded: {}", i, path)),
-                Err(e) => results.push(format!("✗ Stone variation {} failed: {} - {}", i, path, e)),
-            }
-        }
-
-        results
+    pub fn demonstrate_texture_usage(&mut self, _theme: &BoardTheme) -> Vec<String> {
+        // Note: Texture properties have been removed from BoardTheme
+        // This method now returns an empty result since no textures are available
+        vec![]
     }
 
     /// Gets the underlying asset loader
@@ -398,11 +255,6 @@ impl TextureThemeAdapter {
     /// Gets a mutable reference to the asset loader
     pub fn asset_loader_mut(&mut self) -> &mut TextureAssetLoader {
         &mut self.asset_loader
-    }
-
-    /// Gets the CSS adapter
-    pub fn css_adapter(&self) -> &super::theme_adapter::ThemeCSSAdapter {
-        &self.css_adapter
     }
 }
 

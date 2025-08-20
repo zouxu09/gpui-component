@@ -15,7 +15,7 @@ pub mod state;
 pub mod stones;
 pub mod texture_loader;
 pub mod theme;
-pub mod theme_adapter;
+
 pub mod types;
 
 #[cfg(test)]
@@ -29,8 +29,6 @@ mod integration_tests;
 
 #[cfg(test)]
 mod texture_integration_tests;
-
-
 
 #[cfg(test)]
 mod error_validation_tests;
@@ -62,5 +60,4 @@ pub use state::GoBoardState;
 pub use stones::{Stone, StoneTheme, Stones};
 pub use texture_loader::{TextureAssetLoader, TextureThemeAdapter, TextureUtils};
 pub use theme::BoardTheme;
-pub use theme_adapter::ThemeCSSAdapter;
 pub use types::*;
