@@ -1,6 +1,6 @@
 use gpui::*;
 use gpui_component::{
-    go_board::{BoardTheme, GoBoard, Vertex, VertexClickEvent, VertexEventHandlers},
+    go_board::{BoardTheme, GoBoard, VertexClickEvent, VertexEventHandlers},
     h_flex, v_flex, ActiveTheme,
 };
 use story::{create_new_window, init, Assets};

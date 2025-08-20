@@ -1,6 +1,5 @@
 pub mod bounded_go_board;
 pub mod coordinates;
-pub mod differential_renderer;
 pub mod error;
 pub mod ghost_stone;
 pub mod go_board;
@@ -10,7 +9,6 @@ pub mod interactions;
 pub mod keyboard_navigation;
 pub mod line_overlay;
 pub mod markers;
-pub mod memory_manager;
 pub mod paint_overlay;
 pub mod selection;
 pub mod state;
@@ -32,18 +30,14 @@ mod integration_tests;
 #[cfg(test)]
 mod texture_integration_tests;
 
-#[cfg(test)]
-mod efficient_update_tests;
 
-#[cfg(test)]
-mod memory_integration_tests;
 
 #[cfg(test)]
 mod error_validation_tests;
 
 pub use bounded_go_board::BoundedGoBoard;
 pub use coordinates::{default_coord_x, default_coord_y, CoordinateLabels, CoordinateTheme};
-pub use differential_renderer::{DifferentialRenderer, DifferentialUpdate, UpdateStats};
+
 pub use error::{GoBoardError, GoBoardResult, GoBoardValidator};
 pub use ghost_stone::{GhostStoneOverlay, GhostStoneRenderer, GhostStoneTheme};
 pub use go_board::GoBoard;
@@ -58,7 +52,7 @@ pub use keyboard_navigation::{
 };
 pub use line_overlay::{LineOverlay, LineRenderer, LineTheme};
 pub use markers::{MarkerRenderer, Markers};
-pub use memory_manager::{CleanupConfig, ComponentPoolStats, MemoryManager, MemoryStats};
+
 pub use paint_overlay::{
     CornerPaint, CornerPosition, DirectionalPaintMap, PaintDirection, PaintOverlay,
     PaintOverlayRenderer,

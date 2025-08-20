@@ -1,9 +1,7 @@
-use crate::go_board::memory_manager::{MarkerComponent, StoneComponent};
 use crate::go_board::{
-    BoardTheme, DifferentialRenderer, GhostStoneOverlay, GoBoardResult, GoBoardState,
-    GoBoardValidator, Grid, GridTheme, HeatOverlay, LineOverlay, Markers, MemoryManager,
-    PaintOverlay, StoneTheme, Stones, TextureThemeAdapter, ThemeCSSAdapter, Vertex,
-    VertexEventHandlers, VertexInteractions, VertexSelections,
+    BoardTheme, GhostStoneOverlay, GoBoardResult, GoBoardState, GoBoardValidator, Grid, GridTheme,
+    HeatOverlay, LineOverlay, Markers, PaintOverlay, StoneTheme, Stones, TextureThemeAdapter,
+    ThemeCSSAdapter, Vertex, VertexEventHandlers, VertexInteractions, VertexSelections,
 };
 use gpui::*;
 
@@ -13,8 +11,6 @@ pub struct GoBoard {
     state: GoBoardState,
     theme: BoardTheme,
     css_adapter: ThemeCSSAdapter,
-    differential_renderer: DifferentialRenderer,
-    memory_manager: MemoryManager,
 }
 
 impl GoBoard {
@@ -24,8 +20,6 @@ impl GoBoard {
         Self {
             state: GoBoardState::standard(),
             css_adapter: ThemeCSSAdapter::from_theme(&theme),
-            differential_renderer: DifferentialRenderer::new(),
-            memory_manager: MemoryManager::new(),
             theme,
         }
     }
@@ -36,8 +30,6 @@ impl GoBoard {
         Self {
             state: GoBoardState::new(width, height),
             css_adapter: ThemeCSSAdapter::from_theme(&theme),
-            differential_renderer: DifferentialRenderer::new(),
-            memory_manager: MemoryManager::new(),
             theme,
         }
     }
@@ -53,8 +45,6 @@ impl GoBoard {
         Self {
             state: GoBoardState::standard(),
             css_adapter: ThemeCSSAdapter::from_theme(&theme),
-            differential_renderer: DifferentialRenderer::new(),
-            memory_manager: MemoryManager::new(),
             theme,
         }
     }
@@ -118,21 +108,9 @@ impl GoBoard {
         }
     }
 
-    /// Updates sign map efficiently with change detection and memory cleanup
+    /// Updates sign map efficiently with change detection
     pub fn update_sign_map(&mut self, sign_map: crate::go_board::SignMap) -> bool {
-        // Perform memory cleanup before major updates if needed
-        if self.memory_manager.needs_cleanup() {
-            self.memory_manager.cleanup();
-        }
-
-        let result = self.state.update_sign_map(&sign_map);
-
-        // Clear differential renderer cache if the update was significant
-        if result {
-            self.differential_renderer.invalidate_cache();
-        }
-
-        result
+        self.state.update_sign_map(&sign_map)
     }
 
     /// Updates sign map with validation
@@ -154,21 +132,9 @@ impl GoBoard {
         Ok(self.update_sign_map(sign_map))
     }
 
-    /// Updates individual stones efficiently with memory management
+    /// Updates individual stones efficiently
     pub fn update_stones(&mut self, updates: &[(Vertex, i8)]) -> bool {
-        // For bulk updates, check if cleanup is needed
-        if updates.len() > 10 && self.memory_manager.needs_cleanup() {
-            self.memory_manager.cleanup();
-        }
-
-        let result = self.state.update_stones(updates);
-
-        // Invalidate cache for significant changes
-        if result && updates.len() > 5 {
-            self.differential_renderer.invalidate_cache();
-        }
-
-        result
+        self.state.update_stones(updates)
     }
 
     /// Updates individual stones with validation
@@ -315,37 +281,19 @@ impl GoBoard {
         &mut self,
         ghost_stone_map: crate::go_board::GhostStoneMap,
     ) -> bool {
-        // Perform memory cleanup before major updates if needed
-        if self.memory_manager.needs_cleanup() {
-            self.memory_manager.cleanup();
-        }
-
+        // Memory management not implemented in current version
         let result = self.state.update_ghost_stone_map(&ghost_stone_map);
-
-        // Clear differential renderer cache if the update was significant
-        if result {
-            self.differential_renderer.invalidate_cache();
-        }
 
         result
     }
 
-    /// Updates individual ghost stones efficiently with memory management
+    /// Updates individual ghost stones efficiently
     pub fn update_ghost_stones(
         &mut self,
         updates: &[(Vertex, Option<crate::go_board::GhostStone>)],
     ) -> bool {
-        // For bulk updates, check if cleanup is needed
-        if updates.len() > 10 && self.memory_manager.needs_cleanup() {
-            self.memory_manager.cleanup();
-        }
-
+        // Differential rendering not implemented in current version
         let result = self.state.update_ghost_stones(updates);
-
-        // Invalidate cache for significant changes
-        if result && updates.len() > 5 {
-            self.differential_renderer.invalidate_cache();
-        }
 
         result
     }
@@ -404,102 +352,26 @@ impl GoBoard {
         self.state.busy = busy;
     }
 
-    /// Sets the board theme (replaces both grid and stone themes) with memory cleanup
+    /// Sets the board theme (replaces both grid and stone themes)
     pub fn set_theme(&mut self, theme: BoardTheme) {
-        // Cleanup old theme-related cached components
-        self.memory_manager.cleanup();
-
+        // Memory management and differential rendering not implemented in current version
         self.theme = theme;
         self.css_adapter = ThemeCSSAdapter::from_theme(&self.theme);
-
-        // Invalidate differential renderer cache since theme affects rendering
-        self.differential_renderer.invalidate_cache();
     }
 
-    /// Forces a full re-render on next update with memory cleanup
+    /// Forces a full re-render on next update
     pub fn invalidate_render_cache(&mut self) {
-        // Clean up any cached components that may be invalidated
-        self.memory_manager.cleanup();
-        self.differential_renderer.invalidate_cache();
+        // Memory management and differential rendering not implemented in current version
+        // This method is a no-op for now
     }
 
-    /// Gets statistics about the last differential update
-    pub fn get_update_stats(&self) -> crate::go_board::UpdateStats {
-        self.differential_renderer.get_update_stats()
-    }
-
-    /// Checks if a vertex was changed in the last update
-    pub fn vertex_changed(&self, vertex: &Vertex) -> bool {
-        self.differential_renderer.vertex_changed(vertex)
-    }
-
-    /// Performs memory cleanup (removes old pooled components)
-    pub fn cleanup_memory(&mut self) {
-        self.memory_manager.cleanup();
-    }
-
-    /// Forces complete memory cleanup (removes all pooled components)
-    pub fn force_memory_cleanup(&mut self) {
-        self.memory_manager.force_cleanup();
-    }
-
-    /// Gets current memory usage statistics
-    pub fn get_memory_stats(&self) -> &crate::go_board::MemoryStats {
-        self.memory_manager.get_memory_stats()
-    }
-
-    /// Gets component pool statistics
-    pub fn get_pool_stats(&self) -> crate::go_board::ComponentPoolStats {
-        self.memory_manager.get_pool_stats()
-    }
-
-    /// Checks if memory cleanup is needed based on configuration
-    pub fn needs_memory_cleanup(&self) -> bool {
-        self.memory_manager.needs_cleanup()
-    }
-
-    /// Gets memory efficiency ratio (reused vs created components)
-    pub fn get_memory_efficiency(&self) -> f64 {
-        self.memory_manager.get_efficiency_ratio()
-    }
-
-    /// Gets a pooled stone component for efficient rendering
-    pub fn get_pooled_stone_component(&mut self, vertex: Vertex, sign: i8) -> StoneComponent {
-        self.memory_manager
-            .get_stone_component(vertex, sign, self.state.vertex_size)
-    }
-
-    /// Returns a stone component to the pool for reuse
-    pub fn return_stone_component(&mut self, component: StoneComponent) {
-        self.memory_manager.return_stone_component(component);
-    }
-
-    /// Gets a pooled marker component for efficient rendering
-    pub fn get_pooled_marker_component(
-        &mut self,
-        vertex: Vertex,
-        marker_type: crate::go_board::MarkerType,
-    ) -> MarkerComponent {
-        self.memory_manager
-            .get_marker_component(vertex, marker_type, self.state.vertex_size)
-    }
-
-    /// Returns a marker component to the pool for reuse
-    pub fn return_marker_component(&mut self, component: MarkerComponent) {
-        self.memory_manager.return_marker_component(component);
-    }
+    // Component pooling methods removed - not implemented in current version
 
     /// Renders the board with component pooling for efficient memory usage
     /// This method demonstrates how to use component pooling for large boards
     pub fn render_with_pooling(&mut self, handlers: VertexEventHandlers) -> impl IntoElement {
-        // Perform automatic cleanup if needed
-        if self.memory_manager.needs_cleanup() {
-            self.memory_manager.cleanup();
-        }
-
-        // For demonstration, we'll show how to use pooled components
-        // In a real implementation, the Stones and Markers components would
-        // request pooled components from the memory manager
+        // Component pooling not implemented in current version
+        // This method now serves as a regular render method
 
         // Create grid component with theme-derived properties
         let grid_theme = self.grid_theme();
@@ -601,8 +473,7 @@ impl GoBoard {
         self.theme.star_point_color = grid_theme.star_point_color;
         self.theme.star_point_size = grid_theme.star_point_size;
         self.css_adapter = ThemeCSSAdapter::from_theme(&self.theme);
-        // Invalidate cache since theme affects rendering
-        self.differential_renderer.invalidate_cache();
+        // Differential rendering not implemented in current version
     }
 
     /// Sets the stone theme (for backward compatibility)
@@ -620,8 +491,7 @@ impl GoBoard {
         self.theme.black_stone_texture = stone_theme.black_stone_image;
         self.theme.white_stone_texture = stone_theme.white_stone_image;
         self.css_adapter = ThemeCSSAdapter::from_theme(&self.theme);
-        // Invalidate cache since theme affects rendering
-        self.differential_renderer.invalidate_cache();
+        // Differential rendering not implemented in current version
     }
 
     /// Gets a reference to the board theme
@@ -804,46 +674,12 @@ impl GoBoard {
         &mut self,
         handlers: VertexEventHandlers,
     ) -> AnyElement {
-        // Check if memory cleanup is needed and perform it automatically
-        if self.memory_manager.needs_cleanup() {
-            self.memory_manager.cleanup();
-        }
+        // Memory management and differential rendering not implemented in current version
+        // This method now serves as a regular render method
 
-        // Note: In a real GPUI application, this would require more sophisticated
-        // state management and component caching. For now, this demonstrates
-        // the differential analysis capability.
-
-        // Analyze what has changed since last render
-        use crate::go_board::types::SelectionStateSnapshot;
-        let selection_state = SelectionStateSnapshot::from_board_state(&self.state);
-
-        let update = self.differential_renderer.analyze_changes(
-            &self.state.sign_map,
-            &self.state.marker_map,
-            &self.state.ghost_stone_map,
-            &selection_state,
-        );
-
-        // For demonstration, we'll render the full board but could optimize
-        // to only render changed elements in a production implementation
-        if update.requires_full_render
-            || !update.changed_stones.is_empty()
-            || !update.changed_markers.is_empty()
-            || !update.changed_ghost_stones.is_empty()
-            || update.selection_changed
-        {
-            // In a real implementation, this is where we would:
-            // 1. Only update the DOM elements that changed
-            // 2. Batch DOM updates to prevent layout thrashing
-            // 3. Use virtual DOM or similar diffing strategies
-            // 4. Use component pooling from memory manager for expensive components
-
-            self.render_with_vertex_handlers(handlers)
-                .into_any_element()
-        } else {
-            // No changes detected, return minimal render
-            div().id("go-board-no-changes").into_any_element()
-        }
+        // For now, always render the full board
+        self.render_with_vertex_handlers(handlers)
+            .into_any_element()
     }
 }
 
@@ -862,7 +698,7 @@ impl Render for GoBoard {
 
 impl Drop for GoBoard {
     fn drop(&mut self) {
-        // Ensure all resources are cleaned up when GoBoard is dropped
-        self.force_memory_cleanup();
+        // Memory management not implemented in current version
+        // No cleanup needed for now
     }
 }
