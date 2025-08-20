@@ -8,8 +8,8 @@ use gpui_component::{
         BoardTheme, BoundedGoBoard, CornerPaint, DirectionalPaintMap, GhostStone,
         GhostStoneOverlay, GhostStoneType, GoBoard, GridTheme, HeatData, HeatOverlay, Line,
         LineOverlay, LineType, Marker, MarkerType, PaintOverlay, PaintType, SelectionDirection,
-        TextureThemeAdapter, TextureUtils, Vertex, VertexClickEvent, VertexEventHandlers,
-        VertexMouseDownEvent, VertexMouseMoveEvent, VertexMouseUpEvent, VertexSelection,
+        Vertex, VertexClickEvent, VertexEventHandlers, VertexMouseDownEvent, VertexMouseMoveEvent,
+        VertexMouseUpEvent, VertexSelection,
     },
     h_flex, v_flex, ActiveTheme,
 };

@@ -127,20 +127,6 @@ impl LineRenderer {
             .rounded(px(2.0))
     }
 
-    /// Calculates the distance between two points
-    fn calculate_distance(&self, start: Point<Pixels>, end: Point<Pixels>) -> f32 {
-        let dx = end.x.0 - start.x.0;
-        let dy = end.y.0 - start.y.0;
-        (dx * dx + dy * dy).sqrt()
-    }
-
-    /// Calculates the angle in degrees from start to end point
-    fn calculate_angle(&self, start: Point<Pixels>, end: Point<Pixels>) -> f32 {
-        let dx = end.x.0 - start.x.0;
-        let dy = end.y.0 - start.y.0;
-        dy.atan2(dx).to_degrees()
-    }
-
     /// Updates the renderer configuration
     pub fn update_config(&mut self, vertex_size: f32, grid_offset: Point<Pixels>) {
         self.vertex_size = vertex_size;
@@ -282,31 +268,6 @@ mod tests {
         let expected_y = px(94.0);
         assert_eq!(center.x, expected_x);
         assert_eq!(center.y, expected_y);
-    }
-
-    #[test]
-    fn test_distance_calculation() {
-        let renderer = LineRenderer::new(24.0, point(px(0.0), px(0.0)));
-        let start = point(px(0.0), px(0.0));
-        let end = point(px(3.0), px(4.0));
-        let distance = renderer.calculate_distance(start, end);
-        assert_eq!(distance, 5.0); // 3-4-5 triangle
-    }
-
-    #[test]
-    fn test_angle_calculation() {
-        let renderer = LineRenderer::new(24.0, point(px(0.0), px(0.0)));
-
-        // Horizontal line (0 degrees)
-        let start = point(px(0.0), px(0.0));
-        let end = point(px(1.0), px(0.0));
-        let angle = renderer.calculate_angle(start, end);
-        assert!((angle - 0.0).abs() < 0.001);
-
-        // Vertical line (90 degrees)
-        let end_vertical = point(px(0.0), px(1.0));
-        let angle_vertical = renderer.calculate_angle(start, end_vertical);
-        assert!((angle_vertical - 90.0).abs() < 0.001);
     }
 
     #[test]

@@ -13,7 +13,7 @@ pub mod paint_overlay;
 pub mod selection;
 pub mod state;
 pub mod stones;
-pub mod texture_loader;
+
 pub mod theme;
 
 pub mod types;
@@ -26,9 +26,6 @@ mod grid_tests;
 
 #[cfg(test)]
 mod integration_tests;
-
-#[cfg(test)]
-mod texture_integration_tests;
 
 #[cfg(test)]
 mod error_validation_tests;
@@ -58,6 +55,6 @@ pub use paint_overlay::{
 pub use selection::{SelectionRenderer, VertexSelections};
 pub use state::GoBoardState;
 pub use stones::{Stone, StoneTheme, Stones};
-pub use texture_loader::{TextureAssetLoader, TextureThemeAdapter, TextureUtils};
+
 pub use theme::BoardTheme;
 pub use types::*;
