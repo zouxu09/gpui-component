@@ -1,7 +1,7 @@
 use crate::go_board::{
     BoardTheme, GhostStoneOverlay, GoBoardResult, GoBoardState, GoBoardValidator, Grid, GridTheme,
-    HeatOverlay, LineOverlay, Markers, PaintOverlay, StoneTheme, Stones, TextureThemeAdapter,
-    ThemeCSSAdapter, Vertex, VertexEventHandlers, VertexInteractions, VertexSelections,
+    HeatOverlay, LineOverlay, Markers, PaintOverlay, StoneTheme, Stones, Vertex,
+    VertexEventHandlers, VertexInteractions, VertexSelections,
 };
 use gpui::*;
 
@@ -10,7 +10,6 @@ use gpui::*;
 pub struct GoBoard {
     state: GoBoardState,
     theme: BoardTheme,
-    css_adapter: ThemeCSSAdapter,
 }
 
 impl GoBoard {
@@ -19,7 +18,6 @@ impl GoBoard {
         let theme = BoardTheme::default();
         Self {
             state: GoBoardState::standard(),
-            css_adapter: ThemeCSSAdapter::from_theme(&theme),
             theme,
         }
     }
@@ -29,7 +27,6 @@ impl GoBoard {
         let theme = BoardTheme::default();
         Self {
             state: GoBoardState::new(width, height),
-            css_adapter: ThemeCSSAdapter::from_theme(&theme),
             theme,
         }
     }
@@ -44,7 +41,6 @@ impl GoBoard {
     pub fn with_theme(theme: BoardTheme) -> Self {
         Self {
             state: GoBoardState::standard(),
-            css_adapter: ThemeCSSAdapter::from_theme(&theme),
             theme,
         }
     }
@@ -356,7 +352,6 @@ impl GoBoard {
     pub fn set_theme(&mut self, theme: BoardTheme) {
         // Memory management and differential rendering not implemented in current version
         self.theme = theme;
-        self.css_adapter = ThemeCSSAdapter::from_theme(&self.theme);
     }
 
     /// Forces a full re-render on next update
@@ -472,7 +467,6 @@ impl GoBoard {
         self.theme.board_border_width = grid_theme.border_width;
         self.theme.star_point_color = grid_theme.star_point_color;
         self.theme.star_point_size = grid_theme.star_point_size;
-        self.css_adapter = ThemeCSSAdapter::from_theme(&self.theme);
         // Differential rendering not implemented in current version
     }
 
@@ -488,20 +482,13 @@ impl GoBoard {
         self.theme.fuzzy_max_offset = stone_theme.fuzzy_max_offset;
         self.theme.random_variation = stone_theme.random_variation;
         self.theme.max_rotation = stone_theme.max_rotation;
-        self.theme.black_stone_texture = stone_theme.black_stone_image;
-        self.theme.white_stone_texture = stone_theme.white_stone_image;
-        self.css_adapter = ThemeCSSAdapter::from_theme(&self.theme);
+
         // Differential rendering not implemented in current version
     }
 
     /// Gets a reference to the board theme
     pub fn theme(&self) -> &BoardTheme {
         &self.theme
-    }
-
-    /// Gets a reference to the CSS adapter
-    pub fn css_adapter(&self) -> &ThemeCSSAdapter {
-        &self.css_adapter
     }
 
     /// Gets a reference to the grid theme (for backward compatibility)
@@ -531,8 +518,8 @@ impl GoBoard {
             fuzzy_max_offset: self.theme.fuzzy_max_offset,
             random_variation: self.theme.random_variation,
             max_rotation: self.theme.max_rotation,
-            black_stone_image: self.theme.black_stone_texture.clone(),
-            white_stone_image: self.theme.white_stone_texture.clone(),
+            black_stone_image: None,
+            white_stone_image: None,
         }
     }
 
@@ -595,31 +582,13 @@ impl GoBoard {
         // Create line overlay component for drawing connections between vertices
         let line_overlay = LineOverlay::new(self.state.vertex_size, grid_offset);
 
-        // Create base board div with all layers. Apply board texture if present.
-        let texture_adapter = TextureThemeAdapter::new(&self.theme);
-        let board_texture_element = texture_adapter.create_board_texture_element(&self.theme);
+        // Create base board div with all layers
 
         let mut board_div = div()
             .id("go-board")
             .relative()
-            .child(match board_texture_element {
-                Some(tex) => grid.render_with_texture(Some(tex)),
-                None => grid.render(),
-            })
-            .child({
-                let has_stone_textures = self.theme.black_stone_texture.is_some()
-                    || self.theme.white_stone_texture.is_some()
-                    || self.theme.enable_random_stone_variation;
-                let stones_layer = if has_stone_textures {
-                    div()
-                        .absolute()
-                        .inset_0()
-                        .child(stones.render_stones_with_texture(&texture_adapter, &self.theme))
-                } else {
-                    div().absolute().inset_0().child(stones.render())
-                };
-                stones_layer
-            })
+            .child(grid.render())
+            .child(div().absolute().inset_0().child(stones.render()))
             .child(
                 div()
                     .absolute()

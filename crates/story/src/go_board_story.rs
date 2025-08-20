@@ -107,12 +107,7 @@ impl GoBoardStory {
             }),
             asset_board: cx.new(|_| {
                 // Asset demo disabled to avoid missing embedded resources; use default theme
-                let asset_theme = BoardTheme::default()
-                    .with_board_texture("icons/board.png".to_string())
-                    .with_stone_textures(
-                        Some("icons/black_stone.svg".to_string()),
-                        Some("icons/white_stone.svg".to_string()),
-                    );
+                let asset_theme = BoardTheme::default();
                 let mut board = GoBoard::with_size(9, 9).with_vertex_size(35.0);
                 board.set_theme(asset_theme);
 

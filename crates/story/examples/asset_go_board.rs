@@ -15,13 +15,8 @@ struct AssetGoBoardDemo {
 impl AssetGoBoardDemo {
     fn new(_window: &mut Window, cx: &mut Context<Self>) -> Self {
         let board = cx.new(|_| {
-            // Create a board using the specific assets mentioned in the request
-            let asset_theme = BoardTheme::default()
-                .with_board_texture("icons/board.png".to_string())
-                .with_stone_textures(
-                    Some("icons/black_stone.svg".to_string()),
-                    Some("icons/white_stone.svg".to_string()),
-                );
+            // Create a board using the default theme (textures removed)
+            let asset_theme = BoardTheme::default();
 
             let mut board = GoBoard::with_size(9, 9).with_vertex_size(40.0);
             board.set_theme(asset_theme);
