@@ -20,9 +20,6 @@ pub struct GoBoardState {
     pub selected_bottom: Vec<Vertex>,
     pub lines: Vec<Line>,
 
-    // Selection state tracking for efficient updates
-    pub previous_selection_state: Option<SelectionStateSnapshot>,
-
     // Configuration
     pub vertex_size: f32,
     pub board_range: BoardRange,
@@ -48,8 +45,6 @@ impl GoBoardState {
             selected_top: Vec::new(),
             selected_bottom: Vec::new(),
             lines: Vec::new(),
-
-            previous_selection_state: None,
 
             vertex_size: 24.0,
             board_range: BoardRange::full(width, height),
@@ -230,24 +225,6 @@ impl GoBoardState {
                 && line.v2.x < new_width
                 && line.v2.y < new_height
         });
-    }
-
-    /// Creates a snapshot of current selection state for differential updates
-    pub fn capture_selection_snapshot(&mut self) -> SelectionStateSnapshot {
-        let snapshot = SelectionStateSnapshot::from_board_state(self);
-        self.previous_selection_state = Some(snapshot.clone());
-        snapshot
-    }
-
-    /// Checks if selection state has changed since last snapshot
-    pub fn has_selection_changed(&self) -> bool {
-        match &self.previous_selection_state {
-            Some(previous) => {
-                let current = SelectionStateSnapshot::from_board_state(self);
-                current.differs_from(previous)
-            }
-            None => true, // No previous state means it's changed
-        }
     }
 
     /// Updates multiple ghost stones efficiently with change tracking

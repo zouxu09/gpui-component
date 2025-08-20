@@ -64,15 +64,6 @@ impl GoBoard {
         self
     }
 
-    /// Creates a bounded Go board that fits within max dimensions
-    pub fn with_bounded_size(mut self, max_width: f32, max_height: f32) -> Self {
-        let (board_width, board_height) = self.state.dimensions();
-        let max_vertex_size_x = max_width / board_width as f32;
-        let max_vertex_size_y = max_height / board_height as f32;
-        self.state.vertex_size = max_vertex_size_x.min(max_vertex_size_y).max(1.0);
-        self
-    }
-
     /// Gets a reference to the board state
     pub fn state(&self) -> &GoBoardState {
         &self.state
@@ -147,11 +138,6 @@ impl GoBoard {
         }
 
         Ok(self.update_stones(updates))
-    }
-
-    /// Gets the differences between current and new sign map
-    pub fn get_sign_map_differences(&self, new_sign_map: &crate::go_board::SignMap) -> Vec<Vertex> {
-        self.state.get_sign_map_differences(new_sign_map)
     }
 
     /// Sets a single stone at a vertex efficiently
@@ -272,28 +258,6 @@ impl GoBoard {
         }
     }
 
-    /// Updates ghost stone map efficiently with change detection and memory cleanup
-    pub fn update_ghost_stone_map(
-        &mut self,
-        ghost_stone_map: crate::go_board::GhostStoneMap,
-    ) -> bool {
-        // Memory management not implemented in current version
-        let result = self.state.update_ghost_stone_map(&ghost_stone_map);
-
-        result
-    }
-
-    /// Updates individual ghost stones efficiently
-    pub fn update_ghost_stones(
-        &mut self,
-        updates: &[(Vertex, Option<crate::go_board::GhostStone>)],
-    ) -> bool {
-        // Differential rendering not implemented in current version
-        let result = self.state.update_ghost_stones(updates);
-
-        result
-    }
-
     /// Gets the ghost stone at a specific vertex
     pub fn get_ghost_stone(&self, vertex: &Vertex) -> Option<&crate::go_board::GhostStone> {
         self.state.get_ghost_stone(vertex)
@@ -354,107 +318,13 @@ impl GoBoard {
         self.theme = theme;
     }
 
-    /// Forces a full re-render on next update
-    pub fn invalidate_render_cache(&mut self) {
-        // Memory management and differential rendering not implemented in current version
-        // This method is a no-op for now
-    }
-
     // Component pooling methods removed - not implemented in current version
 
     /// Renders the board with component pooling for efficient memory usage
     /// This method demonstrates how to use component pooling for large boards
     pub fn render_with_pooling(&mut self, handlers: VertexEventHandlers) -> impl IntoElement {
-        // Component pooling not implemented in current version
-        // This method now serves as a regular render method
-
-        // Create grid component with theme-derived properties
-        let grid_theme = self.grid_theme();
-        let grid = Grid::new(self.state.board_range.clone(), self.state.vertex_size)
-            .with_theme(grid_theme)
-            .with_coordinates(self.state.show_coordinates);
-
-        // Create stones component with theme-derived properties and pooling hint
-        let stone_theme = self.stone_theme();
-        let stones = Stones::new(
-            self.state.board_range.clone(),
-            self.state.vertex_size,
-            self.state.sign_map.clone(),
-        )
-        .with_theme(stone_theme);
-
-        // Create markers component with pooling capabilities
-        let grid_offset = point(px(0.0), px(0.0));
-        let markers = Markers::new(self.state.vertex_size, grid_offset);
-
-        // Rest of the rendering remains the same but could be optimized
-        // with component pooling in a production implementation
-        let selections = VertexSelections::new(self.state.vertex_size, grid_offset);
-        let selection_data = VertexSelections::from_board_state(
-            &self.state.selected_vertices,
-            &self.state.dimmed_vertices,
-            &self.state.selected_left,
-            &self.state.selected_right,
-            &self.state.selected_top,
-            &self.state.selected_bottom,
-        );
-
-        let paint_overlay = PaintOverlay::new(self.state.vertex_size, grid_offset);
-        let heat_overlay = HeatOverlay::new(self.state.vertex_size, grid_offset);
-        let ghost_stone_overlay = GhostStoneOverlay::new(self.state.vertex_size, grid_offset);
-        let line_overlay = LineOverlay::new(self.state.vertex_size, grid_offset);
-
-        let mut board_div = div()
-            .id("go-board-pooled")
-            .relative()
-            .child(grid.render())
-            .child(div().absolute().inset_0().child(stones.render()))
-            .child(
-                div()
-                    .absolute()
-                    .inset_0()
-                    .child(ghost_stone_overlay.render_ghost_stones(&self.state.ghost_stone_map)),
-            )
-            .child(
-                div()
-                    .absolute()
-                    .inset_0()
-                    .child(paint_overlay.render_paint_overlay(&self.state.paint_map, None)),
-            )
-            .child(
-                div()
-                    .absolute()
-                    .inset_0()
-                    .child(heat_overlay.render_heat_overlay(&self.state.heat_map)),
-            )
-            .child(
-                div()
-                    .absolute()
-                    .inset_0()
-                    .child(line_overlay.render_lines(&self.state.lines)),
-            )
-            .child(
-                div()
-                    .absolute()
-                    .inset_0()
-                    .child(markers.render_markers(&self.state.marker_map)),
-            )
-            .child(
-                div()
-                    .absolute()
-                    .inset_0()
-                    .child(selections.render_selections(&selection_data)),
-            );
-
-        // Add interaction layer
-        let interactions =
-            VertexInteractions::new(self.state.board_range.clone(), self.state.vertex_size)
-                .with_busy(self.state.busy);
-
-        let interaction_layer = interactions.render_with_handlers(handlers);
-        board_div = board_div.child(div().absolute().inset_0().child(interaction_layer));
-
-        board_div
+        // Component pooling not implemented, delegate to main render method
+        self.render_with_vertex_handlers(handlers)
     }
 
     /// Sets the grid theme (for backward compatibility)
@@ -636,20 +506,6 @@ impl GoBoard {
 
         board_div
     }
-
-    /// Renders the board with differential updates (experimental optimization)
-    /// This method analyzes changes and only re-renders modified elements
-    pub fn render_with_differential_updates(
-        &mut self,
-        handlers: VertexEventHandlers,
-    ) -> AnyElement {
-        // Memory management and differential rendering not implemented in current version
-        // This method now serves as a regular render method
-
-        // For now, always render the full board
-        self.render_with_vertex_handlers(handlers)
-            .into_any_element()
-    }
 }
 
 impl Default for GoBoard {
@@ -662,12 +518,5 @@ impl Render for GoBoard {
     fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
         let handlers = VertexEventHandlers::new();
         self.render_with_vertex_handlers(handlers)
-    }
-}
-
-impl Drop for GoBoard {
-    fn drop(&mut self) {
-        // Memory management not implemented in current version
-        // No cleanup needed for now
     }
 }

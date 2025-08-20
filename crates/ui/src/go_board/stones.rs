@@ -132,17 +132,6 @@ impl Stone {
         (offset_x, offset_y)
     }
 
-    /// Calculates rotation for visual variation
-    fn rotation_angle(&self) -> f32 {
-        if !self.theme.random_variation {
-            return 0.0;
-        }
-
-        // Use deterministic "random" rotation based on position and random_class
-        let seed = self.position.x * 19 + self.position.y * 29 + self.random_class as usize * 7;
-        ((seed % 100) as f32 / 50.0 - 1.0) * self.theme.max_rotation
-    }
-
     /// Renders the stone as a circle
     pub fn render(&self, board_range: &BoardRange) -> Option<impl IntoElement> {
         if self.sign == 0 {
@@ -569,35 +558,6 @@ mod tests {
         let (offset_x2, offset_y2) = stone2.fuzzy_offset();
         assert_eq!(offset_x, offset_x2);
         assert_eq!(offset_y, offset_y2);
-    }
-
-    #[test]
-    fn test_rotation_angle_disabled() {
-        let mut theme = StoneTheme::default();
-        theme.random_variation = false;
-
-        let stone = Stone::new(Vertex::new(2, 3), 1, 20.0).with_theme(theme);
-        let rotation = stone.rotation_angle();
-
-        assert_eq!(rotation, 0.0);
-    }
-
-    #[test]
-    fn test_rotation_angle_enabled() {
-        let mut theme = StoneTheme::default();
-        theme.random_variation = true;
-        theme.max_rotation = 10.0;
-
-        let stone = Stone::new(Vertex::new(2, 3), 1, 20.0).with_theme(theme);
-        let rotation = stone.rotation_angle();
-
-        // Rotation should be within the max range
-        assert!(rotation.abs() <= theme.max_rotation);
-
-        // Rotation should be deterministic
-        let stone2 = Stone::new(Vertex::new(2, 3), -1, 20.0).with_theme(theme.clone());
-        let rotation2 = stone2.rotation_angle();
-        assert_eq!(rotation, rotation2);
     }
 
     #[test]

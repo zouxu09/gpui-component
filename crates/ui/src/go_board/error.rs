@@ -54,16 +54,6 @@ pub enum GoBoardError {
         message: String,
     },
 
-    /// Missing or invalid asset (texture, image, etc.)
-    InvalidAsset {
-        asset_type: String,
-        path: Option<String>,
-        message: String,
-    },
-
-    /// Memory management error
-    MemoryError { operation: String, message: String },
-
     /// Generic validation error with custom message
     ValidationError {
         field: String,
@@ -88,12 +78,12 @@ impl fmt::Display for GoBoardError {
                 board_width,
                 board_height,
             } => {
-                write!(f, "Vertex ({}, {}) is out of bounds for {}x{} board. Valid coordinates: (0-{}, 0-{}).", 
+                write!(f, "Vertex ({}, {}) is out of bounds for {}x{} board. Valid coordinates: (0-{}, 0-{}).",
                     vertex.x, vertex.y, board_width, board_height, board_width - 1, board_height - 1)
             }
 
             GoBoardError::InvalidSignValue { sign, vertex } => {
-                write!(f, "Invalid sign value {} at vertex ({}, {}). Valid values: -1 (white stone), 0 (empty), 1 (black stone).", 
+                write!(f, "Invalid sign value {} at vertex ({}, {}). Valid values: -1 (white stone), 0 (empty), 1 (black stone).",
                     sign, vertex.x, vertex.y)
             }
 
@@ -105,7 +95,7 @@ impl fmt::Display for GoBoardError {
                 board_width,
                 board_height,
             } => {
-                write!(f, "Invalid range ({}:{}, {}:{}) for {}x{} board. Range coordinates must be within board bounds and start <= end.", 
+                write!(f, "Invalid range ({}:{}, {}:{}) for {}x{} board. Range coordinates must be within board bounds and start <= end.",
                     start_x, end_x, start_y, end_y, board_width, board_height)
             }
 
@@ -120,7 +110,7 @@ impl fmt::Display for GoBoardError {
                 actual_width,
                 actual_height,
             } => {
-                write!(f, "{} size mismatch: expected {}x{}, got {}x{}. All maps must match the board dimensions.", 
+                write!(f, "{} size mismatch: expected {}x{}, got {}x{}. All maps must match the board dimensions.",
                     map_type, expected_width, expected_height, actual_width, actual_height)
             }
 
@@ -137,30 +127,8 @@ impl fmt::Display for GoBoardError {
                 value,
                 message,
             } => {
-                write!(f, "Invalid theme configuration for '{}' = '{}': {}. Check theme documentation for valid values.", 
+                write!(f, "Invalid theme configuration for '{}' = '{}': {}. Check theme documentation for valid values.",
                     field, value, message)
-            }
-
-            GoBoardError::InvalidAsset {
-                asset_type,
-                path,
-                message,
-            } => match path {
-                Some(p) => write!(
-                    f,
-                    "Invalid {} asset at '{}': {}. Ensure the file exists and is accessible.",
-                    asset_type, p, message
-                ),
-                None => write!(
-                    f,
-                    "Invalid {} asset: {}. Check asset configuration.",
-                    asset_type, message
-                ),
-            },
-
-            GoBoardError::MemoryError { operation, message } => {
-                write!(f, "Memory management error during '{}': {}. This may indicate resource cleanup issues.", 
-                    operation, message)
             }
 
             GoBoardError::ValidationError {
