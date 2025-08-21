@@ -127,6 +127,7 @@ impl CoordinateLabels {
         let margin = self.theme.margin + self.theme.font_size;
         let x_offset = if self.show_left { margin } else { 0.0 };
         let y_offset = if self.show_top { margin } else { 0.0 };
+
         (x_offset, y_offset)
     }
 

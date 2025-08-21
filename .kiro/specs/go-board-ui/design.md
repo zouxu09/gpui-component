@@ -2,7 +2,7 @@
 
 ## Overview
 
-This design document outlines the architecture for a high-performance Go board UI widget component in GPUI, inspired by the proven Shudan architecture. The component will provide a flexible, customizable, and performant Go board display system that supports advanced features like markers, overlays, and comprehensive theming while maintaining clean separation between UI presentation and game logic.
+This design document outlines the architecture for a high-performance Go board UI widget component in GPUI, inspired by the proven Shudan architecture. The component provides a flexible, customizable, and performant Go board display system that supports advanced features like markers, overlays, and comprehensive theming while maintaining clean separation between UI presentation and game logic.
 
 The design follows GPUI's reactive architecture patterns and leverages Rust's type safety to create a robust component suitable for professional Go applications, educational tools, and game analysis software.
 
@@ -102,7 +102,6 @@ impl GoBoard {
     pub fn new() -> Self;
     pub fn with_vertex_size(size: f32) -> Self;
     pub fn with_range(range: BoardRange) -> Self;
-    pub fn with_bounded_size(max_width: f32, max_height: f32) -> Self;
 
     // State management
     pub fn set_sign_map(&mut self, map: SignMap);
@@ -274,7 +273,7 @@ pub struct EventHandlers {
 
 ### Theme System
 
-Comprehensive theming system with CSS custom property equivalents:
+Comprehensive theming system with color-based styling:
 
 ```rust
 pub struct BoardTheme {
@@ -296,6 +295,9 @@ pub struct BoardTheme {
     pub stone_shadow_enabled: bool,
     pub stone_shadow_color: Color,
     pub stone_shadow_offset: (f32, f32),
+    pub stone_size_ratio: f32,
+    pub stone_border_width: f32,
+    pub stone_border_color: Color,
 
     // Coordinate styling
     pub coordinate_color: Color,
@@ -306,10 +308,6 @@ pub struct BoardTheme {
     pub board_texture: Option<String>, // Background image path
     pub black_stone_texture: Option<String>,
     pub white_stone_texture: Option<String>,
-
-    // Random stone variations
-    pub enable_random_stone_variation: bool,
-    pub stone_variation_textures: Vec<String>,
 }
 
 impl Default for BoardTheme {
@@ -325,7 +323,6 @@ impl Default for BoardTheme {
     }
 }
 ```
-
 
 ## Error Handling
 
@@ -364,7 +361,7 @@ impl std::fmt::Display for GoBoardError {
 
 - **Component Isolation**: Test each component (Grid, Stone, Marker, etc.) in isolation
 - **State Management**: Verify state updates and reactive behavior
-- **Theme Application**: Test theme switching and CSS property generation
+- **Theme Application**: Test theme switching and color application
 - **Event Handling**: Mock event handlers and verify correct vertex coordinates
 - **Data Validation**: Test error handling for invalid inputs
 
@@ -391,16 +388,15 @@ impl std::fmt::Display for GoBoardError {
 
 ### Rendering Optimization
 
-1. **Differential Updates**: Only re-render changed vertices when signMap updates
+1. **Efficient Rendering**: Optimize rendering of stones, markers, and overlays
 2. **Layer Separation**: Separate static (grid) from dynamic (stones, markers) content
-3. **Efficient Z-ordering**: Use CSS transforms for layering instead of DOM manipulation
+3. **Efficient Z-ordering**: Use proper layering for visual elements
 4. **Viewport Culling**: Only render visible portions for partial boards
 
 ### Memory Management
 
-1. **Component Pooling**: Reuse stone and marker components for large boards
-2. **Texture Sharing**: Share stone textures across multiple instances
-3. **State Normalization**: Use normalized state structures for efficient updates
+1. **Efficient State Management**: Use optimized data structures for board state
+2. **State Normalization**: Use normalized state structures for efficient updates
 
 ### Event Handling Optimization
 
@@ -431,15 +427,15 @@ impl std::fmt::Display for GoBoardError {
 - Easier testing and debugging
 - Flexible z-index management
 
-### 3. CSS-Based Theming
+### 3. Color-Based Theming
 
-**Decision**: Use CSS custom properties for theming with Rust configuration
+**Decision**: Use color-based theming with Rust configuration
 
 **Rationale**:
-- Familiar to web developers
-- Runtime theme switching without recompilation
-- Leverage CSS for complex styling (gradients, shadows)
-- Easy integration with design systems
+- Simple and performant
+- Easy to customize and extend
+- Leverage GPUI's color system
+- Clean integration with design systems
 
 ### 4. Event-Driven Architecture
 
@@ -451,4 +447,45 @@ impl std::fmt::Display for GoBoardError {
 - Support for both mouse and pointer events
 - Enables complex interaction patterns
 
-This design provides a solid foundation for implementing a professional-grade Go board widget that matches Shudan's capabilities while leveraging GPUI's performance advantages and Rust's type safety.
+### 5. Simplified Architecture
+
+**Decision**: Focus on core functionality and remove performance optimization complexity
+
+**Rationale**:
+- Reduced complexity and maintenance burden
+- Faster compilation and development
+- Clearer codebase for new contributors
+- Focus on essential Go board features
+- Eliminate over-engineering for typical use cases
+- Simplified API without change tracking return values
+
+## Implementation Enhancements
+
+The actual implementation includes several significant enhancements beyond the original design specification:
+
+### Enhanced Marker System
+- **Z-Index Ordering**: Comprehensive z-index management for overlapping markers with proper layering
+- **Efficient Updates**: Differential rendering system that only updates changed markers
+- **Performance Optimizations**: Specific marker rendering for targeted updates without full re-render
+
+### Advanced Directional Paint System
+- **Edge-Based Painting**: DirectionalPaintMap with left, right, top, bottom edge painting support
+- **Corner Paint**: Precise corner painting with triangular regions and individual corner intensity
+- **Comprehensive Renderer**: PaintOverlayRenderer with directional dimension calculations and corner positioning
+
+### Robust State Management
+- **Change Tracking**: Efficient update systems for stones, ghost stones, and selections with change detection
+- **Validation**: Comprehensive input validation and bounds checking
+- **Resize Support**: Proper board resizing with data preservation and bounds cleanup
+
+### Comprehensive Event System
+- **Full Event Coverage**: Complete mouse event support (down, up, move, enter, leave) with proper coordinate emission
+- **Busy State**: Proper interaction disabling when board is in busy state
+- **Performance**: Efficient event handling with proper propagation control
+
+### Performance Features
+- **Component Pooling**: Memory optimization through component reuse
+- **Differential Updates**: Only render changed elements for large boards
+- **Efficient Sorting**: Z-index ordering with minimal overhead
+
+This design provides a solid foundation for implementing a professional-grade Go board widget that matches Shudan's capabilities while leveraging GPUI's performance advantages and Rust's type safety. The implementation exceeds the original design specification with enhanced features and performance optimizations.

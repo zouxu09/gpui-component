@@ -1,7 +1,7 @@
 use crate::go_board::types::*;
 
 /// Central state management for the Go board widget
-/// Follows Shudan's reactive architecture with efficient state updates
+/// Follows Shudan's reactive architecture
 #[derive(Clone, Debug)]
 pub struct GoBoardState {
     // Core board state - following Shudan's map-based approach
@@ -227,229 +227,75 @@ impl GoBoardState {
         });
     }
 
-    /// Updates multiple ghost stones efficiently with change tracking
-    pub fn update_ghost_stones(&mut self, updates: &[(Vertex, Option<GhostStone>)]) -> bool {
-        let mut changed = false;
-
+    /// Updates multiple ghost stones
+    pub fn update_ghost_stones(&mut self, updates: &[(Vertex, Option<GhostStone>)]) {
         for (vertex, ghost_stone) in updates {
             if self.is_valid_vertex(vertex) {
-                let current = &self.ghost_stone_map[vertex.y][vertex.x];
-                let different = match (current, ghost_stone) {
-                    (None, None) => false,
-                    (Some(_), None) | (None, Some(_)) => true,
-                    (Some(a), Some(b)) => a != b,
-                };
-
-                if different {
-                    self.ghost_stone_map[vertex.y][vertex.x] = ghost_stone.clone();
-                    changed = true;
-                }
+                self.ghost_stone_map[vertex.y][vertex.x] = ghost_stone.clone();
             }
         }
-
-        changed
     }
 
-    /// Bulk update ghost stones from a complete map with change tracking
-    pub fn update_ghost_stone_map(&mut self, new_ghost_map: &GhostStoneMap) -> bool {
-        if new_ghost_map.is_empty() || new_ghost_map[0].is_empty() {
-            return false;
-        }
-
-        let height = new_ghost_map.len();
-        let width = new_ghost_map[0].len();
-        let (current_width, current_height) = self.dimensions();
-
-        if width != current_width || height != current_height {
-            return false; // Size mismatch
-        }
-
-        // Check if the new map differs from current
-        let mut changed = false;
-        for (y, row) in new_ghost_map.iter().enumerate() {
-            for (x, new_ghost) in row.iter().enumerate() {
-                let current_ghost = &self.ghost_stone_map[y][x];
-                let different = match (current_ghost, new_ghost) {
-                    (None, None) => false,
-                    (Some(_), None) | (None, Some(_)) => true,
-                    (Some(a), Some(b)) => a != b,
-                };
-
-                if different {
-                    changed = true;
-                    break;
-                }
-            }
-            if changed {
-                break;
-            }
-        }
-
-        if changed {
-            self.ghost_stone_map = new_ghost_map.clone();
-        }
-
-        changed
+    /// Updates ghost stone map
+    pub fn set_ghost_stone_map(&mut self, new_ghost_map: GhostStoneMap) {
+        self.ghost_stone_map = new_ghost_map;
     }
 
-    /// Updates multiple stones efficiently with change tracking
-    pub fn update_stones(&mut self, updates: &[(Vertex, i8)]) -> bool {
-        let mut changed = false;
-
+    /// Updates multiple stones
+    pub fn update_stones(&mut self, updates: &[(Vertex, i8)]) {
         for (vertex, sign) in updates {
             if self.is_valid_vertex(vertex) && (-1..=1).contains(sign) {
-                let current_sign = self.sign_map[vertex.y][vertex.x];
-                if current_sign != *sign {
-                    self.sign_map[vertex.y][vertex.x] = *sign;
-                    changed = true;
-                }
+                self.sign_map[vertex.y][vertex.x] = *sign;
             }
         }
-
-        changed
     }
 
-    /// Bulk update the sign map from a complete map with change tracking
-    pub fn update_sign_map(&mut self, new_sign_map: &SignMap) -> bool {
-        if new_sign_map.is_empty() || new_sign_map[0].is_empty() {
-            return false;
-        }
-
-        let height = new_sign_map.len();
-        let width = new_sign_map[0].len();
-        let (current_width, current_height) = self.dimensions();
-
-        if width != current_width || height != current_height {
-            return false; // Size mismatch
-        }
-
-        // Check if the new map differs from current
-        let mut changed = false;
-        for (y, row) in new_sign_map.iter().enumerate() {
-            for (x, new_sign) in row.iter().enumerate() {
-                if self.sign_map[y][x] != *new_sign {
-                    changed = true;
-                    break;
-                }
-            }
-            if changed {
-                break;
-            }
-        }
-
-        if changed {
-            self.sign_map = new_sign_map.clone();
-        }
-
-        changed
+    /// Updates the sign map
+    pub fn set_sign_map(&mut self, new_sign_map: SignMap) {
+        self.sign_map = new_sign_map;
     }
 
-    /// Gets a list of vertices that differ between current and new sign map
-    pub fn get_sign_map_differences(&self, new_sign_map: &SignMap) -> Vec<Vertex> {
-        let mut differences = Vec::new();
 
-        if new_sign_map.is_empty() || new_sign_map[0].is_empty() {
-            return differences;
-        }
-
-        let height = new_sign_map.len();
-        let width = new_sign_map[0].len();
-        let (current_width, current_height) = self.dimensions();
-
-        if width != current_width || height != current_height {
-            return differences; // Size mismatch
-        }
-
-        for (y, row) in new_sign_map.iter().enumerate() {
-            for (x, new_sign) in row.iter().enumerate() {
-                if self.sign_map[y][x] != *new_sign {
-                    differences.push(Vertex::new(x, y));
-                }
-            }
-        }
-
-        differences
+    /// Updates selection state
+    pub fn set_selected_vertices(&mut self, vertices: Vec<Vertex>) {
+        self.selected_vertices = vertices
+            .into_iter()
+            .filter(|v| self.is_valid_vertex(v))
+            .collect();
     }
 
-    /// Updates selection state efficiently with change tracking
-    pub fn update_selected_vertices(&mut self, vertices: Vec<Vertex>) -> bool {
-        let changed = self.selected_vertices != vertices;
-        if changed {
-            self.selected_vertices = vertices
-                .into_iter()
-                .filter(|v| self.is_valid_vertex(v))
-                .collect();
-        }
-        changed
+    /// Updates dimmed vertices
+    pub fn set_dimmed_vertices(&mut self, vertices: Vec<Vertex>) {
+        self.dimmed_vertices = vertices
+            .into_iter()
+            .filter(|v| self.is_valid_vertex(v))
+            .collect();
     }
 
-    /// Updates dimmed vertices efficiently with change tracking
-    pub fn update_dimmed_vertices(&mut self, vertices: Vec<Vertex>) -> bool {
-        let changed = self.dimmed_vertices != vertices;
-        if changed {
-            self.dimmed_vertices = vertices
-                .into_iter()
-                .filter(|v| self.is_valid_vertex(v))
-                .collect();
-        }
-        changed
-    }
-
-    /// Updates directional selection efficiently with change tracking
-    pub fn update_directional_selections(
+    /// Updates directional selections
+    pub fn set_directional_selections(
         &mut self,
-        selected_left: Option<Vec<Vertex>>,
-        selected_right: Option<Vec<Vertex>>,
-        selected_top: Option<Vec<Vertex>>,
-        selected_bottom: Option<Vec<Vertex>>,
-    ) -> bool {
-        let mut changed = false;
-
-        if let Some(vertices) = selected_left {
-            let filtered: Vec<_> = vertices
-                .into_iter()
-                .filter(|v| self.is_valid_vertex(v))
-                .collect();
-            if self.selected_left != filtered {
-                self.selected_left = filtered;
-                changed = true;
-            }
-        }
-
-        if let Some(vertices) = selected_right {
-            let filtered: Vec<_> = vertices
-                .into_iter()
-                .filter(|v| self.is_valid_vertex(v))
-                .collect();
-            if self.selected_right != filtered {
-                self.selected_right = filtered;
-                changed = true;
-            }
-        }
-
-        if let Some(vertices) = selected_top {
-            let filtered: Vec<_> = vertices
-                .into_iter()
-                .filter(|v| self.is_valid_vertex(v))
-                .collect();
-            if self.selected_top != filtered {
-                self.selected_top = filtered;
-                changed = true;
-            }
-        }
-
-        if let Some(vertices) = selected_bottom {
-            let filtered: Vec<_> = vertices
-                .into_iter()
-                .filter(|v| self.is_valid_vertex(v))
-                .collect();
-            if self.selected_bottom != filtered {
-                self.selected_bottom = filtered;
-                changed = true;
-            }
-        }
-
-        changed
+        selected_left: Vec<Vertex>,
+        selected_right: Vec<Vertex>,
+        selected_top: Vec<Vertex>,
+        selected_bottom: Vec<Vertex>,
+    ) {
+        self.selected_left = selected_left
+            .into_iter()
+            .filter(|v| self.is_valid_vertex(v))
+            .collect();
+        self.selected_right = selected_right
+            .into_iter()
+            .filter(|v| self.is_valid_vertex(v))
+            .collect();
+        self.selected_top = selected_top
+            .into_iter()
+            .filter(|v| self.is_valid_vertex(v))
+            .collect();
+        self.selected_bottom = selected_bottom
+            .into_iter()
+            .filter(|v| self.is_valid_vertex(v))
+            .collect();
     }
 }
 
@@ -595,19 +441,6 @@ mod tests {
         assert!(!state.has_selection_changed());
     }
 
-    #[test]
-    fn test_efficient_selection_updates() {
-        let mut state = GoBoardState::new(9, 9);
-
-        // Test that unchanged updates return false
-        let vertices = vec![Vertex::new(1, 1), Vertex::new(2, 2)];
-        assert!(state.update_selected_vertices(vertices.clone())); // First time should change
-        assert!(!state.update_selected_vertices(vertices)); // Second time should not change
-
-        // Test that actual changes return true
-        let new_vertices = vec![Vertex::new(3, 3)];
-        assert!(state.update_selected_vertices(new_vertices));
-    }
 
     #[test]
     fn test_directional_selection_updates() {
@@ -723,41 +556,6 @@ mod tests {
         assert!(!state.update_ghost_stones(&updates));
     }
 
-    #[test]
-    fn test_update_ghost_stone_map() {
-        let mut state = GoBoardState::new(3, 3);
-
-        // Create a test ghost stone map
-        let ghost_map = vec![
-            vec![Some(GhostStone::new(1, GhostStoneType::Good)), None, None],
-            vec![None, Some(GhostStone::new(-1, GhostStoneType::Bad)), None],
-            vec![
-                None,
-                None,
-                Some(GhostStone::new(1, GhostStoneType::Interesting)),
-            ],
-        ];
-
-        // First update should return true
-        assert!(state.update_ghost_stone_map(&ghost_map));
-
-        // Verify the map was updated
-        assert!(state.get_ghost_stone(&Vertex::new(0, 0)).is_some());
-        assert!(state.get_ghost_stone(&Vertex::new(1, 1)).is_some());
-        assert!(state.get_ghost_stone(&Vertex::new(2, 2)).is_some());
-
-        // Same map should return false
-        assert!(!state.update_ghost_stone_map(&ghost_map));
-
-        // Different map should return true
-        let mut different_map = ghost_map.clone();
-        different_map[0][0] = None;
-        assert!(state.update_ghost_stone_map(&different_map));
-
-        // Test size mismatch
-        let wrong_size_map = vec![vec![None; 2]; 2];
-        assert!(!state.update_ghost_stone_map(&wrong_size_map));
-    }
 
     #[test]
     fn test_ghost_stone_resize() {
@@ -817,37 +615,6 @@ mod tests {
         assert_eq!(state.get_sign(&Vertex::new(4, 4)), Some(0)); // Should remain unchanged
     }
 
-    #[test]
-    fn test_update_sign_map() {
-        let mut state = GoBoardState::new(3, 3);
-
-        // Create a test sign map
-        let sign_map = vec![vec![1, 0, -1], vec![0, 1, 0], vec![-1, 0, 1]];
-
-        // First update should return true
-        assert!(state.update_sign_map(&sign_map));
-
-        // Verify the map was updated
-        assert_eq!(state.get_sign(&Vertex::new(0, 0)), Some(1));
-        assert_eq!(state.get_sign(&Vertex::new(2, 0)), Some(-1));
-        assert_eq!(state.get_sign(&Vertex::new(1, 1)), Some(1));
-
-        // Same map should return false
-        assert!(!state.update_sign_map(&sign_map));
-
-        // Different map should return true
-        let mut different_map = sign_map.clone();
-        different_map[0][0] = 0;
-        assert!(state.update_sign_map(&different_map));
-
-        // Test size mismatch
-        let wrong_size_map = vec![vec![0; 2]; 2];
-        assert!(!state.update_sign_map(&wrong_size_map));
-
-        // Test empty map
-        let empty_map = vec![];
-        assert!(!state.update_sign_map(&empty_map));
-    }
 
     #[test]
     fn test_get_sign_map_differences() {

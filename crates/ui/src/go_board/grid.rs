@@ -1,6 +1,7 @@
 use crate::go_board::coordinates::{
     default_coord_x, default_coord_y, CoordFunction, CoordinateLabels, CoordinateTheme,
 };
+use crate::go_board::position_utils::{PositionCalculator, PositionUtils};
 use crate::go_board::types::{BoardRange, Vertex};
 use gpui::*;
 
@@ -96,28 +97,17 @@ impl Grid {
 
     /// Calculates the pixel position of a vertex
     pub fn vertex_to_pixel(&self, vertex: &Vertex) -> (f32, f32) {
-        let relative_x = vertex.x.saturating_sub(self.board_range.x.0) as f32;
-        let relative_y = vertex.y.saturating_sub(self.board_range.y.0) as f32;
-
-        // Add half vertex size offset to center stones on grid intersections
-        let offset = self.vertex_size / 2.0;
-        (
-            relative_x * self.vertex_size + offset,
-            relative_y * self.vertex_size + offset,
-        )
+        PositionUtils::vertex_to_pixel_relative(vertex, self.vertex_size, &self.board_range)
     }
 
     /// Gets the visible board dimensions
     fn visible_dimensions(&self) -> (f32, f32) {
-        // Calculate dimensions based on the number of grid intervals, not vertices
-        // For n vertices, we need (n-1) intervals plus some padding for the border
-        let grid_intervals_x = (self.board_range.x.1 - self.board_range.x.0) as f32;
-        let grid_intervals_y = (self.board_range.y.1 - self.board_range.y.0) as f32;
-
-        // Add half vertex size padding on each side for proper stone placement
-        let width = grid_intervals_x * self.vertex_size + self.vertex_size;
-        let height = grid_intervals_y * self.vertex_size + self.vertex_size;
-        (width, height)
+        let calculator = PositionCalculator::with_board_range(
+            self.vertex_size,
+            point(px(0.0), px(0.0)),
+            self.board_range.clone(),
+        );
+        calculator.visible_dimensions()
     }
 
     /// Calculates hoshi (star point) positions for standard Go board sizes

@@ -1,3 +1,5 @@
+use crate::go_board::coordinates::CoordinateLabels;
+use crate::go_board::position_utils::{PositionCalculator, PositionUtils};
 use crate::go_board::types::{BoardRange, Vertex};
 use gpui::*;
 
@@ -164,6 +166,7 @@ pub struct VertexButton {
     vertex: Vertex,
     vertex_size: f32,
     board_range: BoardRange,
+    coordinate_offset: Option<Point<Pixels>>,
     busy: bool,
 }
 
@@ -174,8 +177,15 @@ impl VertexButton {
             vertex,
             vertex_size,
             board_range,
+            coordinate_offset: None,
             busy: false,
         }
+    }
+
+    /// Creates a new vertex button with coordinate offset
+    pub fn with_coordinate_offset(mut self, coordinate_offset: Point<Pixels>) -> Self {
+        self.coordinate_offset = Some(coordinate_offset);
+        self
     }
 
     /// Sets the busy state (disables interactions)
@@ -186,16 +196,23 @@ impl VertexButton {
 
     /// Calculates the pixel position of this vertex
     fn pixel_position(&self) -> (f32, f32) {
-        let relative_x = (self.vertex.x - self.board_range.x.0) as f32;
-        let relative_y = (self.vertex.y - self.board_range.y.0) as f32;
-
-        // Add half vertex size offset to center on grid intersections
-        // This matches the grid's vertex_to_pixel logic
-        let grid_offset = self.vertex_size / 2.0;
-        (
-            relative_x * self.vertex_size + grid_offset,
-            relative_y * self.vertex_size + grid_offset,
-        )
+        if let Some(offset) = self.coordinate_offset {
+            // Use PositionCalculator when we have a coordinate offset
+            let calculator = PositionCalculator::with_board_range(
+                self.vertex_size,
+                offset,
+                self.board_range.clone(),
+            );
+            let (pixel_x, pixel_y) = calculator.vertex_to_pixel_relative(&self.vertex);
+            (pixel_x, pixel_y)
+        } else {
+            // Fall back to PositionUtils for backward compatibility
+            PositionUtils::vertex_to_pixel_relative(
+                &self.vertex,
+                self.vertex_size,
+                &self.board_range,
+            )
+        }
     }
 
     /// Calculates the clickable area size (larger than vertex for easier clicking)
@@ -284,7 +301,9 @@ impl VertexButton {
 pub struct VertexInteractions {
     board_range: BoardRange,
     vertex_size: f32,
+    coordinate_offset: Option<Point<Pixels>>,
     busy: bool,
+    show_coordinates: bool,
 }
 
 impl VertexInteractions {
@@ -293,8 +312,22 @@ impl VertexInteractions {
         Self {
             board_range,
             vertex_size,
+            coordinate_offset: None,
             busy: false,
+            show_coordinates: false,
         }
+    }
+
+    /// Creates a new vertex interactions manager with coordinate offset
+    pub fn with_coordinate_offset(mut self, coordinate_offset: Point<Pixels>) -> Self {
+        self.coordinate_offset = Some(coordinate_offset);
+        self
+    }
+
+    /// Sets coordinate visibility
+    pub fn with_coordinates(mut self, show: bool) -> Self {
+        self.show_coordinates = show;
+        self
     }
 
     /// Sets the busy state for all vertex interactions
@@ -319,10 +352,65 @@ impl VertexInteractions {
     }
 
     /// Renders all vertex buttons with comprehensive event handling
-    pub fn render_with_handlers(self, handlers: VertexEventHandlers) -> impl IntoElement {
-        let (width, height) = self.visible_dimensions();
-        let mut container = div().relative().w(px(width)).h(px(height));
+    pub fn render_with_handlers(self, handlers: VertexEventHandlers) -> AnyElement {
+        if self.show_coordinates {
+            self.render_with_coordinates(handlers).into_any_element()
+        } else {
+            self.render_interactions_only(handlers).into_any_element()
+        }
+    }
 
+    /// Renders interactions without coordinates
+    fn render_interactions_only(self, handlers: VertexEventHandlers) -> impl IntoElement {
+        let (width, height) = self.visible_dimensions();
+        let container = div().relative().w(px(width)).h(px(height));
+
+        self.render_vertex_buttons(container, handlers, None)
+    }
+
+    /// Renders interactions with coordinate labels
+    fn render_with_coordinates(self, handlers: VertexEventHandlers) -> impl IntoElement {
+        let coordinate_labels = CoordinateLabels::new(self.board_range.clone(), self.vertex_size);
+        let (grid_offset_x, grid_offset_y) = coordinate_labels.grid_offset();
+        let (total_width, total_height) = coordinate_labels.total_dimensions();
+        let (interactions_width, interactions_height) = self.grid_dimensions();
+
+        // Create main container with relative positioning
+        let mut main_container = div().relative().w(px(total_width)).h(px(total_height));
+
+        // Add coordinate labels as background layer
+        main_container = main_container.child(
+            div()
+                .absolute()
+                .inset_0()
+                .child(coordinate_labels.render_coordinates()),
+        );
+
+        // Create interactions container positioned within the coordinate space
+        let interactions_container = div()
+            .absolute()
+            .left(px(grid_offset_x))
+            .top(px(grid_offset_y))
+            .w(px(interactions_width))
+            .h(px(interactions_height))
+            .border_1()
+            .border_color(rgba(0x00000000)) // Transparent border to match grid spacing
+            .relative();
+
+        let coordinate_offset = Some(point(px(0.0), px(0.0))); // Offset relative to the interactions container
+        let interactions_with_buttons =
+            self.render_vertex_buttons(interactions_container, handlers, coordinate_offset);
+
+        main_container.child(interactions_with_buttons)
+    }
+
+    /// Helper method to render vertex buttons with optional coordinate offset
+    fn render_vertex_buttons(
+        self,
+        mut container: Div,
+        handlers: VertexEventHandlers,
+        coordinate_offset: Option<Point<Pixels>>,
+    ) -> Div {
         // Use Rc to share handlers across vertices
         use std::rc::Rc;
         let shared_handlers = Rc::new(handlers);
@@ -333,6 +421,13 @@ impl VertexInteractions {
                 let vertex_button =
                     VertexButton::new(vertex, self.vertex_size, self.board_range.clone())
                         .with_busy(self.busy);
+
+                // Add coordinate offset if available
+                let vertex_button = if let Some(offset) = coordinate_offset {
+                    vertex_button.with_coordinate_offset(offset)
+                } else {
+                    vertex_button
+                };
 
                 // Create handlers for this specific vertex
                 let mut vertex_handlers = VertexEventHandlers::new();
@@ -376,14 +471,26 @@ impl VertexInteractions {
         self.clone().render_with_handlers(handlers)
     }
 
-    /// Calculates the visible dimensions
-    fn visible_dimensions(&self) -> (f32, f32) {
-        // Use the same dimension calculation as the grid to ensure alignment
+    /// Calculates the grid dimensions (without coordinate labels)
+    fn grid_dimensions(&self) -> (f32, f32) {
         let grid_intervals_x = (self.board_range.x.1 - self.board_range.x.0) as f32;
         let grid_intervals_y = (self.board_range.y.1 - self.board_range.y.0) as f32;
         let width = grid_intervals_x * self.vertex_size + self.vertex_size;
         let height = grid_intervals_y * self.vertex_size + self.vertex_size;
         (width, height)
+    }
+
+    /// Calculates the visible dimensions
+    fn visible_dimensions(&self) -> (f32, f32) {
+        if self.show_coordinates {
+            // When coordinates are shown, calculate total dimensions including coordinate space
+            let coordinate_labels =
+                CoordinateLabels::new(self.board_range.clone(), self.vertex_size);
+            coordinate_labels.total_dimensions()
+        } else {
+            // Use the same dimension calculation as the grid to ensure alignment
+            self.grid_dimensions()
+        }
     }
 }
 
@@ -458,6 +565,15 @@ mod tests {
         assert_eq!(interactions.board_range, board_range);
         assert_eq!(interactions.vertex_size, 25.0);
         assert!(!interactions.busy);
+        assert!(!interactions.show_coordinates);
+    }
+
+    #[test]
+    fn test_vertex_interactions_with_coordinates() {
+        let board_range = BoardRange::new((0, 8), (0, 8));
+        let interactions = VertexInteractions::new(board_range, 25.0).with_coordinates(true);
+
+        assert!(interactions.show_coordinates);
     }
 
     #[test]

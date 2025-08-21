@@ -20,7 +20,7 @@ impl AssetGoBoardDemo {
 
             let mut board = GoBoard::with_size(9, 9).with_vertex_size(40.0);
             board.set_theme(asset_theme);
-            board.set_show_coordinates(false);
+            board.set_show_coordinates(true);
 
             // Add a sample game pattern to demonstrate the stones
             let sign_map = vec![

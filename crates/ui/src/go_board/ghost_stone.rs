@@ -260,8 +260,8 @@ impl GhostStoneOverlay {
         ghost_map
     }
 
-    /// Efficiently renders only changed ghost stone areas for performance optimization
-    pub fn render_ghost_updates(
+    /// Renders specific ghost stone updates
+    pub fn render_updates(
         &self,
         updates: &[(Vertex, Option<GhostStone>)],
     ) -> impl IntoElement {
@@ -470,7 +470,7 @@ mod tests {
             ),
         ];
 
-        let _element = overlay.render_ghost_updates(&updates);
+        let _element = overlay.render_updates(&updates);
         // Should render only non-None updates without panicking
     }
 

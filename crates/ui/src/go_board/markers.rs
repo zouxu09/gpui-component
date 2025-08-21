@@ -249,62 +249,6 @@ impl Markers {
             .children(marker_elements)
     }
 
-    /// Efficiently update specific markers without full re-render
-    /// Returns only the markers that have changed
-    pub fn render_updated_markers(
-        &self,
-        old_marker_map: &[Vec<Option<Marker>>],
-        new_marker_map: &[Vec<Option<Marker>>],
-    ) -> Vec<(Vertex, Option<Marker>)> {
-        let mut updated_markers = Vec::new();
-
-        let height = old_marker_map.len().min(new_marker_map.len());
-        for y in 0..height {
-            let width = old_marker_map[y].len().min(new_marker_map[y].len());
-            for x in 0..width {
-                let old_marker = &old_marker_map[y][x];
-                let new_marker = &new_marker_map[y][x];
-
-                // Check if marker has changed
-                if old_marker != new_marker {
-                    let vertex = Vertex::new(x, y);
-                    updated_markers.push((vertex, new_marker.clone()));
-                }
-            }
-        }
-
-        updated_markers
-    }
-
-    /// Render only specific markers (useful for efficient updates)
-    pub fn render_specific_markers(
-        &self,
-        markers: &[(Vertex, Option<Marker>)],
-    ) -> impl IntoElement {
-        let mut marker_elements = Vec::new();
-
-        // Collect markers with z-index for sorting
-        let mut markers_with_z_index: Vec<_> = markers
-            .iter()
-            .filter_map(|(vertex, marker_opt)| marker_opt.as_ref().map(|marker| (marker, vertex)))
-            .collect();
-
-        // Sort by z-index
-        markers_with_z_index.sort_by(|a, b| a.0.z_index.cmp(&b.0.z_index));
-
-        // Render in z-index order
-        for (marker, vertex) in markers_with_z_index {
-            marker_elements.push(self.renderer.render_marker(marker, vertex));
-        }
-
-        div()
-            .absolute()
-            .top(px(0.0))
-            .left(px(0.0))
-            .w_full()
-            .h_full()
-            .children(marker_elements)
-    }
 }
 
 #[cfg(test)]
@@ -467,52 +411,6 @@ mod tests {
         // Should render with custom style class and z-index
     }
 
-    #[test]
-    fn test_efficient_marker_updates() {
-        let markers = Markers::new(20.0, point(px(0.0), px(0.0)));
-
-        // Old marker map
-        let old_map = vec![
-            vec![Some(Marker::new(MarkerType::Circle)), None],
-            vec![None, Some(Marker::new(MarkerType::Cross))],
-        ];
-
-        // New marker map with one change
-        let new_map = vec![
-            vec![Some(Marker::new(MarkerType::Triangle)), None], // Changed circle to triangle
-            vec![None, Some(Marker::new(MarkerType::Cross))],    // Unchanged
-        ];
-
-        let updated = markers.render_updated_markers(&old_map, &new_map);
-
-        // Should only return the changed marker
-        assert_eq!(updated.len(), 1);
-        assert_eq!(updated[0].0, Vertex::new(0, 0));
-        assert!(matches!(
-            updated[0].1.as_ref().unwrap().marker_type,
-            MarkerType::Triangle
-        ));
-    }
-
-    #[test]
-    fn test_specific_marker_rendering() {
-        let markers = Markers::new(20.0, point(px(0.0), px(0.0)));
-
-        let specific_markers = vec![
-            (
-                Vertex::new(0, 0),
-                Some(Marker::new(MarkerType::Circle).with_z_index(2)),
-            ),
-            (
-                Vertex::new(1, 0),
-                Some(Marker::new(MarkerType::Cross).with_z_index(1)),
-            ),
-            (Vertex::new(2, 0), None), // Should be filtered out
-        ];
-
-        let _element = markers.render_specific_markers(&specific_markers);
-        // Should render only non-None markers in z-index order
-    }
 
     #[test]
     fn test_marker_layering_performance() {
@@ -531,7 +429,7 @@ mod tests {
         }
 
         let _element = markers.render_markers(&marker_map);
-        // Should efficiently render all markers with proper z-ordering
+        // Should render all markers with proper z-ordering
     }
 
     #[test]
