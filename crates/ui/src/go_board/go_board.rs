@@ -75,7 +75,7 @@ impl GoBoard {
     }
 
     /// Sets the sign map (stone positions)
-    pub fn set_sign_map(&mut self, sign_map: crate::go_board::SignMap) {
+    pub fn set_sign_map_full(&mut self, sign_map: crate::go_board::SignMap) {
         if !sign_map.is_empty() && !sign_map[0].is_empty() {
             let height = sign_map.len();
             let width = sign_map[0].len();
@@ -95,16 +95,13 @@ impl GoBoard {
         }
     }
 
-    /// Updates sign map efficiently with change detection
-    pub fn update_sign_map(&mut self, sign_map: crate::go_board::SignMap) -> bool {
-        self.state.update_sign_map(&sign_map)
+    /// Updates sign map
+    pub fn set_sign_map(&mut self, sign_map: crate::go_board::SignMap) {
+        self.state.set_sign_map(sign_map);
     }
 
     /// Updates sign map with validation
-    pub fn try_update_sign_map(
-        &mut self,
-        sign_map: crate::go_board::SignMap,
-    ) -> GoBoardResult<bool> {
+    pub fn try_set_sign_map(&mut self, sign_map: crate::go_board::SignMap) -> GoBoardResult<()> {
         let (width, height) = self.state.dimensions();
         GoBoardValidator::validate_map_size(&sign_map, "sign_map", width, height)?;
 
@@ -116,20 +113,18 @@ impl GoBoard {
             }
         }
 
-        Ok(self.update_sign_map(sign_map))
+        self.set_sign_map(sign_map);
+        Ok(())
     }
 
-    /// Updates individual stones efficiently
-    pub fn update_stones(&mut self, updates: &[(Vertex, i8)]) -> bool {
-        self.state.update_stones(updates)
+    /// Updates individual stones
+    pub fn update_stones(&mut self, updates: &[(Vertex, i8)]) {
+        self.state.update_stones(updates);
     }
 
     /// Updates individual stones with validation
-    pub fn try_update_stones(&mut self, updates: &[(Vertex, i8)]) -> GoBoardResult<bool> {
+    pub fn try_update_stones(&mut self, updates: &[(Vertex, i8)]) -> GoBoardResult<()> {
         let (width, height) = self.state.dimensions();
-
-        // Validate bulk update size for performance
-        GoBoardValidator::validate_bulk_update_size(updates.len(), 100)?;
 
         // Validate each update
         for (vertex, sign) in updates {
@@ -137,10 +132,11 @@ impl GoBoard {
             GoBoardValidator::validate_sign(*sign, vertex)?;
         }
 
-        Ok(self.update_stones(updates))
+        self.state.update_stones(updates);
+        Ok(())
     }
 
-    /// Sets a single stone at a vertex efficiently
+    /// Sets a single stone at a vertex
     pub fn set_stone(&mut self, vertex: &Vertex, sign: i8) -> bool {
         self.state.set_sign(vertex, sign)
     }
@@ -314,17 +310,7 @@ impl GoBoard {
 
     /// Sets the board theme (replaces both grid and stone themes)
     pub fn set_theme(&mut self, theme: BoardTheme) {
-        // Memory management and differential rendering not implemented in current version
         self.theme = theme;
-    }
-
-    // Component pooling methods removed - not implemented in current version
-
-    /// Renders the board with component pooling for efficient memory usage
-    /// This method demonstrates how to use component pooling for large boards
-    pub fn render_with_pooling(&mut self, handlers: VertexEventHandlers) -> impl IntoElement {
-        // Component pooling not implemented, delegate to main render method
-        self.render_with_vertex_handlers(handlers)
     }
 
     /// Sets the grid theme (for backward compatibility)
@@ -337,7 +323,6 @@ impl GoBoard {
         self.theme.board_border_width = grid_theme.border_width;
         self.theme.star_point_color = grid_theme.star_point_color;
         self.theme.star_point_size = grid_theme.star_point_size;
-        // Differential rendering not implemented in current version
     }
 
     /// Sets the stone theme (for backward compatibility)
@@ -352,8 +337,6 @@ impl GoBoard {
         self.theme.fuzzy_max_offset = stone_theme.fuzzy_max_offset;
         self.theme.random_variation = stone_theme.random_variation;
         self.theme.max_rotation = stone_theme.max_rotation;
-
-        // Differential rendering not implemented in current version
     }
 
     /// Gets a reference to the board theme
@@ -404,17 +387,24 @@ impl GoBoard {
         }
     }
 
-    /// Renders the board with comprehensive vertex event handlers using differential rendering
+    /// Renders the board with comprehensive vertex event handlers
     pub fn render_with_vertex_handlers(&self, handlers: VertexEventHandlers) -> impl IntoElement {
-        // This method creates a standard render for now
-        // In a future implementation, this could be optimized with differential rendering
-        // by tracking which elements need updates
-
         // Create grid component with theme-derived properties
         let grid_theme = self.grid_theme();
         let grid = Grid::new(self.state.board_range.clone(), self.state.vertex_size)
             .with_theme(grid_theme)
             .with_coordinates(self.state.show_coordinates);
+
+        // Calculate coordinate offset if coordinates are shown
+        let coordinate_offset = if self.state.show_coordinates {
+            use crate::go_board::coordinates::CoordinateLabels;
+            let coordinate_labels =
+                CoordinateLabels::new(self.state.board_range.clone(), self.state.vertex_size);
+            let (offset_x, offset_y) = coordinate_labels.grid_offset();
+            Some(point(px(offset_x), px(offset_y)))
+        } else {
+            None
+        };
 
         // Create stones component with theme-derived properties
         let stone_theme = self.stone_theme();
@@ -423,10 +413,11 @@ impl GoBoard {
             self.state.vertex_size,
             self.state.sign_map.clone(),
         )
-        .with_theme(stone_theme);
+        .with_theme(stone_theme)
+        .with_coordinates(self.state.show_coordinates);
 
         // Create markers component with current marker map
-        let grid_offset = point(px(0.0), px(0.0)); // Will be adjusted based on actual grid positioning
+        let grid_offset = coordinate_offset.unwrap_or_else(|| point(px(0.0), px(0.0)));
         let markers = Markers::new(self.state.vertex_size, grid_offset);
 
         // Create selection component for highlighting selected and dimmed vertices
@@ -499,6 +490,7 @@ impl GoBoard {
         // Add interaction layer with comprehensive event handlers
         let interactions =
             VertexInteractions::new(self.state.board_range.clone(), self.state.vertex_size)
+                .with_coordinates(self.state.show_coordinates)
                 .with_busy(self.state.busy);
 
         let interaction_layer = interactions.render_with_handlers(handlers);

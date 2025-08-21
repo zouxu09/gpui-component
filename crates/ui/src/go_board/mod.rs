@@ -10,6 +10,7 @@ pub mod keyboard_navigation;
 pub mod line_overlay;
 pub mod markers;
 pub mod paint_overlay;
+pub mod position_utils;
 pub mod selection;
 pub mod state;
 pub mod stones;
@@ -52,6 +53,7 @@ pub use paint_overlay::{
     CornerPaint, CornerPosition, DirectionalPaintMap, PaintDirection, PaintOverlay,
     PaintOverlayRenderer,
 };
+pub use position_utils::{PositionCalculator, PositionUtils};
 pub use selection::{SelectionRenderer, VertexSelections};
 pub use state::GoBoardState;
 pub use stones::{Stone, StoneTheme, Stones};

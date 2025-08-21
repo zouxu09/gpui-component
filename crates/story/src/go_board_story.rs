@@ -149,7 +149,20 @@ impl GoBoardStory {
                 board
             }),
             coordinate_board: cx.new(|_| {
-                let mut board = GoBoard::with_size(13, 13).with_vertex_size(25.0);
+                let mut board = GoBoard::with_size(9, 9).with_vertex_size(25.0);
+                // Add many stones to demonstrate variation
+                let sign_map = vec![
+                    vec![1, -1, 1, -1, 1, -1, 1, -1, 1],
+                    vec![-1, 1, -1, 1, -1, 1, -1, 1, -1],
+                    vec![1, -1, 1, -1, 1, -1, 1, -1, 1],
+                    vec![-1, 1, -1, 1, -1, 1, -1, 1, -1],
+                    vec![1, -1, 1, -1, 0, -1, 1, -1, 1],
+                    vec![-1, 1, -1, 1, -1, 1, -1, 1, -1],
+                    vec![1, -1, 1, -1, 1, -1, 1, -1, 1],
+                    vec![-1, 1, -1, 1, -1, 1, -1, 1, -1],
+                    vec![1, -1, 1, -1, 1, -1, 1, -1, 1],
+                ];
+                board.set_sign_map(sign_map);
                 board.set_show_coordinates(true);
                 board
             }),

@@ -1,3 +1,7 @@
+use crate::go_board::coordinates::{
+    default_coord_x, default_coord_y, CoordFunction, CoordinateLabels, CoordinateTheme,
+};
+use crate::go_board::position_utils::{PositionCalculator, PositionUtils};
 use crate::go_board::types::{BoardRange, SignMap, Vertex};
 use gpui::{prelude::FluentBuilder, *};
 
@@ -101,16 +105,7 @@ impl Stone {
 
     /// Gets the stone's pixel position relative to the board
     pub fn pixel_position(&self, board_range: &BoardRange) -> (f32, f32) {
-        let relative_x = (self.position.x - board_range.x.0) as f32;
-        let relative_y = (self.position.y - board_range.y.0) as f32;
-
-        // Add half vertex size offset to center stones on grid intersections
-        // This matches the grid's vertex_to_pixel logic
-        let offset = self.vertex_size / 2.0;
-        (
-            relative_x * self.vertex_size + offset,
-            relative_y * self.vertex_size + offset,
-        )
+        PositionUtils::vertex_to_pixel_relative(&self.position, self.vertex_size, board_range)
     }
 
     /// Calculates the stone size in pixels
@@ -200,6 +195,10 @@ pub struct Stones {
     vertex_size: f32,
     sign_map: SignMap,
     theme: StoneTheme,
+    show_coordinates: bool,
+    coordinate_theme: CoordinateTheme,
+    coord_x: CoordFunction,
+    coord_y: CoordFunction,
 }
 
 impl Stones {
@@ -210,6 +209,10 @@ impl Stones {
             vertex_size,
             sign_map,
             theme: StoneTheme::default(),
+            show_coordinates: false,
+            coordinate_theme: CoordinateTheme::default(),
+            coord_x: default_coord_x,
+            coord_y: default_coord_y,
         }
     }
 
@@ -219,136 +222,43 @@ impl Stones {
         self
     }
 
+    /// Sets coordinate visibility
+    pub fn with_coordinates(mut self, show: bool) -> Self {
+        self.show_coordinates = show;
+        self
+    }
+
+    /// Sets the coordinate theme
+    pub fn with_coordinate_theme(mut self, theme: CoordinateTheme) -> Self {
+        self.coordinate_theme = theme;
+        self
+    }
+
+    /// Sets custom coordinate functions
+    pub fn with_coordinate_functions(
+        mut self,
+        coord_x: CoordFunction,
+        coord_y: CoordFunction,
+    ) -> Self {
+        self.coord_x = coord_x;
+        self.coord_y = coord_y;
+        self
+    }
+
     /// Updates the sign map
     pub fn set_sign_map(&mut self, sign_map: SignMap) {
         self.sign_map = sign_map;
     }
 
-    /// Updates the sign map efficiently with change detection
-    pub fn update_sign_map(&mut self, new_sign_map: &SignMap) -> bool {
-        if new_sign_map.is_empty() || new_sign_map[0].is_empty() {
-            return false;
-        }
-
-        let _height = new_sign_map.len();
-        let _width = new_sign_map[0].len();
-
-        // Check if the new map differs from current
-        let mut changed = false;
-        for (y, row) in new_sign_map.iter().enumerate() {
-            if y >= self.sign_map.len() {
-                changed = true;
-                break;
-            }
-            for (x, new_sign) in row.iter().enumerate() {
-                if x >= self.sign_map[y].len() || self.sign_map[y][x] != *new_sign {
-                    changed = true;
-                    break;
-                }
-            }
-            if changed {
-                break;
-            }
-        }
-
-        if changed {
-            self.sign_map = new_sign_map.clone();
-        }
-
-        changed
-    }
-
-    /// Gets the differences between current and new sign map
-    pub fn get_sign_map_differences(&self, new_sign_map: &SignMap) -> Vec<Vertex> {
-        let mut differences = Vec::new();
-
-        if new_sign_map.is_empty() || new_sign_map[0].is_empty() {
-            return differences;
-        }
-
-        for (y, row) in new_sign_map.iter().enumerate() {
-            if y < self.sign_map.len() {
-                for (x, new_sign) in row.iter().enumerate() {
-                    if x < self.sign_map[y].len() && self.sign_map[y][x] != *new_sign {
-                        differences.push(Vertex::new(x, y));
-                    }
-                }
-            }
-        }
-
-        differences
-    }
-
-    /// Updates individual stones efficiently
-    pub fn update_stones(&mut self, updates: &[(Vertex, i8)]) -> bool {
-        let mut changed = false;
-
+    /// Updates individual stones
+    pub fn update_stones(&mut self, updates: &[(Vertex, i8)]) {
         for (vertex, sign) in updates {
             if vertex.y < self.sign_map.len() && vertex.x < self.sign_map[vertex.y].len() {
-                if (-1..=1).contains(sign) && self.sign_map[vertex.y][vertex.x] != *sign {
+                if (-1..=1).contains(sign) {
                     self.sign_map[vertex.y][vertex.x] = *sign;
-                    changed = true;
                 }
             }
         }
-
-        changed
-    }
-
-    /// Renders only stones that have changed from a previous state
-    pub fn render_differential_stones(&self, changed_vertices: &[Vertex]) -> Vec<impl IntoElement> {
-        let mut stones = Vec::new();
-
-        for vertex in changed_vertices {
-            // Only render if vertex is within visible range
-            if vertex.x >= self.board_range.x.0
-                && vertex.x <= self.board_range.x.1
-                && vertex.y >= self.board_range.y.0
-                && vertex.y <= self.board_range.y.1
-            {
-                if vertex.y < self.sign_map.len() && vertex.x < self.sign_map[vertex.y].len() {
-                    let sign = self.sign_map[vertex.y][vertex.x];
-                    if sign != 0 {
-                        let stone = Stone::new(*vertex, sign, self.vertex_size)
-                            .with_theme(self.theme.clone());
-
-                        if let Some(element) = stone.render(&self.board_range) {
-                            stones.push(element);
-                        }
-                    }
-                }
-            }
-        }
-
-        stones
-    }
-
-    /// Renders stones only within the specified vertices (for efficient updates)
-    pub fn render_stones_at_vertices(&self, vertices: &[Vertex]) -> Vec<impl IntoElement> {
-        let mut stones = Vec::new();
-
-        for vertex in vertices {
-            // Only render if vertex is within visible range
-            if vertex.x >= self.board_range.x.0
-                && vertex.x <= self.board_range.x.1
-                && vertex.y >= self.board_range.y.0
-                && vertex.y <= self.board_range.y.1
-            {
-                if vertex.y < self.sign_map.len() && vertex.x < self.sign_map[vertex.y].len() {
-                    let sign = self.sign_map[vertex.y][vertex.x];
-                    if sign != 0 {
-                        let stone = Stone::new(*vertex, sign, self.vertex_size)
-                            .with_theme(self.theme.clone());
-
-                        if let Some(element) = stone.render(&self.board_range) {
-                            stones.push(element);
-                        }
-                    }
-                }
-            }
-        }
-
-        stones
     }
 
     /// Updates the board range
@@ -400,8 +310,17 @@ impl Stones {
         stones
     }
 
-    /// Renders all stones in a container
-    pub fn render(&self) -> impl IntoElement {
+    /// Renders all stones in a container with optional coordinates
+    pub fn render(&self) -> AnyElement {
+        if self.show_coordinates {
+            self.render_with_coordinates().into_any_element()
+        } else {
+            self.render_stones_only().into_any_element()
+        }
+    }
+
+    /// Renders stones without coordinates
+    fn render_stones_only(&self) -> impl IntoElement {
         let (width, height) = self.visible_dimensions();
         let mut container = div().relative().w(px(width)).h(px(height));
 
@@ -412,11 +331,54 @@ impl Stones {
         container
     }
 
+    /// Renders stones with coordinate labels
+    fn render_with_coordinates(&self) -> impl IntoElement {
+        let coordinate_labels = CoordinateLabels::new(self.board_range.clone(), self.vertex_size)
+            .with_theme(self.coordinate_theme.clone())
+            .with_coord_functions(self.coord_x, self.coord_y);
+
+        let (grid_offset_x, grid_offset_y) = coordinate_labels.grid_offset();
+        let (total_width, total_height) = coordinate_labels.total_dimensions();
+        let (stones_width, stones_height) = self.visible_dimensions();
+
+        // Create main container with relative positioning
+        let mut main_container = div().relative().w(px(total_width)).h(px(total_height));
+
+        // Add coordinate labels as background layer
+        main_container = main_container.child(
+            div()
+                .absolute()
+                .inset_0()
+                .child(coordinate_labels.render_coordinates()),
+        );
+
+        // Create stones container positioned within the coordinate space
+        let mut stones_container = div()
+            .absolute()
+            .left(px(grid_offset_x))
+            .top(px(grid_offset_y))
+            .w(px(stones_width))
+            .h(px(stones_height))
+            .border_1()
+            .border_color(rgba(0x00000000)) // Transparent border to match grid spacing
+            .relative();
+
+        // Add all stones
+        for stone in self.render_stones() {
+            stones_container = stones_container.child(stone);
+        }
+
+        main_container.child(stones_container)
+    }
+
     /// Calculates the visible dimensions
     fn visible_dimensions(&self) -> (f32, f32) {
-        let width = (self.board_range.x.1 - self.board_range.x.0 + 1) as f32 * self.vertex_size;
-        let height = (self.board_range.y.1 - self.board_range.y.0 + 1) as f32 * self.vertex_size;
-        (width, height)
+        let calculator = PositionCalculator::with_board_range(
+            self.vertex_size,
+            point(px(0.0), px(0.0)),
+            self.board_range.clone(),
+        );
+        calculator.visible_dimensions()
     }
 }
 
@@ -497,8 +459,8 @@ mod tests {
         let stones = Stones::new(range, 30.0, sign_map);
 
         let (width, height) = stones.visible_dimensions();
-        assert_eq!(width, 150.0); // (6-2+1) * 30 = 5 * 30
-        assert_eq!(height, 120.0); // (4-1+1) * 30 = 4 * 30
+        assert_eq!(width, 150.0); // (6-2) * 30 + 30 = 4 * 30 + 30 = 150
+        assert_eq!(height, 120.0); // (4-1) * 30 + 30 = 3 * 30 + 30 = 120
     }
 
     #[test]
@@ -571,5 +533,68 @@ mod tests {
         assert!(theme.black_stone_image.is_some());
         assert!(theme.white_stone_image.is_some());
         assert_eq!(theme.black_stone_image.unwrap(), "black_stone.png");
+    }
+
+    #[test]
+    fn test_stones_with_coordinates() {
+        let range = BoardRange::new((0, 8), (0, 8));
+        let sign_map = vec![vec![0, 1, 0], vec![-1, 0, 1], vec![0, 0, 0]];
+        let stones = Stones::new(range, 20.0, sign_map).with_coordinates(true);
+
+        assert!(stones.show_coordinates);
+        assert_eq!(stones.coordinate_theme.font_size, 12.0); // Default theme
+    }
+
+    #[test]
+    fn test_stones_coordinate_theme() {
+        let range = BoardRange::new((0, 8), (0, 8));
+        let sign_map = vec![];
+        let custom_theme = CoordinateTheme {
+            color: rgb(0x123456),
+            font_size: 16.0,
+            font_family: "Arial".to_string(),
+            margin: 10.0,
+        };
+
+        let stones = Stones::new(range, 20.0, sign_map)
+            .with_coordinates(true)
+            .with_coordinate_theme(custom_theme.clone());
+
+        assert!(stones.show_coordinates);
+        assert_eq!(stones.coordinate_theme.color, custom_theme.color);
+        assert_eq!(stones.coordinate_theme.font_size, 16.0);
+        assert_eq!(stones.coordinate_theme.font_family, "Arial");
+    }
+
+    #[test]
+    fn test_stones_coordinate_functions() {
+        let range = BoardRange::new((0, 8), (0, 8));
+        let sign_map = vec![];
+
+        fn custom_coord_x(x: usize) -> String {
+            format!("X{}", x)
+        }
+
+        fn custom_coord_y(y: usize) -> String {
+            format!("Y{}", y)
+        }
+
+        let stones = Stones::new(range, 20.0, sign_map)
+            .with_coordinates(true)
+            .with_coordinate_functions(custom_coord_x, custom_coord_y);
+
+        assert!(stones.show_coordinates);
+        // Test that custom functions are stored (we can't directly test function equality)
+        assert_eq!((stones.coord_x)(5), "X5");
+        assert_eq!((stones.coord_y)(3), "Y3");
+    }
+
+    #[test]
+    fn test_stones_default_no_coordinates() {
+        let range = BoardRange::new((0, 8), (0, 8));
+        let sign_map = vec![];
+        let stones = Stones::new(range, 20.0, sign_map);
+
+        assert!(!stones.show_coordinates);
     }
 }
