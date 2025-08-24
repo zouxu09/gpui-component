@@ -56,12 +56,12 @@ impl GoBoardStory {
             custom_theme_board: cx.new(|_| {
                 // Create a custom theme using the new Theme system
                 let mut custom_theme = Theme::default();
-                custom_theme.background = gpui::rgb(0x8B7355).into().into(); // Darker wood
-                custom_theme.grid_lines = gpui::rgb(0x2c2c2c).into().into(); // Dark gray lines
+                custom_theme.background = gpui::rgb(0x8B7355).into(); // Darker wood
+                custom_theme.grid_lines = gpui::rgb(0x2c2c2c).into(); // Dark gray lines
                 custom_theme.grid_width = 1.5; // Thicker lines
-                custom_theme.black_stone = gpui::rgb(0x000000).into().into(); // Pure black stones
-                custom_theme.white_stone = gpui::rgb(0xffffff).into().into(); // Pure white stones
-                custom_theme.coordinates = gpui::rgb(0x654321).into().into(); // Dark brown coordinates
+                custom_theme.black_stone = gpui::rgb(0x000000).into(); // Pure black stones
+                custom_theme.white_stone = gpui::rgb(0xffffff).into(); // Pure white stones
+                custom_theme.coordinates = gpui::rgb(0x654321).into(); // Dark brown coordinates
                 custom_theme.coord_size = 12.0;
 
                 BoardView::new(Board::with_size(9, 9).theme(custom_theme).vertex_size(30.0))
@@ -246,7 +246,7 @@ impl GoBoardStory {
                     // Row 2: Colored markers
                     .marker(
                         Pos::new(1, 2),
-                        Marker::circle().with_color(gpui::rgb(0xff0000).into().into()),
+                        Marker::circle().with_color(gpui::rgb(0xff0000).into()),
                     )
                     .marker(
                         Pos::new(2, 2),
