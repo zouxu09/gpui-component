@@ -296,6 +296,11 @@ impl GoBoardStory {
                         Marker::label("1").with_color(gpui::rgb(0x0000ff).into()),
                     )
                     .marker(Pos::new(4, 4), Marker::label("2"))
+                    // Row 5: Loader markers (animated dots)
+                    .marker(Pos::new(1, 5), Marker::dot().with_color(gpui::rgb(0xff8000).into()))
+                    .marker(Pos::new(2, 5), Marker::dot().with_color(gpui::rgb(0x8000ff).into()))
+                    .marker(Pos::new(3, 5), Marker::dot().with_color(gpui::rgb(0x00ff80).into()))
+                    .marker(Pos::new(4, 5), Marker::dot().with_color(gpui::rgb(0xff0080).into()))
                     // Row 6: Different colored markers (z-index not supported in new API)
                     .marker(
                         Pos::new(1, 6),
@@ -722,19 +727,28 @@ impl Render for GoBoardStory {
                             v_flex()
                                 .gap_2()
                                 .child("19x19 Board (Standard)")
-                                .child(self.board_19x19.clone()),
+                                .child(self.board_19x19.clone())
+                                .border_1()
+                                .border_color(gpui::rgb(0xcccccc))
+                                .p_2(),
                         )
                         .child(
                             v_flex()
                                 .gap_2()
                                 .child("13x13 Board")
-                                .child(self.board_13x13.clone()),
+                                .child(self.board_13x13.clone())
+                                .border_1()
+                                .border_color(gpui::rgb(0xcccccc))
+                                .p_2(),
                         )
                         .child(
                             v_flex()
                                 .gap_2()
                                 .child("9x9 Board")
-                                .child(self.board_9x9.clone()),
+                                .child(self.board_9x9.clone())
+                                .border_1()
+                                .border_color(gpui::rgb(0xcccccc))
+                                .p_2(),
                         ),
                 ),
             )
@@ -852,7 +866,7 @@ impl Render for GoBoardStory {
                     v_flex()
                         .gap_2()
                         .child("9x9 Board with Different Marker Types")
-                        .child("Row 1: Basic shapes, Row 2: Colored markers with tooltips (hover to see), Row 3: Different sizes, Row 4: Labels, Row 5: Loaders, Row 6: Z-index layering")
+                        .child("Row 1: Basic shapes, Row 2: Colored markers, Row 3: Different colors, Row 4: Labels, Row 5: Loader dots, Row 6: Colored markers")
                         .child(self.marker_board.clone()),
                 ),
             )

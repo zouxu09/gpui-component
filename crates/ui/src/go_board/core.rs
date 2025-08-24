@@ -587,7 +587,7 @@ impl Default for Theme {
             stone_size: 0.85,
 
             coordinates: rgb(0x000000).into(),
-            coord_size: 12.0,
+            coord_size: 16.0,
 
             stone_shadow: true,
             fuzzy_stones: false,
