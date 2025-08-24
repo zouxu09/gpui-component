@@ -60,13 +60,7 @@ pub mod text;
 pub mod theme;
 pub mod tooltip;
 
-#[cfg(feature = "webview")]
-pub mod webview;
-
 use gpui::{App, SharedString};
-// re-export
-#[cfg(feature = "webview")]
-pub use wry;
 
 pub use crate::Disableable;
 pub use event::InteractiveElementExt;

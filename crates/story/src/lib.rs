@@ -45,7 +45,7 @@ mod title_bar;
 mod toggle_story;
 mod tooltip_story;
 mod virtual_list_story;
-mod webview_story;
+
 mod welcome_story;
 
 pub use assets::Assets;
@@ -104,7 +104,7 @@ pub use toggle_story::ToggleStory;
 pub use tooltip_story::TooltipStory;
 use tracing_subscriber::{layer::SubscriberExt as _, util::SubscriberInitExt as _};
 pub use virtual_list_story::VirtualListStory;
-pub use webview_story::WebViewStory;
+
 pub use welcome_story::WelcomeStory;
 
 use gpui_component::{
@@ -274,7 +274,7 @@ pub fn init(cx: &mut App) {
     dropdown_story::init(cx);
     popover_story::init(cx);
     menu_story::init(cx);
-    webview_story::init(cx);
+
     tooltip_story::init(cx);
     otp_input_story::init(cx);
 
@@ -645,7 +645,7 @@ impl StoryState {
             "TableStory" => story!(TableStory),
             "LabelStory" => story!(LabelStory),
             "TooltipStory" => story!(TooltipStory),
-            "WebViewStory" => story!(WebViewStory),
+
             "AccordionStory" => story!(AccordionStory),
             "SidebarStory" => story!(SidebarStory),
             "FormStory" => story!(FormStory),
