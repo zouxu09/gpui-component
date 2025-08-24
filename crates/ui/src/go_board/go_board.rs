@@ -274,12 +274,12 @@ impl GoBoard {
     }
 
     /// Sets the lines array for drawing connections between vertices
-    pub fn set_lines(&mut self, lines: Vec<crate::go_board::Line>) {
+    pub fn set_lines(&mut self, lines: Vec<crate::go_board::core::Line>) {
         self.state.lines = lines;
     }
 
     /// Adds a single line to the board
-    pub fn add_line(&mut self, line: crate::go_board::Line) {
+    pub fn add_line(&mut self, line: crate::go_board::core::Line) {
         self.state.lines.push(line);
     }
 
@@ -289,7 +289,7 @@ impl GoBoard {
     }
 
     /// Gets all lines on the board
-    pub fn get_lines(&self) -> &[crate::go_board::Line] {
+    pub fn get_lines(&self) -> &[crate::go_board::core::Line] {
         &self.state.lines
     }
 
@@ -472,7 +472,7 @@ impl GoBoard {
                 div()
                     .absolute()
                     .inset_0()
-                    .child(line_overlay.render_lines(&self.state.lines)),
+                    .child(line_overlay.render_lines(&self.state.lines[..])),
             )
             .child(
                 div()

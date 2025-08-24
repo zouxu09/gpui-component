@@ -7,7 +7,7 @@ use gpui_component::{
     go_board::{
         BoardTheme, BoundedGoBoard, CornerPaint, DirectionalPaintMap, GhostStone,
         GhostStoneOverlay, GhostStoneType, GoBoard, GridTheme, HeatData, HeatOverlay, Line,
-        LineOverlay, LineType, Marker, MarkerType, PaintOverlay, PaintType, SelectionDirection,
+        LineOverlay, LineType, Marker, MarkerType, PaintOverlay, PaintType, Pos, SelectionDirection,
         Vertex, VertexClickEvent, VertexEventHandlers, VertexMouseDownEvent, VertexMouseMoveEvent,
         VertexMouseUpEvent, VertexSelection,
     },
@@ -734,25 +734,25 @@ impl GoBoardStory {
                 // Create line demonstrations
                 let lines = vec![
                     // Horizontal line connecting stones
-                    Line::line(Vertex::new(3, 0), Vertex::new(5, 0)),
+                    crate::go_board::core::Line::line(Pos::new(3, 0), Pos::new(5, 0)),
                     // Vertical line
-                    Line::line(Vertex::new(1, 1), Vertex::new(1, 4)),
+                    crate::go_board::core::Line::line(Pos::new(1, 1), Pos::new(1, 4)),
                     // Diagonal line
-                    Line::line(Vertex::new(2, 2), Vertex::new(6, 6)),
+                    crate::go_board::core::Line::line(Pos::new(2, 2), Pos::new(6, 6)),
                     // Arrows showing analysis directions
-                    Line::arrow(Vertex::new(0, 3), Vertex::new(3, 6)),
-                    Line::arrow(Vertex::new(8, 3), Vertex::new(5, 6)),
+                    crate::go_board::core::Line::arrow(Pos::new(0, 3), Pos::new(3, 6)),
+                    crate::go_board::core::Line::arrow(Pos::new(8, 3), Pos::new(5, 6)),
                     // Connection arrows between stones
-                    Line::arrow(Vertex::new(3, 8), Vertex::new(5, 8)),
-                    Line::arrow(Vertex::new(7, 7), Vertex::new(7, 4)),
+                    crate::go_board::core::Line::arrow(Pos::new(3, 8), Pos::new(5, 8)),
+                    crate::go_board::core::Line::arrow(Pos::new(7, 7), Pos::new(7, 4)),
                     // Analysis arrows
-                    Line::arrow(Vertex::new(4, 4), Vertex::new(6, 2)),
-                    Line::arrow(Vertex::new(4, 4), Vertex::new(2, 6)),
+                    crate::go_board::core::Line::arrow(Pos::new(4, 4), Pos::new(6, 2)),
+                    crate::go_board::core::Line::arrow(Pos::new(4, 4), Pos::new(2, 6)),
                     // Multiple line types demonstration
-                    Line::line(Vertex::new(0, 7), Vertex::new(2, 7)), // Short horizontal
-                    Line::line(Vertex::new(6, 1), Vertex::new(8, 1)), // Short horizontal
-                    Line::arrow(Vertex::new(1, 0), Vertex::new(1, 2)), // Short vertical arrow
-                    Line::arrow(Vertex::new(7, 8), Vertex::new(7, 6)), // Short vertical arrow
+                    crate::go_board::core::Line::line(Pos::new(0, 7), Pos::new(2, 7)), // Short horizontal
+                    crate::go_board::core::Line::line(Pos::new(6, 1), Pos::new(8, 1)), // Short horizontal
+                    crate::go_board::core::Line::arrow(Pos::new(1, 0), Pos::new(1, 2)), // Short vertical arrow
+                    crate::go_board::core::Line::arrow(Pos::new(7, 8), Pos::new(7, 6)), // Short vertical arrow
                 ];
                 board.set_lines(lines);
 
