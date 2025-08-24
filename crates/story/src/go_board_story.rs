@@ -304,6 +304,7 @@ impl GoBoardStory {
                 );
 
                 board.set_marker_map(marker_map);
+                board.set_show_coordinates(true);
                 board
             }),
             selection_board: cx.new(|_| {
@@ -349,6 +350,7 @@ impl GoBoardStory {
                 board.set_selected_top(vec![Vertex::new(4, 1)]); // Orange top indicator
                 board.set_selected_bottom(vec![Vertex::new(4, 7)]); // Purple bottom indicator
 
+                board.set_show_coordinates(true);
                 board
             }),
             paint_overlay_board: cx.new(|_| {
@@ -461,6 +463,7 @@ impl GoBoardStory {
                     vec![None, None, None, None, None, None, None, None, None],
                 ];
                 board.set_paint_map(paint_map);
+                board.set_show_coordinates(true);
 
                 board
             }),
@@ -584,6 +587,7 @@ impl GoBoardStory {
                     ],
                 ];
                 board.set_heat_map(heat_map);
+                board.set_show_coordinates(true);
 
                 board
             }),
@@ -754,13 +758,18 @@ impl GoBoardStory {
 
                 board
             }),
-            interactive_board: cx.new(|_| GoBoard::with_size(9, 9).with_vertex_size(40.0)),
+            interactive_board: cx.new(|_| {
+                let mut board = GoBoard::with_size(9, 9).with_vertex_size(40.0);
+                board.set_show_coordinates(true);
+                board
+            }),
             interactive_asset_board: cx.new(|_| {
                 // Create an interactive board using the specific assets
                 let asset_theme = BoardTheme::default();
 
                 let mut board = GoBoard::with_size(9, 9).with_vertex_size(40.0);
                 board.set_theme(asset_theme);
+                board.set_show_coordinates(true);
                 board
             }),
             bounded_small_board: cx.new(|_| {
