@@ -276,7 +276,7 @@ impl Render for BoardView {
             // Add focus highlight to the board data
             self.board.data_mut().set_selection(
                 focus_pos,
-                Some(Selection::selected(focus_pos).with_color(rgb(0x80ff80))),
+                Some(Selection::selected(focus_pos).with_color(rgb(0x80ff80).into())),
             );
         }
 
@@ -367,7 +367,7 @@ impl BoardView {
         }
 
         // Add mouse leave handler for the entire board
-        interactions = interactions.on_mouse_move(cx.listener(|view, _event, _cx, _phase| {
+        interactions = interactions.on_mouse_move(cx.listener(|_view, _event, _cx, _phase| {
             // Could implement more sophisticated hover detection here
         }));
 
@@ -412,7 +412,7 @@ pub fn demo_board_view() -> BoardView {
         .stone(Pos::new(3, 3), BLACK)
         .stone(Pos::new(15, 15), WHITE)
         .stone(Pos::new(9, 9), BLACK)
-        .marker(Pos::new(3, 15), Marker::circle().with_color(rgb(0xff0000)))
+        .marker(Pos::new(3, 15), Marker::circle().with_color(rgb(0xff0000).into()))
         .ghost(Pos::new(4, 4), Ghost::good(WHITE))
         .select(Pos::new(3, 3))
         .last_move(Pos::new(9, 9));
@@ -436,34 +436,7 @@ pub fn bounded_board_view(max_width: f32, max_height: f32) -> BoardView {
     BoardView::new(bounded.into_inner())
 }
 
-// =============================================================================
-// INTEGRATION WITH EXISTING SYSTEM (if needed)
-// =============================================================================
-
-/// Convert old VertexEventHandlers to new system (for migration)
-pub fn from_vertex_handlers(
-    board: Board,
-    handlers: crate::go_board::interactions::VertexEventHandlers,
-) -> BoardView {
-    let mut view = BoardView::new(board);
-
-    if let Some(click_handler) = handlers.on_click {
-        view = view.on_click(move |event| {
-            let vertex_event = crate::go_board::interactions::VertexClickEvent {
-                vertex: crate::go_board::types::Vertex {
-                    x: event.pos.x,
-                    y: event.pos.y,
-                },
-                coordinates: [event.pos.x, event.pos.y],
-            };
-            click_handler(vertex_event);
-        });
-    }
-
-    // Add other handler conversions as needed...
-
-    view
-}
+// Note: Deprecated compatibility functions removed - use new simplified API instead
 
 #[cfg(test)]
 mod tests {
@@ -502,8 +475,8 @@ mod tests {
 
         let event = KeyDownEvent {
             keystroke: Keystroke {
-                modifiers: Modifiers::default(),
                 key: "ArrowRight".to_string(),
+                modifiers: Modifiers::default(),
                 ime_key: None,
             },
         };
