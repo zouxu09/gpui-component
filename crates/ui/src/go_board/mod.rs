@@ -15,11 +15,9 @@ pub mod render;
 // View component with interactions
 pub mod view;
 
-// Complete examples showing the new simplified API
-pub mod examples_new_api;
+// Examples removed - use the story examples instead
 
-// Final refactoring summary and documentation
-// See REFACTORING_SUMMARY.md for complete migration guide
+// Refactoring complete - see story examples for usage
 
 // =============================================================================
 // MAIN NEW API EXPORTS
