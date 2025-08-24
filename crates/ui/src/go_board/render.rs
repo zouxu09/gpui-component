@@ -1,26 +1,90 @@
 use crate::go_board::core::*;
 use gpui::*;
 
+// Base ratio constants (responsive multipliers)
+const BASE_COORD_MARGIN_RATIO: f32 = 0.2; // Coordinate margin as ratio of vertex size (min 4px)
+const BASE_COORD_GAP_RATIO: f32 = 0.1; // Gap between coordinates and board as ratio of vertex size (min 1px)
+const BUTTON_SIZE_RATIO: f32 = 0.8; // Interactive button size as ratio of vertex size
+const HEAT_SIZE_RATIO: f32 = 0.7; // Heat overlay size as ratio of vertex size
+const MARKER_SIZE_RATIO: f32 = 0.4; // Marker size as ratio of vertex size
+const SELECTION_SIZE_RATIO: f32 = 0.9; // Selection highlight size as ratio of vertex size
+const GHOST_SIZE_RATIO: f32 = 0.8; // Ghost stone size multiplier
+
+// Responsive sizing thresholds
+const SMALL_VERTEX_THRESHOLD: f32 = 20.0; // Below this, use minimum spacing
+const LARGE_VERTEX_THRESHOLD: f32 = 50.0; // Above this, use enhanced spacing
+
+// Color constants for ghost stones
+const GREEN_HUE: f32 = 120.0 / 360.0; // Green hue for good moves
+const RED_HUE: f32 = 0.0; // Red hue for bad moves
+const GHOST_SATURATION: f32 = 0.6; // Saturation for ghost stone colors
+
+// Cross marker constants
+const CROSS_LINE_RATIO: f32 = 0.8; // Cross line length as ratio of marker size
+const BASE_CROSS_LINE_WIDTH: f32 = 1.0; // Minimum cross line width (responsive)
+
+// Dot marker constants
+const DOT_SIZE_RATIO: f32 = 0.5; // Dot size as ratio of marker size
+
+// Responsive spacing configuration
+#[derive(Debug, Clone)]
+pub struct ResponsiveSpacing {
+    pub coord_margin_padding: f32,
+    pub coord_board_gap: f32,
+    pub cross_line_width: f32,
+    pub min_coord_size: f32,
+}
+
+impl ResponsiveSpacing {
+    pub fn for_vertex_size(vertex_size: f32) -> Self {
+        let scale_factor = Self::calculate_scale_factor(vertex_size);
+
+        Self {
+            coord_margin_padding: (vertex_size * BASE_COORD_MARGIN_RATIO * scale_factor).max(4.0),
+            coord_board_gap: (vertex_size * BASE_COORD_GAP_RATIO * scale_factor).max(1.0),
+            cross_line_width: (vertex_size * 0.08 * scale_factor)
+                .max(BASE_CROSS_LINE_WIDTH)
+                .min(3.0),
+            min_coord_size: (vertex_size * 0.6).max(12.0).min(24.0),
+        }
+    }
+
+    fn calculate_scale_factor(vertex_size: f32) -> f32 {
+        match vertex_size {
+            v if v <= SMALL_VERTEX_THRESHOLD => 0.8, // Compact spacing for small boards
+            v if v >= LARGE_VERTEX_THRESHOLD => 1.2, // Enhanced spacing for large boards
+            v => {
+                0.8 + (v - SMALL_VERTEX_THRESHOLD)
+                    / (LARGE_VERTEX_THRESHOLD - SMALL_VERTEX_THRESHOLD)
+                    * 0.4
+            }
+        }
+    }
+}
+
 /// Unified renderer that handles all board elements in a single, coherent system
 /// This replaces Grid, Stones, Markers, GhostStoneOverlay, HeatOverlay, etc.
 pub struct Renderer {
     vertex_size: f32,
     theme: Theme,
     coord_offset: Point<Pixels>,
+    spacing: ResponsiveSpacing,
 }
 
 impl Renderer {
     pub fn new(vertex_size: f32, theme: Theme) -> Self {
+        let spacing = ResponsiveSpacing::for_vertex_size(vertex_size);
         Self {
             vertex_size,
             theme,
             coord_offset: point(px(0.0), px(0.0)),
+            spacing,
         }
     }
 
     pub fn with_coordinates(mut self, show: bool) -> Self {
         if show {
-            let margin = self.theme.coord_size + 8.0;
+            let margin = self.coord_margin();
             self.coord_offset = point(px(margin), px(margin));
         }
         self
@@ -72,13 +136,13 @@ impl Renderer {
         grid_width: f32,
         grid_height: f32,
     ) -> AnyElement {
-        let margin = self.theme.coord_size + 8.0;
+        let margin = self.coord_margin();
         let total_width = grid_width + 2.0 * margin;
         let total_height = grid_height + 2.0 * margin;
 
         let mut container = div().relative().w(px(total_width)).h(px(total_height));
 
-        // Add coordinate labels
+        // Add coordinate labels first (so they're behind the board)
         container = container.child(self.render_coordinates(data, grid_width, grid_height, margin));
 
         // Add main board
@@ -99,21 +163,20 @@ impl Renderer {
         let _grid_width = range.width() as f32 * self.vertex_size;
         let _grid_height = range.height() as f32 * self.vertex_size;
 
-        let offset = if show_coordinates {
-            let margin = self.theme.coord_size + 8.0;
-            point(px(margin), px(margin))
-        } else {
-            point(px(0.0), px(0.0))
-        };
-
         let mut interactive = div().absolute().inset_0(); // Above all visual elements
 
         // Create invisible buttons for each position
         for y in range.y.0..=range.y.1 {
             for x in range.x.0..=range.x.1 {
                 let pos = Pos::new(x, y);
-                let pixel_pos = self.pos_to_pixel(pos, range, offset);
-                let button_size = self.vertex_size * 0.8; // Slightly smaller for better feel
+                let pixel_pos = if show_coordinates {
+                    // Use coordinate offset when coordinates are shown
+                    self.pos_to_pixel(pos, range, self.coord_offset)
+                } else {
+                    // Use grid positioning when no coordinates
+                    self.pos_to_pixel_grid(pos, range)
+                };
+                let button_size = self.vertex_size * BUTTON_SIZE_RATIO;
 
                 interactive = interactive.child(
                     div()
@@ -172,10 +235,10 @@ impl Renderer {
             );
         }
 
-        // Star points
+        // Star points - use direct positioning without coordinate offset for grid elements
         for pos in self.calculate_star_points(data) {
             if range.contains(pos) {
-                let pixel_pos = self.pos_to_pixel(pos, range, point(px(0.0), px(0.0)));
+                let pixel_pos = self.pos_to_pixel_grid(pos, range);
                 grid = grid.child(
                     div()
                         .absolute()
@@ -199,7 +262,7 @@ impl Renderer {
 
         for (&pos, &stone) in &data.stones {
             if range.contains(pos) && stone != EMPTY {
-                let pixel_pos = self.pos_to_pixel(pos, range, point(px(0.0), px(0.0)));
+                let pixel_pos = self.pos_to_pixel_grid(pos, range);
                 let stone_size = self.vertex_size * self.theme.stone_size;
 
                 let color = match stone {
@@ -232,8 +295,8 @@ impl Renderer {
 
         for (&pos, marker) in &data.markers {
             if range.contains(pos) {
-                let pixel_pos = self.pos_to_pixel(pos, range, point(px(0.0), px(0.0)));
-                let marker_size = self.vertex_size * 0.4;
+                let pixel_pos = self.pos_to_pixel_grid(pos, range);
+                let marker_size = self.vertex_size * MARKER_SIZE_RATIO;
 
                 markers = markers.child(self.render_marker(marker, pixel_pos, marker_size));
             }
@@ -263,28 +326,28 @@ impl Renderer {
                 .flex()
                 .items_center()
                 .justify_center()
-                .child(div().w(px(size * 0.8)).h(px(2.0)).bg(*color))
-                .child(div().absolute().w(px(2.0)).h(px(size * 0.8)).bg(*color)),
+                .child(
+                    div()
+                        .w(px(size * CROSS_LINE_RATIO))
+                        .h(px(self.spacing.cross_line_width))
+                        .bg(*color),
+                )
+                .child(
+                    div()
+                        .absolute()
+                        .w(px(self.spacing.cross_line_width))
+                        .h(px(size * CROSS_LINE_RATIO))
+                        .bg(*color),
+                ),
             Marker::Triangle { color } => {
-                // Simplified triangle using CSS borders
+                // Create simple triangle shape using a square
                 div()
                     .absolute()
                     .left(pos.x - px(size / 2.0))
                     .top(pos.y - px(size / 2.0))
                     .w(px(size))
                     .h(px(size))
-                    .flex()
-                    .items_center()
-                    .justify_center()
-                    .child(
-                        div()
-                            .w(px(0.0))
-                            .h(px(0.0))
-                            .border_l_8()
-                            .border_r_8()
-                            .border_b_8()
-                            .border_color(*color),
-                    )
+                    .bg(*color)
             }
             Marker::Square { color } => div()
                 .absolute()
@@ -296,10 +359,10 @@ impl Renderer {
                 .border_color(*color),
             Marker::Dot { color } => div()
                 .absolute()
-                .left(pos.x - px(size / 4.0))
-                .top(pos.y - px(size / 4.0))
-                .w(px(size / 2.0))
-                .h(px(size / 2.0))
+                .left(pos.x - px(size * DOT_SIZE_RATIO / 2.0))
+                .top(pos.y - px(size * DOT_SIZE_RATIO / 2.0))
+                .w(px(size * DOT_SIZE_RATIO))
+                .h(px(size * DOT_SIZE_RATIO))
                 .rounded_full()
                 .bg(*color),
             Marker::Label { text, color } => div()
@@ -324,8 +387,8 @@ impl Renderer {
 
         for (&pos, ghost) in &data.ghosts {
             if range.contains(pos) && ghost.stone != EMPTY {
-                let pixel_pos = self.pos_to_pixel(pos, range, point(px(0.0), px(0.0)));
-                let stone_size = self.vertex_size * self.theme.stone_size * 0.8; // Smaller than regular stones
+                let pixel_pos = self.pos_to_pixel_grid(pos, range);
+                let stone_size = self.vertex_size * self.theme.stone_size * GHOST_SIZE_RATIO;
 
                 let base_color = match ghost.stone {
                     BLACK => self.theme.black_stone,
@@ -337,15 +400,15 @@ impl Renderer {
                     GhostKind::Good => {
                         // Green tint
                         let mut hsla: Hsla = base_color.into();
-                        hsla.h = 120.0 / 360.0; // Green hue
-                        hsla.s = 0.6;
+                        hsla.h = GREEN_HUE;
+                        hsla.s = GHOST_SATURATION;
                         hsla.into()
                     }
                     GhostKind::Bad => {
                         // Red tint
                         let mut hsla: Hsla = base_color.into();
-                        hsla.h = 0.0; // Red hue
-                        hsla.s = 0.6;
+                        hsla.h = RED_HUE;
+                        hsla.s = GHOST_SATURATION;
                         hsla.into()
                     }
                     GhostKind::Neutral => base_color,
@@ -375,8 +438,8 @@ impl Renderer {
 
         for (&pos, heat_data) in &data.heat {
             if range.contains(pos) && heat_data.strength > 0 {
-                let pixel_pos = self.pos_to_pixel(pos, range, point(px(0.0), px(0.0)));
-                let heat_size = self.vertex_size * 0.7;
+                let pixel_pos = self.pos_to_pixel_grid(pos, range);
+                let heat_size = self.vertex_size * HEAT_SIZE_RATIO;
                 let color = self.strength_to_color(heat_data.strength);
 
                 let mut heat_element = div()
@@ -418,7 +481,7 @@ impl Renderer {
 
         for (&pos, territory_data) in &data.territory {
             if range.contains(pos) {
-                let pixel_pos = self.pos_to_pixel(pos, range, point(px(0.0), px(0.0)));
+                let pixel_pos = self.pos_to_pixel_grid(pos, range);
                 let territory_size = self.vertex_size;
 
                 let color = match territory_data.owner {
@@ -450,8 +513,8 @@ impl Renderer {
 
         for (&pos, selection) in &data.selections {
             if range.contains(pos) {
-                let pixel_pos = self.pos_to_pixel(pos, range, point(px(0.0), px(0.0)));
-                let selection_size = self.vertex_size * 0.9;
+                let pixel_pos = self.pos_to_pixel_grid(pos, range);
+                let selection_size = self.vertex_size * SELECTION_SIZE_RATIO;
 
                 let element = match &selection.style {
                     SelectionStyle::Selected { color } => div()
@@ -492,8 +555,8 @@ impl Renderer {
 
         for line in &data.lines {
             if range.contains(line.from) && range.contains(line.to) {
-                let from_pixel = self.pos_to_pixel(line.from, range, point(px(0.0), px(0.0)));
-                let to_pixel = self.pos_to_pixel(line.to, range, point(px(0.0), px(0.0)));
+                let from_pixel = self.pos_to_pixel_grid(line.from, range);
+                let to_pixel = self.pos_to_pixel_grid(line.to, range);
 
                 // Calculate line length and angle
                 let dx = to_pixel.x.0 - from_pixel.x.0;
@@ -539,34 +602,36 @@ impl Renderer {
             let pixel_x = margin + relative_x * self.vertex_size + self.vertex_size / 2.0;
             let label = self.x_coordinate_label(x);
 
-            // Top
+            // Top - position very close to the board edge
             coords = coords.child(
                 div()
                     .absolute()
-                    .left(px(pixel_x - self.theme.coord_size / 2.0))
-                    .top(px(0.0))
-                    .w(px(self.theme.coord_size))
-                    .h(px(self.theme.coord_size))
+                    .left(px(pixel_x - self.effective_coord_size() / 2.0))
+                    .top(px(
+                        margin - self.effective_coord_size() + self.spacing.coord_board_gap
+                    ))
+                    .w(px(self.effective_coord_size()))
+                    .h(px(self.effective_coord_size()))
                     .flex()
-                    .items_center()
+                    .items_end()
                     .justify_center()
-                    .text_size(px(self.theme.coord_size))
+                    .text_size(px(self.effective_coord_size()))
                     .text_color(self.theme.coordinates)
                     .child(label.clone()),
             );
 
-            // Bottom
+            // Bottom - align up (closer to board)
             coords = coords.child(
                 div()
                     .absolute()
-                    .left(px(pixel_x - self.theme.coord_size / 2.0))
+                    .left(px(pixel_x - self.effective_coord_size() / 2.0))
                     .top(px(margin + grid_height))
-                    .w(px(self.theme.coord_size))
-                    .h(px(self.theme.coord_size))
+                    .w(px(self.effective_coord_size()))
+                    .h(px(self.effective_coord_size()))
                     .flex()
-                    .items_center()
+                    .items_start()
                     .justify_center()
-                    .text_size(px(self.theme.coord_size))
+                    .text_size(px(self.effective_coord_size()))
                     .text_color(self.theme.coordinates)
                     .child(label),
             );
@@ -578,34 +643,34 @@ impl Renderer {
             let pixel_y = margin + relative_y * self.vertex_size + self.vertex_size / 2.0;
             let label = self.y_coordinate_label(y, data.size.1);
 
-            // Left
+            // Left - align right (closer to board)
             coords = coords.child(
                 div()
                     .absolute()
                     .left(px(0.0))
-                    .top(px(pixel_y - self.theme.coord_size / 2.0))
-                    .w(px(self.theme.coord_size))
-                    .h(px(self.theme.coord_size))
+                    .top(px(pixel_y - self.effective_coord_size() / 2.0))
+                    .w(px(self.effective_coord_size()))
+                    .h(px(self.effective_coord_size()))
                     .flex()
                     .items_center()
-                    .justify_center()
-                    .text_size(px(self.theme.coord_size))
+                    .justify_end()
+                    .text_size(px(self.effective_coord_size()))
                     .text_color(self.theme.coordinates)
                     .child(label.clone()),
             );
 
-            // Right
+            // Right - align left (closer to board)
             coords = coords.child(
                 div()
                     .absolute()
                     .left(px(margin + grid_width))
-                    .top(px(pixel_y - self.theme.coord_size / 2.0))
-                    .w(px(self.theme.coord_size))
-                    .h(px(self.theme.coord_size))
+                    .top(px(pixel_y - self.effective_coord_size() / 2.0))
+                    .w(px(self.effective_coord_size()))
+                    .h(px(self.effective_coord_size()))
                     .flex()
                     .items_center()
-                    .justify_center()
-                    .text_size(px(self.theme.coord_size))
+                    .justify_start()
+                    .text_size(px(self.effective_coord_size()))
                     .text_color(self.theme.coordinates)
                     .child(label),
             );
@@ -618,6 +683,16 @@ impl Renderer {
     // UTILITY METHODS
     // =============================================================================
 
+    /// Calculate the margin needed for coordinate labels
+    fn coord_margin(&self) -> f32 {
+        self.effective_coord_size() + self.spacing.coord_margin_padding
+    }
+
+    /// Get the effective coordinate size (responsive)
+    fn effective_coord_size(&self) -> f32 {
+        self.theme.coord_size.max(self.spacing.min_coord_size)
+    }
+
     /// Convert position to pixel coordinates
     fn pos_to_pixel(&self, pos: Pos, range: &Range, offset: Point<Pixels>) -> Point<Pixels> {
         let relative_x = (pos.x - range.x.0) as f32;
@@ -626,6 +701,17 @@ impl Renderer {
         Point::new(
             offset.x + px(relative_x * self.vertex_size + self.vertex_size / 2.0),
             offset.y + px(relative_y * self.vertex_size + self.vertex_size / 2.0),
+        )
+    }
+
+    /// Convert position to pixel coordinates for grid elements (no coordinate offset)
+    fn pos_to_pixel_grid(&self, pos: Pos, range: &Range) -> Point<Pixels> {
+        let relative_x = (pos.x - range.x.0) as f32;
+        let relative_y = (pos.y - range.y.0) as f32;
+
+        Point::new(
+            px(relative_x * self.vertex_size + self.vertex_size / 2.0),
+            px(relative_y * self.vertex_size + self.vertex_size / 2.0),
         )
     }
 
@@ -709,6 +795,9 @@ impl Renderer {
 
     /// Convert x coordinate to letter label
     fn x_coordinate_label(&self, x: usize) -> String {
+        if x >= 26 {
+            return "?".to_string(); // Handle overflow
+        }
         let letter = if x < 8 {
             (b'A' + x as u8) as char
         } else {
@@ -755,6 +844,15 @@ mod tests {
         let pixel = renderer.pos_to_pixel(Pos::new(9, 9), &range, offset);
         assert_eq!(pixel.x, px(200.0)); // 10 + 9*20 + 10
         assert_eq!(pixel.y, px(200.0));
+
+        // Test grid positioning (no offset)
+        let pixel_grid = renderer.pos_to_pixel_grid(Pos::new(0, 0), &range);
+        assert_eq!(pixel_grid.x, px(10.0)); // 0*20 + 10
+        assert_eq!(pixel_grid.y, px(10.0));
+
+        let pixel_grid = renderer.pos_to_pixel_grid(Pos::new(9, 9), &range);
+        assert_eq!(pixel_grid.x, px(190.0)); // 9*20 + 10
+        assert_eq!(pixel_grid.y, px(190.0));
     }
 
     #[test]

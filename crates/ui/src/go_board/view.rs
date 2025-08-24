@@ -240,7 +240,10 @@ impl BoardView {
         container_bounds: Bounds<Pixels>,
     ) -> Option<Pos> {
         let offset = if self.show_coordinates {
-            let margin = self.board.theme.coord_size + 8.0;
+            let spacing =
+                crate::go_board::render::ResponsiveSpacing::for_vertex_size(self.board.vertex_size);
+            let effective_coord_size = self.board.theme.coord_size.max(spacing.min_coord_size);
+            let margin = effective_coord_size + spacing.coord_margin_padding;
             point(px(margin), px(margin))
         } else {
             point(px(0.0), px(0.0))
@@ -280,11 +283,27 @@ impl Render for BoardView {
             );
         }
 
-        // Main board container
+        // Main board container - calculate size including coordinate margins
+        let base_size = self.board.pixel_size();
+        let (total_width, total_height) = if self.show_coordinates {
+            let spacing =
+                crate::go_board::render::ResponsiveSpacing::for_vertex_size(self.board.vertex_size);
+            let effective_coord_size = self.board.theme.coord_size.max(spacing.min_coord_size);
+            let margin = effective_coord_size + spacing.coord_margin_padding;
+            (
+                base_size.width.0 + 2.0 * margin,
+                base_size.height.0 + 2.0 * margin,
+            )
+        } else {
+            (base_size.width.0, base_size.height.0)
+        };
+
         let mut container = div()
             .id("go-board-view")
             .relative()
             .bg(self.board.theme.background)
+            .w(px(total_width))
+            .h(px(total_height))
             .child({
                 let renderer = Renderer::new(self.board.vertex_size, self.board.theme.clone())
                     .with_coordinates(self.show_coordinates);
@@ -327,7 +346,10 @@ impl BoardView {
         let vertex_size = self.board.vertex_size;
 
         let offset = if self.show_coordinates {
-            let margin = self.board.theme.coord_size + 8.0;
+            let spacing =
+                crate::go_board::render::ResponsiveSpacing::for_vertex_size(self.board.vertex_size);
+            let effective_coord_size = self.board.theme.coord_size.max(spacing.min_coord_size);
+            let margin = effective_coord_size + spacing.coord_margin_padding;
             point(px(margin), px(margin))
         } else {
             point(px(0.0), px(0.0))
@@ -412,7 +434,10 @@ pub fn demo_board_view() -> BoardView {
         .stone(Pos::new(3, 3), BLACK)
         .stone(Pos::new(15, 15), WHITE)
         .stone(Pos::new(9, 9), BLACK)
-        .marker(Pos::new(3, 15), Marker::circle().with_color(rgb(0xff0000).into()))
+        .marker(
+            Pos::new(3, 15),
+            Marker::circle().with_color(rgb(0xff0000).into()),
+        )
         .ghost(Pos::new(4, 4), Ghost::good(WHITE))
         .select(Pos::new(3, 3))
         .last_move(Pos::new(9, 9));
