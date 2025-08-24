@@ -6,7 +6,6 @@ use gpui::{
     InteractiveElement as _, IntoElement, ParentElement, Render, SharedString, Styled, Task, Timer,
     WeakEntity, Window,
 };
-use raw_window_handle::HasWindowHandle;
 
 use gpui_component::{
     button::{Button, ButtonVariant, ButtonVariants as _},
@@ -15,9 +14,7 @@ use gpui_component::{
     h_flex,
     input::{InputState, TextInput},
     list::{List, ListDelegate, ListItem},
-    v_flex,
-    webview::WebView,
-    wry, ActiveTheme as _, ContextModal as _, Icon, IconName, IndexPath, Placement,
+    v_flex, ActiveTheme as _, ContextModal as _, Icon, IconName, IndexPath, Placement,
 };
 
 use crate::TestAction;
@@ -477,38 +474,6 @@ impl Render for DrawerStory {
                                         \nthis still can handle the action.",
                                     ),
                             ),
-                    )
-                    .child(
-                        section("WebView in Drawer").child(
-                            Button::new("webview")
-                                .outline()
-                                .label("Open WebView")
-                                .on_click(cx.listener(|_, _, window, cx| {
-                                    let webview = cx.new(|cx| {
-                                        let webview = wry::WebViewBuilder::new()
-                                            .build_as_child(
-                                                &window.window_handle().expect("No window handle"),
-                                            )
-                                            .unwrap();
-
-                                        WebView::new(webview, window, cx)
-                                    });
-                                    webview.update(cx, |webview, _| {
-                                        webview.load_url("https://github.com/explore");
-                                    });
-                                    window.open_drawer(cx, move |drawer, window, cx| {
-                                        let height =
-                                            window.window_bounds().get_bounds().size.height;
-                                        let webview_bounds = webview.read(cx).bounds();
-
-                                        drawer.title("WebView Title").p_0().child(
-                                            div()
-                                                .h(height - webview_bounds.origin.y)
-                                                .child(webview.clone()),
-                                        )
-                                    });
-                                })),
-                        ),
                     )
                     .when_some(self.selected_value.clone(), |this, selected_value| {
                         this.child(

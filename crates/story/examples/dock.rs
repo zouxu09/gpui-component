@@ -13,7 +13,7 @@ use story::{
     AccordionStory, AppState, AppTitleBar, Assets, ButtonStory, CalendarStory, DropdownStory,
     FormStory, IconStory, ImageStory, InputStory, LabelStory, ListStory, ModalStory,
     NotificationStory, Open, PopoverStory, ProgressStory, ResizableStory, ScrollableStory,
-    SidebarStory, StoryContainer, SwitchStory, TableStory, TooltipStory, WebViewStory,
+    SidebarStory, StoryContainer, SwitchStory, TableStory, TooltipStory,
 };
 
 #[derive(Action, Clone, PartialEq, Eq, Deserialize)]
@@ -448,7 +448,7 @@ impl StoryWorkspace {
             14 => Arc::new(StoryContainer::panel::<ResizableStory>(window, cx)),
             15 => Arc::new(StoryContainer::panel::<ScrollableStory>(window, cx)),
             16 => Arc::new(StoryContainer::panel::<AccordionStory>(window, cx)),
-            17 => Arc::new(StoryContainer::panel::<WebViewStory>(window, cx)),
+            17 => Arc::new(StoryContainer::panel::<ButtonStory>(window, cx)),
             _ => Arc::new(StoryContainer::panel::<ButtonStory>(window, cx)),
         };
 
