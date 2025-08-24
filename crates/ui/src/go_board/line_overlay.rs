@@ -1,4 +1,5 @@
-use crate::go_board::types::{Line, LineType, Vertex};
+use crate::go_board::core::{Line, Pos};
+use crate::go_board::types::{LineType, Vertex};
 use gpui::{prelude::*, *};
 
 /// Theme configuration for line and arrow appearance
@@ -46,20 +47,30 @@ impl LineRenderer {
 
     /// Renders a single line between two vertices
     pub fn render_line(&self, line: &Line) -> AnyElement {
-        let start_pos = self.calculate_vertex_center(&line.v1);
-        let end_pos = self.calculate_vertex_center(&line.v2);
+        let start_pos = self.calculate_pos_center(&line.from);
+        let end_pos = self.calculate_pos_center(&line.to);
 
-        match line.line_type {
-            LineType::Line => self
+        match line.style {
+            crate::go_board::core::LineStyle::Line { .. } => self
                 .render_simple_line(start_pos, end_pos)
                 .into_any_element(),
-            LineType::Arrow => self
+            crate::go_board::core::LineStyle::Arrow { .. } => self
                 .render_arrow_line(start_pos, end_pos)
                 .into_any_element(),
         }
     }
 
-    /// Calculates the center position of a vertex in pixels
+    /// Calculates the center position of a position in pixels
+    fn calculate_pos_center(&self, pos: &Pos) -> Point<Pixels> {
+        // Add half vertex size offset to center on grid intersections
+        // This matches the grid's vertex_to_pixel logic
+        let grid_offset = self.vertex_size / 2.0;
+        let x = self.grid_offset.x + px(pos.x as f32 * self.vertex_size + grid_offset);
+        let y = self.grid_offset.y + px(pos.y as f32 * self.vertex_size + grid_offset);
+        point(x, y)
+    }
+
+    /// Calculates the center position of a vertex in pixels (deprecated legacy method)
     fn calculate_vertex_center(&self, vertex: &Vertex) -> Point<Pixels> {
         // Add half vertex size offset to center on grid intersections
         // This matches the grid's vertex_to_pixel logic
@@ -169,11 +180,41 @@ impl LineOverlay {
             .children(line_elements)
     }
 
-    /// Creates lines from vertex pairs for basic usage
-    pub fn from_vertex_pairs(pairs: &[(Vertex, Vertex)], line_type: LineType) -> Vec<Line> {
+    /// Creates lines from position pairs for basic usage
+    pub fn from_pos_pairs(
+        pairs: &[(Pos, Pos)],
+        style: crate::go_board::core::LineStyle,
+    ) -> Vec<Line> {
         pairs
             .iter()
-            .map(|(v1, v2)| Line::new(v1.clone(), v2.clone(), line_type.clone()))
+            .map(|(from, to)| Line {
+                from: *from,
+                to: *to,
+                style: style.clone(),
+            })
+            .collect()
+    }
+
+    /// Creates lines from vertex pairs for legacy compatibility
+    pub fn from_vertex_pairs(pairs: &[(Vertex, Vertex)], line_type: LineType) -> Vec<Line> {
+        let style = match line_type {
+            LineType::Line => crate::go_board::core::LineStyle::Line {
+                color: rgb(0x000000),
+                width: 2.0,
+            },
+            LineType::Arrow => crate::go_board::core::LineStyle::Arrow {
+                color: rgb(0x000000),
+                width: 2.0,
+            },
+        };
+
+        pairs
+            .iter()
+            .map(|(v1, v2)| Line {
+                from: Pos::new(v1.x, v1.y),
+                to: Pos::new(v2.x, v2.y),
+                style: style.clone(),
+            })
             .collect()
     }
 
@@ -181,16 +222,16 @@ impl LineOverlay {
     pub fn create_line_demonstration() -> Vec<Line> {
         vec![
             // Horizontal line
-            Line::line(Vertex::new(1, 1), Vertex::new(4, 1)),
+            crate::go_board::core::Line::line(Pos::new(1, 1), Pos::new(4, 1)),
             // Vertical line
-            Line::line(Vertex::new(1, 3), Vertex::new(1, 6)),
+            crate::go_board::core::Line::line(Pos::new(1, 3), Pos::new(1, 6)),
             // Diagonal line
-            Line::line(Vertex::new(3, 3), Vertex::new(6, 6)),
+            crate::go_board::core::Line::line(Pos::new(3, 3), Pos::new(6, 6)),
             // Arrow line
-            Line::arrow(Vertex::new(2, 5), Vertex::new(5, 2)),
+            crate::go_board::core::Line::arrow(Pos::new(2, 5), Pos::new(5, 2)),
             // Multiple arrows showing direction
-            Line::arrow(Vertex::new(7, 1), Vertex::new(7, 4)),
-            Line::arrow(Vertex::new(8, 4), Vertex::new(8, 1)),
+            crate::go_board::core::Line::arrow(Pos::new(7, 1), Pos::new(7, 4)),
+            crate::go_board::core::Line::arrow(Pos::new(8, 4), Pos::new(8, 1)),
         ]
     }
 

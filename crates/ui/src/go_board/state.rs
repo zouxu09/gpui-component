@@ -18,7 +18,7 @@ pub struct GoBoardState {
     pub selected_right: Vec<Vertex>,
     pub selected_top: Vec<Vertex>,
     pub selected_bottom: Vec<Vertex>,
-    pub lines: Vec<Line>,
+    pub lines: Vec<crate::go_board::core::Line>,
 
     // Configuration
     pub vertex_size: f32,
@@ -220,10 +220,10 @@ impl GoBoardState {
 
         // Clear lines that are now out of bounds
         self.lines.retain(|line| {
-            line.v1.x < new_width
-                && line.v1.y < new_height
-                && line.v2.x < new_width
-                && line.v2.y < new_height
+            line.from.x < new_width
+                && line.from.y < new_height
+                && line.to.x < new_width
+                && line.to.y < new_height
         });
     }
 
