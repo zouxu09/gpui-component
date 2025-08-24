@@ -33,6 +33,7 @@ pub struct ResponsiveSpacing {
     pub coord_board_gap: f32,
     pub cross_line_width: f32,
     pub min_coord_size: f32,
+    pub heat_text_size: f32,
 }
 
 impl ResponsiveSpacing {
@@ -46,6 +47,7 @@ impl ResponsiveSpacing {
                 .max(BASE_CROSS_LINE_WIDTH)
                 .min(3.0),
             min_coord_size: (vertex_size * 0.6).max(12.0).min(24.0),
+            heat_text_size: (vertex_size * 0.3 * scale_factor).max(8.0).min(16.0),
         }
     }
 
@@ -441,6 +443,8 @@ impl Renderer {
                 let pixel_pos = self.pos_to_pixel_grid(pos, range);
                 let heat_size = self.vertex_size * HEAT_SIZE_RATIO;
                 let color = self.strength_to_color(heat_data.strength);
+                let text_color = self.get_heat_text_color(heat_data.strength);
+                let text_size = self.spacing.heat_text_size;
 
                 let mut heat_element = div()
                     .absolute()
@@ -448,7 +452,7 @@ impl Renderer {
                     .top(pixel_pos.y - px(heat_size / 2.0))
                     .w(px(heat_size))
                     .h(px(heat_size))
-                    .rounded(px(heat_size * 0.1))
+                    .rounded(px(heat_size / 2.0)) // Perfect circle: radius = half the size
                     .bg(color)
                     .flex()
                     .items_center()
@@ -457,12 +461,9 @@ impl Renderer {
                 if let Some(ref label) = heat_data.label {
                     heat_element = heat_element.child(
                         div()
-                            .text_xs()
-                            .text_color(if heat_data.strength > 5 {
-                                gpui::white()
-                            } else {
-                                gpui::black()
-                            })
+                            .text_size(px(text_size))
+                            .text_color(text_color)
+                            .font_weight(FontWeight::BOLD) // Better readability
                             .child(label.clone()),
                     );
                 }
@@ -693,6 +694,18 @@ impl Renderer {
         self.theme.coord_size.max(self.spacing.min_coord_size)
     }
 
+    /// Get appropriate text color for heat overlay based on background intensity
+    fn get_heat_text_color(&self, strength: u8) -> Hsla {
+        let intensity = (strength as f32 / 9.0).min(1.0);
+
+        // Use white text for darker/more intense backgrounds, black for lighter ones
+        if intensity >= 0.5 {
+            gpui::white()
+        } else {
+            gpui::black()
+        }
+    }
+
     /// Convert position to pixel coordinates
     fn pos_to_pixel(&self, pos: Pos, range: &Range, offset: Point<Pixels>) -> Point<Pixels> {
         let relative_x = (pos.x - range.x.0) as f32;
@@ -773,23 +786,37 @@ impl Renderer {
         points
     }
 
-    /// Convert heat strength to color
+    /// Convert heat strength to color with improved algorithm
     fn strength_to_color(&self, strength: u8) -> Rgba {
         let intensity = (strength as f32 / 9.0).min(1.0);
-        let alpha = 0.3 + intensity * 0.5;
 
-        if intensity <= 0.33 {
-            // Blue to cyan
-            let hue = 240.0 - (intensity / 0.33) * 60.0;
+        // Improved alpha calculation for better visibility
+        let alpha = (0.4 + intensity * 0.5).min(0.9);
+
+        // More intuitive color progression: cool to warm
+        if intensity <= 0.2 {
+            // Very low: Deep blue
+            hsla(240.0 / 360.0, 0.8, 0.7, alpha).into()
+        } else if intensity <= 0.4 {
+            // Low: Blue to cyan
+            let t = (intensity - 0.2) / 0.2;
+            let hue = 240.0 - t * 60.0; // 240° to 180°
             hsla(hue / 360.0, 0.8, 0.6, alpha).into()
-        } else if intensity <= 0.66 {
-            // Cyan to yellow
-            let hue = 180.0 - ((intensity - 0.33) / 0.33) * 120.0;
-            hsla(hue / 360.0, 0.8, 0.6, alpha).into()
-        } else {
-            // Yellow to red
-            let hue = 60.0 - ((intensity - 0.66) / 0.34) * 60.0;
+        } else if intensity <= 0.6 {
+            // Medium: Cyan to green
+            let t = (intensity - 0.4) / 0.2;
+            let hue = 180.0 - t * 60.0; // 180° to 120°
+            hsla(hue / 360.0, 0.8, 0.5, alpha).into()
+        } else if intensity <= 0.8 {
+            // High: Green to yellow
+            let t = (intensity - 0.6) / 0.2;
+            let hue = 120.0 - t * 60.0; // 120° to 60°
             hsla(hue / 360.0, 0.9, 0.5, alpha).into()
+        } else {
+            // Very high: Yellow to red
+            let t = (intensity - 0.8) / 0.2;
+            let hue = 60.0 - t * 60.0; // 60° to 0°
+            hsla(hue / 360.0, 1.0, 0.5, alpha).into()
         }
     }
 
@@ -879,5 +906,39 @@ mod tests {
         // Colors should be different
         assert_ne!(color_0, color_5);
         assert_ne!(color_5, color_9);
+
+        // Test that colors progress from cool to warm
+        // Low values should be more blue, high values more red
+        let low_color: Hsla = renderer.strength_to_color(1).into();
+        let high_color: Hsla = renderer.strength_to_color(9).into();
+
+        // Low strength should have higher hue (more blue)
+        // High strength should have lower hue (more red)
+        assert!(low_color.h > high_color.h);
+    }
+
+    #[test]
+    fn test_heat_text_color() {
+        let renderer = Renderer::new(20.0, Theme::default());
+
+        // Low intensity should use black text
+        let low_text = renderer.get_heat_text_color(2);
+        assert_eq!(low_text, gpui::black());
+
+        // High intensity should use white text
+        let high_text = renderer.get_heat_text_color(8);
+        assert_eq!(high_text, gpui::white());
+    }
+
+    #[test]
+    fn test_responsive_heat_sizing() {
+        let small_renderer = Renderer::new(15.0, Theme::default());
+        let large_renderer = Renderer::new(60.0, Theme::default());
+
+        // Text size should be responsive to vertex size
+        assert!(large_renderer.spacing.heat_text_size >= small_renderer.spacing.heat_text_size);
+
+        // Cross line width should also be responsive
+        assert!(large_renderer.spacing.cross_line_width >= small_renderer.spacing.cross_line_width);
     }
 }

@@ -5,7 +5,7 @@ use gpui::{
 
 use gpui_component::{
     go_board::{
-        core::{Line, Marker, Pos, Theme, BLACK, WHITE},
+        core::{Heat, Line, Marker, Pos, Theme, BLACK, WHITE},
         Board, BoardView, BoundedBoard,
     },
     h_flex, v_flex, ActiveTheme,
@@ -297,10 +297,22 @@ impl GoBoardStory {
                     )
                     .marker(Pos::new(4, 4), Marker::label("2"))
                     // Row 5: Loader markers (animated dots)
-                    .marker(Pos::new(1, 5), Marker::dot().with_color(gpui::rgb(0xff8000).into()))
-                    .marker(Pos::new(2, 5), Marker::dot().with_color(gpui::rgb(0x8000ff).into()))
-                    .marker(Pos::new(3, 5), Marker::dot().with_color(gpui::rgb(0x00ff80).into()))
-                    .marker(Pos::new(4, 5), Marker::dot().with_color(gpui::rgb(0xff0080).into()))
+                    .marker(
+                        Pos::new(1, 5),
+                        Marker::dot().with_color(gpui::rgb(0xff8000).into()),
+                    )
+                    .marker(
+                        Pos::new(2, 5),
+                        Marker::dot().with_color(gpui::rgb(0x8000ff).into()),
+                    )
+                    .marker(
+                        Pos::new(3, 5),
+                        Marker::dot().with_color(gpui::rgb(0x00ff80).into()),
+                    )
+                    .marker(
+                        Pos::new(4, 5),
+                        Marker::dot().with_color(gpui::rgb(0xff0080).into()),
+                    )
                     // Row 6: Different colored markers (z-index not supported in new API)
                     .marker(
                         Pos::new(1, 6),
@@ -383,8 +395,36 @@ impl GoBoardStory {
                     .stone(Pos::new(7, 7), BLACK)
                     .stone(Pos::new(3, 8), WHITE)
                     .stone(Pos::new(5, 8), BLACK)
-                    // Note: Heat overlay functionality is not available in the new simplified API
-                    // The new API focuses on core board functionality without advanced overlays
+                    // Add heat overlay to demonstrate influence visualization
+                    .heat(Pos::new(0, 0), Heat::new(1).with_label("1"))
+                    .heat(Pos::new(1, 0), Heat::new(2).with_label("2"))
+                    .heat(Pos::new(2, 0), Heat::new(3).with_label("3"))
+                    .heat(Pos::new(4, 0), Heat::new(4).with_label("4"))
+                    .heat(Pos::new(6, 0), Heat::new(5).with_label("5"))
+                    .heat(Pos::new(7, 0), Heat::new(6).with_label("6"))
+                    .heat(Pos::new(8, 0), Heat::new(7).with_label("7"))
+                    .heat(Pos::new(0, 1), Heat::new(8).with_label("8"))
+                    .heat(Pos::new(2, 1), Heat::new(9).with_label("9"))
+                    .heat(Pos::new(4, 1), Heat::new(6))
+                    .heat(Pos::new(5, 1), Heat::new(4))
+                    .heat(Pos::new(6, 1), Heat::new(3))
+                    .heat(Pos::new(8, 1), Heat::new(1))
+                    .heat(Pos::new(0, 2), Heat::new(7))
+                    .heat(Pos::new(1, 2), Heat::new(5))
+                    .heat(Pos::new(4, 2), Heat::new(2))
+                    .heat(Pos::new(6, 2), Heat::new(8))
+                    .heat(Pos::new(7, 2), Heat::new(4))
+                    .heat(Pos::new(8, 2), Heat::new(2))
+                    // Add a few more strategic positions
+                    .heat(Pos::new(2, 4), Heat::new(6))
+                    .heat(Pos::new(4, 4), Heat::new(9).with_label("★"))
+                    .heat(Pos::new(6, 4), Heat::new(5))
+                    .heat(Pos::new(1, 8), Heat::new(3))
+                    .heat(Pos::new(2, 8), Heat::new(4))
+                    .heat(Pos::new(4, 8), Heat::new(7))
+                    .heat(Pos::new(6, 8), Heat::new(2))
+                    .heat(Pos::new(7, 8), Heat::new(5))
+                    .heat(Pos::new(8, 8), Heat::new(1))
                     .coordinates(true);
 
                 BoardView::new(board)

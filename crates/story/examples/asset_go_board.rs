@@ -1,6 +1,6 @@
 use gpui::*;
 use gpui_component::{
-    go_board::{Board, BoardView, Pos, Theme, BLACK, WHITE},
+    go_board::{core::Heat, Board, BoardView, Pos, Theme, BLACK, WHITE},
     h_flex, v_flex, ActiveTheme,
 };
 use story::{create_new_window, init, Assets};
@@ -15,32 +15,53 @@ struct AssetGoBoardDemo {
 impl AssetGoBoardDemo {
     fn new(_window: &mut Window, cx: &mut Context<Self>) -> Self {
         // Create a board using the default theme
-        let mut board = Board::with_size(9, 9).vertex_size(40.0).theme(Theme::default());
+        let mut board = Board::with_size(9, 9)
+            .vertex_size(40.0)
+            .theme(Theme::default());
 
         // Add a sample game pattern to demonstrate the stones
         let stones = [
-            (Pos::new(3, 0), BLACK), (Pos::new(5, 0), WHITE),
-            (Pos::new(1, 1), BLACK), (Pos::new(7, 1), WHITE),
-            (Pos::new(2, 2), BLACK), (Pos::new(6, 2), WHITE),
-            (Pos::new(0, 3), BLACK), (Pos::new(3, 3), BLACK), (Pos::new(5, 3), WHITE), (Pos::new(8, 3), WHITE),
+            (Pos::new(3, 0), BLACK),
+            (Pos::new(5, 0), WHITE),
+            (Pos::new(1, 1), BLACK),
+            (Pos::new(7, 1), WHITE),
+            (Pos::new(2, 2), BLACK),
+            (Pos::new(6, 2), WHITE),
+            (Pos::new(0, 3), BLACK),
+            (Pos::new(3, 3), BLACK),
+            (Pos::new(5, 3), WHITE),
+            (Pos::new(8, 3), WHITE),
             (Pos::new(4, 4), BLACK),
-            (Pos::new(0, 5), WHITE), (Pos::new(3, 5), WHITE), (Pos::new(5, 5), BLACK), (Pos::new(8, 5), BLACK),
-            (Pos::new(2, 6), WHITE), (Pos::new(6, 6), BLACK),
-            (Pos::new(1, 7), WHITE), (Pos::new(7, 7), BLACK),
-            (Pos::new(3, 8), WHITE), (Pos::new(5, 8), BLACK),
+            (Pos::new(0, 5), WHITE),
+            (Pos::new(3, 5), WHITE),
+            (Pos::new(5, 5), BLACK),
+            (Pos::new(8, 5), BLACK),
+            (Pos::new(2, 6), WHITE),
+            (Pos::new(6, 6), BLACK),
+            (Pos::new(1, 7), WHITE),
+            (Pos::new(7, 7), BLACK),
+            (Pos::new(3, 8), WHITE),
+            (Pos::new(5, 8), BLACK),
         ];
-        
-        board = board.stones(stones);
+
+        board = board
+            .stones(stones)
+            // Add some heat data to demonstrate the improved heatmap
+            .heat(Pos::new(2, 4), Heat::new(3).with_label("3"))
+            .heat(Pos::new(6, 4), Heat::new(7).with_label("7"))
+            .heat(Pos::new(4, 4), Heat::new(9).with_label("★"))
+            .heat(Pos::new(1, 3), Heat::new(5))
+            .heat(Pos::new(7, 3), Heat::new(4))
+            .heat(Pos::new(0, 2), Heat::new(6))
+            .heat(Pos::new(8, 2), Heat::new(2))
+            .heat(Pos::new(4, 7), Heat::new(8).with_label("8"))
+            .heat(Pos::new(2, 7), Heat::new(1))
+            .heat(Pos::new(6, 7), Heat::new(4));
 
         let board_view = cx.new(|_| {
-            BoardView::new(board)
-                .coordinates(true)
-                .on_click(|event| {
-                    println!(
-                        "Board Click: ({}, {})",
-                        event.pos.x, event.pos.y
-                    );
-                })
+            BoardView::new(board).coordinates(true).on_click(|event| {
+                println!("Board Click: ({}, {})", event.pos.x, event.pos.y);
+            })
         });
 
         Self {
@@ -74,11 +95,7 @@ impl Render for AssetGoBoardDemo {
                         .child("Testing grid and vertex alignment"),
                 ),
             )
-            .child(
-                h_flex()
-                    .justify_center()
-                    .child(self.board_view.clone()),
-            )
+            .child(h_flex().justify_center().child(self.board_view.clone()))
             .child(
                 h_flex().justify_center().child(
                     v_flex()
