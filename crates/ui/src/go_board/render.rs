@@ -96,8 +96,8 @@ impl Renderer {
     /// Render interactive layer for mouse/keyboard events
     pub fn render_interactive(&self, data: &BoardData, show_coordinates: bool) -> impl IntoElement {
         let range = &data.range;
-        let grid_width = range.width() as f32 * self.vertex_size;
-        let grid_height = range.height() as f32 * self.vertex_size;
+        let _grid_width = range.width() as f32 * self.vertex_size;
+        let _grid_height = range.height() as f32 * self.vertex_size;
 
         let offset = if show_coordinates {
             let margin = self.theme.coord_size + 8.0;
@@ -122,8 +122,8 @@ impl Renderer {
                         .top(pixel_pos.y - px(button_size / 2.0))
                         .w(px(button_size))
                         .h(px(button_size))
-                                                 .id(("pos", x * 1000 + y)), // Add hover and click handlers here
-                                                         // Note: In real implementation, these would be connected to the board's event handlers
+                        .id(("pos", x * 1000 + y)), // Add hover and click handlers here
+                                                    // Note: In real implementation, these would be connected to the board's event handlers
                 );
             }
         }
@@ -216,9 +216,8 @@ impl Renderer {
                         .w(px(stone_size))
                         .h(px(stone_size))
                         .rounded_full()
-                        .bg(color)
-                                                 // Shadow effect would be applied here if available
-                         ,
+                        .bg(color), // Shadow effect would be applied here if available
+                                    // TODO: Add shadow when available in gpui
                 );
             }
         }
@@ -284,7 +283,7 @@ impl Renderer {
                             .border_l_8()
                             .border_r_8()
                             .border_b_8()
-                                                         .border_color(*color),
+                            .border_color(*color),
                     )
             }
             Marker::Square { color } => div()
@@ -425,7 +424,7 @@ impl Renderer {
                 let color = match territory_data.owner {
                     BLACK => self.theme.black_stone,
                     WHITE => self.theme.white_stone,
-                    _ => rgb(0x808080), // Neutral
+                    _ => rgb(0x808080).into(), // Neutral
                 };
 
                 territory = territory.child(
@@ -515,9 +514,7 @@ impl Renderer {
                         .top(from_pixel.y - px(width / 2.0))
                         .w(px(length))
                         .h(px(width))
-                        .bg(color)
-                                                 // Note: Transform rotation would need proper implementation
-                         ,
+                        .bg(color), // Note: Transform rotation would need proper implementation
                 );
             }
         }

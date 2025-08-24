@@ -15,111 +15,42 @@ pub mod render;
 // View component with interactions
 pub mod view;
 
-// Re-export the main public API for easy usage
-pub use board::{Board, BoundedBoard};
-pub use view::{board_with_stones, bounded_board_view, demo_board_view, simple_board, BoardView};
+// Complete examples showing the new simplified API
+pub mod examples_new_api;
 
-// Re-export core types individually to avoid conflicts
+// Final refactoring summary and documentation
+// See REFACTORING_SUMMARY.md for complete migration guide
+
+// =============================================================================
+// MAIN NEW API EXPORTS
+// =============================================================================
+
+// Primary components for the new simplified API
+pub use board::{Board, BoundedBoard};
+pub use render::Renderer;
+pub use view::BoardView;
+
+// Core types for the new API
 pub use core::{
     BoardData, Ghost, GhostKind, Heat, Line, LineStyle, Marker, NavEvent, Pos, PosEvent, Range,
     Selection, SelectionStyle, Stone, Territory, Theme, BLACK, EMPTY, WHITE,
 };
 
-// Compatibility exports for deprecated modules
-pub use error::{GoBoardResult, GoBoardValidator};
-pub use state::GoBoardState;
-pub use types::*;
-
-// Re-export old components with new names for compatibility
-pub use ghost_stone::GhostStoneOverlay;
-pub use grid::Grid;
-pub use grid::GridTheme;
-pub use heat_overlay::HeatOverlay;
-pub use interactions::VertexInteractions;
-pub use line_overlay::LineOverlay;
-pub use markers::Markers;
-pub use paint_overlay::PaintOverlay;
-pub use selection::VertexSelections;
-pub use stones::{StoneTheme, Stones};
+// =============================================================================
+// COMPATIBILITY EXPORTS REMOVED
+// =============================================================================
+// All legacy components have been removed as part of the refactoring.
+// Use the new simplified API instead.
 
 // =============================================================================
-// COMPATIBILITY LAYER (for migration from old system)
+// COMPATIBILITY LAYER REMOVED
 // =============================================================================
-// Keep the old module structure temporarily for backward compatibility
-// TODO: Remove these after migration is complete
+// All deprecated modules have been removed as part of the refactoring.
+// Use the new simplified API instead.
 
-#[deprecated(note = "Use the new simplified API instead")]
-pub mod bounded_go_board;
+// All deprecated modules removed
 
-#[deprecated(note = "Use the new simplified API instead")]
-pub mod coordinates;
-
-#[deprecated(note = "Use the new simplified API instead")]
-pub mod error;
-
-#[deprecated(note = "Use the new simplified API instead")]
-pub mod ghost_stone;
-
-#[deprecated(note = "Use the new simplified API instead")]
-pub mod go_board;
-
-#[deprecated(note = "Use the new simplified API instead")]
-pub mod grid;
-
-#[deprecated(note = "Use the new simplified API instead")]
-pub mod heat_overlay;
-
-#[deprecated(note = "Use the new simplified API instead")]
-pub mod interactions;
-
-#[deprecated(note = "Use the new simplified API instead")]
-pub mod keyboard_navigation;
-
-#[deprecated(note = "Use the new simplified API instead")]
-pub mod line_overlay;
-
-#[deprecated(note = "Use the new simplified API instead")]
-pub mod markers;
-
-#[deprecated(note = "Use the new simplified API instead")]
-pub mod paint_overlay;
-
-#[deprecated(note = "Use the new simplified API instead")]
-pub mod position_utils;
-
-#[deprecated(note = "Use the new simplified API instead")]
-pub mod selection;
-
-#[deprecated(note = "Use the new simplified API instead")]
-pub mod state;
-
-#[deprecated(note = "Use the new simplified API instead")]
-pub mod stones;
-
-#[deprecated(note = "Use the new simplified API instead")]
-pub mod theme;
-
-#[deprecated(note = "Use the new simplified API instead")]
-pub mod types;
-
-// Keep the old types for compatibility (with deprecation warnings)
-#[deprecated(note = "Use Pos instead")]
-pub use types::Vertex;
-
-#[deprecated(note = "Use Range instead")]
-pub use types::BoardRange;
-
-#[deprecated(note = "Use the new simplified Theme instead")]
-pub use theme::BoardTheme;
-
-#[deprecated(note = "Use the new simplified Board instead")]
-pub use go_board::GoBoard;
-
-#[deprecated(note = "Use the new simplified BoundedBoard instead")]
-pub use bounded_go_board::BoundedGoBoard;
-
-#[deprecated(note = "Use the new simplified interaction system instead")]
-pub use interactions::{VertexClickEvent, VertexEventHandlers};
+// All deprecated types removed - use the new simplified API instead
 
 // =============================================================================
 // CONVENIENCE RE-EXPORTS
@@ -197,6 +128,37 @@ pub mod lines {
     }
     pub fn arrow(from: Pos, to: Pos) -> Line {
         Line::arrow(from, to)
+    }
+}
+
+/// Factory functions for common board setups
+pub mod factory {
+    use crate::go_board::{Board, BoardView, Pos, BLACK, WHITE};
+
+    /// Create a simple empty board
+    pub fn empty_board() -> Board {
+        Board::new()
+    }
+
+    /// Create a 9x9 board for teaching
+    pub fn teaching_board() -> Board {
+        Board::with_size(9, 9).vertex_size(30.0)
+    }
+
+    /// Create a demo board with some stones
+    pub fn demo_board() -> Board {
+        Board::new()
+            .stone(Pos::new(3, 3), BLACK)
+            .stone(Pos::new(15, 15), WHITE)
+            .stone(Pos::new(9, 9), BLACK)
+            .last_move(Pos::new(9, 9))
+    }
+
+    /// Create a simple interactive board view
+    pub fn simple_board_view() -> BoardView {
+        BoardView::new(empty_board()).on_click(|event| {
+            println!("Clicked at position {:?}", event.pos);
+        })
     }
 }
 

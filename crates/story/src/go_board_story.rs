@@ -5,11 +5,8 @@ use gpui::{
 
 use gpui_component::{
     go_board::{
-        BoardTheme, BoundedGoBoard, CornerPaint, DirectionalPaintMap, GhostStone,
-        GhostStoneOverlay, GhostStoneType, GoBoard, GridTheme, HeatData, HeatOverlay, Line,
-        LineOverlay, LineType, Marker, MarkerType, PaintOverlay, PaintType, Pos, SelectionDirection,
-        Vertex, VertexClickEvent, VertexEventHandlers, VertexMouseDownEvent, VertexMouseMoveEvent,
-        VertexMouseUpEvent, VertexSelection,
+        core::{Line, Marker, Pos, Theme, BLACK, WHITE},
+        Board, BoardView, BoundedBoard,
     },
     h_flex, v_flex, ActiveTheme,
 };
@@ -18,810 +15,528 @@ use crate::{section, Story};
 
 pub struct GoBoardStory {
     focus_handle: gpui::FocusHandle,
-    board_19x19: Entity<GoBoard>,
-    board_13x13: Entity<GoBoard>,
-    board_9x9: Entity<GoBoard>,
-    custom_theme_board: Entity<GoBoard>,
-    dark_theme_board: Entity<GoBoard>,
-    minimalist_theme_board: Entity<GoBoard>,
-    high_contrast_board: Entity<GoBoard>,
-    textured_board: Entity<GoBoard>,
-    asset_board: Entity<GoBoard>,
-    stone_variation_board: Entity<GoBoard>,
-    coordinate_board: Entity<GoBoard>,
-    stone_board: Entity<GoBoard>,
-    fuzzy_stone_board: Entity<GoBoard>,
-    marker_board: Entity<GoBoard>,
-    selection_board: Entity<GoBoard>,
-    paint_overlay_board: Entity<GoBoard>,
-    heat_overlay_board: Entity<GoBoard>,
-    ghost_stone_board: Entity<GoBoard>,
-    line_board: Entity<GoBoard>,
-    interactive_board: Entity<GoBoard>,
-    interactive_asset_board: Entity<GoBoard>,
-    bounded_small_board: Entity<BoundedGoBoard>,
-    bounded_medium_board: Entity<BoundedGoBoard>,
-    bounded_large_board: Entity<BoundedGoBoard>,
-    bounded_constrained_board: Entity<BoundedGoBoard>,
-    partial_board_center: Entity<BoundedGoBoard>,
-    partial_board_corner: Entity<BoundedGoBoard>,
-    partial_board_edge: Entity<BoundedGoBoard>,
-    efficient_update_demo: Entity<GoBoard>,
+    board_19x19: Entity<BoardView>,
+    board_13x13: Entity<BoardView>,
+    board_9x9: Entity<BoardView>,
+    custom_theme_board: Entity<BoardView>,
+    dark_theme_board: Entity<BoardView>,
+    minimalist_theme_board: Entity<BoardView>,
+    high_contrast_board: Entity<BoardView>,
+    textured_board: Entity<BoardView>,
+    asset_board: Entity<BoardView>,
+    stone_variation_board: Entity<BoardView>,
+    coordinate_board: Entity<BoardView>,
+    stone_board: Entity<BoardView>,
+    fuzzy_stone_board: Entity<BoardView>,
+    marker_board: Entity<BoardView>,
+    selection_board: Entity<BoardView>,
+    paint_overlay_board: Entity<BoardView>,
+    heat_overlay_board: Entity<BoardView>,
+    ghost_stone_board: Entity<BoardView>,
+    line_board: Entity<BoardView>,
+    interactive_board: Entity<BoardView>,
+    interactive_asset_board: Entity<BoardView>,
+    bounded_small_board: Entity<BoardView>,
+    bounded_medium_board: Entity<BoardView>,
+    bounded_large_board: Entity<BoardView>,
+    bounded_constrained_board: Entity<BoardView>,
+    partial_board_center: Entity<BoardView>,
+    partial_board_corner: Entity<BoardView>,
+    partial_board_edge: Entity<BoardView>,
+    efficient_update_demo: Entity<BoardView>,
 }
 
 impl GoBoardStory {
     pub fn new(_window: &mut Window, cx: &mut Context<Self>) -> Self {
         Self {
             focus_handle: cx.focus_handle(),
-            board_19x19: cx.new(|_| GoBoard::new()),
-            board_13x13: cx.new(|_| GoBoard::with_size(13, 13)),
-            board_9x9: cx.new(|_| GoBoard::with_size(9, 9)),
+            board_19x19: cx.new(|_| BoardView::new(Board::new())),
+            board_13x13: cx.new(|_| BoardView::new(Board::with_size(13, 13))),
+            board_9x9: cx.new(|_| BoardView::new(Board::with_size(9, 9))),
             custom_theme_board: cx.new(|_| {
-                // Create a custom theme using the new BoardTheme system
-                let custom_theme = BoardTheme::default()
-                    .with_board_background(gpui::rgb(0x8B7355)) // Darker wood
-                    .with_grid_lines(gpui::rgb(0x2c2c2c), 1.5) // Dark gray lines, thicker
-                    .with_stone_colors(gpui::rgb(0x000000), gpui::rgb(0xffffff)) // Pure B&W stones
-                    .with_coordinates(gpui::rgb(0x654321), 12.0, 0.8); // Dark brown coordinates
+                // Create a custom theme using the new Theme system
+                let mut custom_theme = Theme::default();
+                custom_theme.background = gpui::rgb(0x8B7355).into().into(); // Darker wood
+                custom_theme.grid_lines = gpui::rgb(0x2c2c2c).into().into(); // Dark gray lines
+                custom_theme.grid_width = 1.5; // Thicker lines
+                custom_theme.black_stone = gpui::rgb(0x000000).into().into(); // Pure black stones
+                custom_theme.white_stone = gpui::rgb(0xffffff).into().into(); // Pure white stones
+                custom_theme.coordinates = gpui::rgb(0x654321).into().into(); // Dark brown coordinates
+                custom_theme.coord_size = 12.0;
 
-                let mut board = GoBoard::with_size(9, 9).with_vertex_size(30.0);
-                board.set_theme(custom_theme);
-                board
+                BoardView::new(Board::with_size(9, 9).theme(custom_theme).vertex_size(30.0))
             }),
             dark_theme_board: cx.new(|_| {
-                let mut board = GoBoard::with_size(9, 9).with_vertex_size(30.0);
-                board.set_theme(BoardTheme::dark());
-                board
+                BoardView::new(
+                    Board::with_size(9, 9)
+                        .theme(Theme::dark())
+                        .vertex_size(30.0),
+                )
             }),
             minimalist_theme_board: cx.new(|_| {
-                let mut board = GoBoard::with_size(9, 9).with_vertex_size(30.0);
-                board.set_theme(BoardTheme::minimalist());
-                board
+                BoardView::new(
+                    Board::with_size(9, 9)
+                        .theme(Theme::minimal())
+                        .vertex_size(30.0),
+                )
             }),
             high_contrast_board: cx.new(|_| {
-                let mut board = GoBoard::with_size(9, 9).with_vertex_size(30.0);
-                board.set_theme(BoardTheme::high_contrast());
-                board
+                BoardView::new(
+                    Board::with_size(9, 9)
+                        .theme(Theme::high_contrast())
+                        .vertex_size(30.0),
+                )
             }),
             textured_board: cx.new(|_| {
-                // Create a board theme using color-only rendering (no external assets)
-                let textured_theme = BoardTheme::default();
+                // Create a board with default theme
+                let board = Board::with_size(9, 9).vertex_size(30.0);
 
-                let mut board = GoBoard::with_size(9, 9).with_vertex_size(30.0);
-                board.set_theme(textured_theme);
+                // Add stones using the new API - manually setting each position
+                let board = board
+                    .stone(Pos::new(3, 0), BLACK)
+                    .stone(Pos::new(5, 0), WHITE)
+                    .stone(Pos::new(1, 1), BLACK)
+                    .stone(Pos::new(7, 1), WHITE)
+                    .stone(Pos::new(2, 2), BLACK)
+                    .stone(Pos::new(6, 2), WHITE)
+                    .stone(Pos::new(0, 3), BLACK)
+                    .stone(Pos::new(8, 3), WHITE)
+                    .stone(Pos::new(0, 5), WHITE)
+                    .stone(Pos::new(8, 5), BLACK)
+                    .stone(Pos::new(2, 6), WHITE)
+                    .stone(Pos::new(6, 6), BLACK)
+                    .stone(Pos::new(1, 7), WHITE)
+                    .stone(Pos::new(7, 7), BLACK)
+                    .stone(Pos::new(3, 8), WHITE)
+                    .stone(Pos::new(5, 8), BLACK);
 
-                // Add some stones to demonstrate textured stones
-                let sign_map = vec![
-                    vec![0, 0, 0, 1, 0, -1, 0, 0, 0],
-                    vec![0, 1, 0, 0, 0, 0, 0, -1, 0],
-                    vec![0, 0, 1, 0, 0, 0, -1, 0, 0],
-                    vec![1, 0, 0, 0, 0, 0, 0, 0, -1],
-                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0],
-                    vec![-1, 0, 0, 0, 0, 0, 0, 0, 1],
-                    vec![0, 0, -1, 0, 0, 0, 1, 0, 0],
-                    vec![0, -1, 0, 0, 0, 0, 0, 1, 0],
-                    vec![0, 0, 0, -1, 0, 1, 0, 0, 0],
-                ];
-                board.set_sign_map(sign_map);
-                board
+                BoardView::new(board)
             }),
             asset_board: cx.new(|_| {
                 // Asset demo disabled to avoid missing embedded resources; use default theme
-                let asset_theme = BoardTheme::default();
-                let mut board = GoBoard::with_size(9, 9).with_vertex_size(35.0);
-                board.set_theme(asset_theme);
+                let board = Board::with_size(9, 9).vertex_size(35.0);
 
-                // Add a sample game pattern to demonstrate the stones
-                let sign_map = vec![
-                    vec![0, 0, 0, 1, 0, -1, 0, 0, 0],
-                    vec![0, 1, 0, 0, 0, 0, 0, -1, 0],
-                    vec![0, 0, 1, 0, 0, 0, -1, 0, 0],
-                    vec![1, 0, 0, 1, 0, -1, 0, 0, -1],
-                    vec![0, 0, 0, 0, 1, 0, 0, 0, 0],
-                    vec![-1, 0, 0, -1, 0, 1, 0, 0, 1],
-                    vec![0, 0, -1, 0, 0, 0, 1, 0, 0],
-                    vec![0, -1, 0, 0, 0, 0, 0, 1, 0],
-                    vec![0, 0, 0, -1, 0, 1, 0, 0, 0],
-                ];
-                board.set_sign_map(sign_map);
-                board
+                // Add a sample game pattern using the new API
+                let board = board
+                    .stone(Pos::new(3, 0), BLACK)
+                    .stone(Pos::new(5, 0), WHITE)
+                    .stone(Pos::new(1, 1), BLACK)
+                    .stone(Pos::new(7, 1), WHITE)
+                    .stone(Pos::new(2, 2), BLACK)
+                    .stone(Pos::new(6, 2), WHITE)
+                    .stone(Pos::new(0, 3), BLACK)
+                    .stone(Pos::new(3, 3), BLACK)
+                    .stone(Pos::new(5, 3), WHITE)
+                    .stone(Pos::new(8, 3), WHITE)
+                    .stone(Pos::new(4, 4), BLACK)
+                    .stone(Pos::new(0, 5), WHITE)
+                    .stone(Pos::new(3, 5), WHITE)
+                    .stone(Pos::new(5, 5), BLACK)
+                    .stone(Pos::new(8, 5), BLACK)
+                    .stone(Pos::new(2, 6), WHITE)
+                    .stone(Pos::new(6, 6), BLACK)
+                    .stone(Pos::new(1, 7), WHITE)
+                    .stone(Pos::new(7, 7), BLACK)
+                    .stone(Pos::new(3, 8), WHITE)
+                    .stone(Pos::new(5, 8), BLACK);
+
+                BoardView::new(board)
             }),
             stone_variation_board: cx.new(|_| {
                 // Stone variation demo disabled (no external variation textures)
-                let variation_theme = BoardTheme::default();
+                let board = Board::with_size(9, 9).vertex_size(35.0);
 
-                let mut board = GoBoard::with_size(9, 9).with_vertex_size(35.0);
-                board.set_theme(variation_theme);
-
-                // Add many stones to demonstrate variation
-                let sign_map = vec![
-                    vec![1, -1, 1, -1, 1, -1, 1, -1, 1],
-                    vec![-1, 1, -1, 1, -1, 1, -1, 1, -1],
-                    vec![1, -1, 1, -1, 1, -1, 1, -1, 1],
-                    vec![-1, 1, -1, 1, -1, 1, -1, 1, -1],
-                    vec![1, -1, 1, -1, 0, -1, 1, -1, 1],
-                    vec![-1, 1, -1, 1, -1, 1, -1, 1, -1],
-                    vec![1, -1, 1, -1, 1, -1, 1, -1, 1],
-                    vec![-1, 1, -1, 1, -1, 1, -1, 1, -1],
-                    vec![1, -1, 1, -1, 1, -1, 1, -1, 1],
-                ];
-                board.set_sign_map(sign_map);
-                board
+                // Add many stones to demonstrate variation using the new API
+                // Create a checkerboard pattern manually
+                let mut board = board;
+                for y in 0..9 {
+                    for x in 0..9 {
+                        if (x + y) % 2 == 0 && (x != 4 || y != 4) {
+                            // Skip center
+                            board = board.stone(Pos::new(x, y), BLACK);
+                        } else if (x + y) % 2 == 1 {
+                            board = board.stone(Pos::new(x, y), WHITE);
+                        }
+                    }
+                }
+                BoardView::new(board)
             }),
             coordinate_board: cx.new(|_| {
-                let mut board = GoBoard::with_size(9, 9).with_vertex_size(25.0);
-                // Add many stones to demonstrate variation
-                let sign_map = vec![
-                    vec![1, -1, 1, -1, 1, -1, 1, -1, 1],
-                    vec![-1, 1, -1, 1, -1, 1, -1, 1, -1],
-                    vec![1, -1, 1, -1, 1, -1, 1, -1, 1],
-                    vec![-1, 1, -1, 1, -1, 1, -1, 1, -1],
-                    vec![1, -1, 1, -1, 0, -1, 1, -1, 1],
-                    vec![-1, 1, -1, 1, -1, 1, -1, 1, -1],
-                    vec![1, -1, 1, -1, 1, -1, 1, -1, 1],
-                    vec![-1, 1, -1, 1, -1, 1, -1, 1, -1],
-                    vec![1, -1, 1, -1, 1, -1, 1, -1, 1],
-                ];
-                board.set_sign_map(sign_map);
-                board.set_show_coordinates(true);
-                board
+                let board = Board::with_size(9, 9).vertex_size(25.0).coordinates(true);
+                // Add stones to demonstrate coordinates
+                let board = board
+                    .stone(Pos::new(3, 0), BLACK)
+                    .stone(Pos::new(5, 0), WHITE)
+                    .stone(Pos::new(1, 1), BLACK)
+                    .stone(Pos::new(7, 1), WHITE)
+                    .stone(Pos::new(2, 2), BLACK)
+                    .stone(Pos::new(6, 2), WHITE)
+                    .stone(Pos::new(0, 3), BLACK)
+                    .stone(Pos::new(8, 3), WHITE)
+                    .stone(Pos::new(0, 5), WHITE)
+                    .stone(Pos::new(8, 5), BLACK)
+                    .stone(Pos::new(2, 6), WHITE)
+                    .stone(Pos::new(6, 6), BLACK)
+                    .stone(Pos::new(1, 7), WHITE)
+                    .stone(Pos::new(7, 7), BLACK)
+                    .stone(Pos::new(3, 8), WHITE)
+                    .stone(Pos::new(5, 8), BLACK);
+                BoardView::new(board)
             }),
             stone_board: cx.new(|_| {
-                let mut board = GoBoard::with_size(9, 9).with_vertex_size(35.0);
+                let board = Board::with_size(9, 9).vertex_size(35.0);
 
-                // Create a simple game pattern
-                let sign_map = vec![
-                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0],
-                    vec![0, 0, 0, 1, 0, -1, 0, 0, 0],
-                    vec![0, 0, 1, 0, 0, 0, -1, 0, 0],
-                    vec![0, 1, 0, 1, 0, -1, 0, -1, 0],
-                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0],
-                    vec![0, -1, 0, -1, 0, 1, 0, 1, 0],
-                    vec![0, 0, -1, 0, 0, 0, 1, 0, 0],
-                    vec![0, 0, 0, -1, 0, 1, 0, 0, 0],
-                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0],
-                ];
-                board.set_sign_map(sign_map);
-                board
+                // Create a simple game pattern using the new API
+                let board = board
+                    .stone(Pos::new(3, 1), BLACK)
+                    .stone(Pos::new(5, 1), WHITE)
+                    .stone(Pos::new(2, 2), BLACK)
+                    .stone(Pos::new(6, 2), WHITE)
+                    .stone(Pos::new(1, 3), BLACK)
+                    .stone(Pos::new(3, 3), BLACK)
+                    .stone(Pos::new(5, 3), WHITE)
+                    .stone(Pos::new(7, 3), WHITE)
+                    .stone(Pos::new(1, 5), WHITE)
+                    .stone(Pos::new(3, 5), WHITE)
+                    .stone(Pos::new(5, 5), BLACK)
+                    .stone(Pos::new(7, 5), BLACK)
+                    .stone(Pos::new(2, 6), WHITE)
+                    .stone(Pos::new(6, 6), BLACK)
+                    .stone(Pos::new(3, 7), WHITE)
+                    .stone(Pos::new(5, 7), BLACK);
+                BoardView::new(board)
             }),
             fuzzy_stone_board: cx.new(|_| {
-                let mut board = GoBoard::with_size(9, 9).with_vertex_size(35.0);
+                let board = Board::with_size(9, 9).vertex_size(35.0);
 
-                // Create the same pattern as stone_board
-                let sign_map = vec![
-                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0],
-                    vec![0, 0, 0, 1, 0, -1, 0, 0, 0],
-                    vec![0, 0, 1, 0, 0, 0, -1, 0, 0],
-                    vec![0, 1, 0, 1, 0, -1, 0, -1, 0],
-                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0],
-                    vec![0, -1, 0, -1, 0, 1, 0, 1, 0],
-                    vec![0, 0, -1, 0, 0, 0, 1, 0, 0],
-                    vec![0, 0, 0, -1, 0, 1, 0, 0, 0],
-                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0],
-                ];
-                board.set_sign_map(sign_map);
+                // Create the same pattern as stone_board using the new API
+                let board = board
+                    .stone(Pos::new(3, 1), BLACK)
+                    .stone(Pos::new(5, 1), WHITE)
+                    .stone(Pos::new(2, 2), BLACK)
+                    .stone(Pos::new(6, 2), WHITE)
+                    .stone(Pos::new(1, 3), BLACK)
+                    .stone(Pos::new(3, 3), BLACK)
+                    .stone(Pos::new(5, 3), WHITE)
+                    .stone(Pos::new(7, 3), WHITE)
+                    .stone(Pos::new(1, 5), WHITE)
+                    .stone(Pos::new(3, 5), WHITE)
+                    .stone(Pos::new(5, 5), BLACK)
+                    .stone(Pos::new(7, 5), BLACK)
+                    .stone(Pos::new(2, 6), WHITE)
+                    .stone(Pos::new(6, 6), BLACK)
+                    .stone(Pos::new(3, 7), WHITE)
+                    .stone(Pos::new(5, 7), BLACK);
 
-                // Enable fuzzy positioning and visual variation
-                use gpui_component::go_board::StoneTheme;
-                let fuzzy_theme = StoneTheme {
-                    fuzzy_placement: true,
-                    fuzzy_max_offset: 3.0,
-                    random_variation: true,
-                    max_rotation: 8.0,
-                    ..StoneTheme::default()
-                };
-                board.set_stone_theme(fuzzy_theme);
-                board
+                // Note: Fuzzy positioning and visual variation features are not available
+                // in the new simplified API. The new API focuses on core functionality.
+                BoardView::new(board)
             }),
             marker_board: cx.new(|_| {
-                let mut board = GoBoard::with_size(9, 9).with_vertex_size(35.0);
+                let board = Board::with_size(9, 9).vertex_size(35.0);
 
-                // Create a marker map demonstrating all marker types
-                let mut marker_map = vec![vec![None; 9]; 9];
-
-                // Row 1: Basic marker types
-                marker_map[1][1] = Some(Marker::new(MarkerType::Circle));
-                marker_map[1][2] = Some(Marker::new(MarkerType::Cross));
-                marker_map[1][3] = Some(Marker::new(MarkerType::Triangle));
-                marker_map[1][4] = Some(Marker::new(MarkerType::Square));
-                marker_map[1][5] = Some(Marker::new(MarkerType::Point));
-
-                // Row 2: Colored markers with tooltips
-                marker_map[2][1] = Some(
-                    Marker::with_label(
-                        MarkerType::Circle,
-                        "Red circle marker - hover for tooltip!".to_string(),
+                // Add markers using the new API - manually setting each position
+                let board = board
+                    // Row 1: Basic marker types
+                    .marker(Pos::new(1, 1), Marker::circle())
+                    .marker(Pos::new(2, 1), Marker::cross())
+                    .marker(Pos::new(3, 1), Marker::triangle())
+                    .marker(Pos::new(4, 1), Marker::square())
+                    .marker(Pos::new(5, 1), Marker::dot())
+                    // Row 2: Colored markers
+                    .marker(
+                        Pos::new(1, 2),
+                        Marker::circle().with_color(gpui::rgb(0xff0000).into().into()),
                     )
-                    .with_color("red".to_string()),
-                );
-                marker_map[2][2] = Some(
-                    Marker::with_label(MarkerType::Cross, "Blue cross with tooltip".to_string())
-                        .with_color("blue".to_string()),
-                );
-                marker_map[2][3] = Some(
-                    Marker::with_label(MarkerType::Triangle, "Green triangle marker".to_string())
-                        .with_color("green".to_string()),
-                );
-                marker_map[2][4] = Some(
-                    Marker::with_label(MarkerType::Square, "Important marker".to_string())
-                        .with_color("#FF0000".to_string()),
-                );
-                marker_map[2][5] = Some(
-                    Marker::with_label(MarkerType::Point, "Point of interest".to_string())
-                        .with_color("#0000FF".to_string()),
-                );
+                    .marker(
+                        Pos::new(2, 2),
+                        Marker::cross().with_color(gpui::rgb(0x0000ff).into()),
+                    )
+                    .marker(
+                        Pos::new(3, 2),
+                        Marker::triangle().with_color(gpui::rgb(0x00ff00).into()),
+                    )
+                    .marker(
+                        Pos::new(4, 2),
+                        Marker::square().with_color(gpui::rgb(0xff0000).into()),
+                    )
+                    .marker(
+                        Pos::new(5, 2),
+                        Marker::dot().with_color(gpui::rgb(0x0000ff).into()),
+                    )
+                    // Row 3: Different colors
+                    .marker(
+                        Pos::new(1, 3),
+                        Marker::circle().with_color(gpui::rgb(0xff0000).into()),
+                    )
+                    .marker(
+                        Pos::new(2, 3),
+                        Marker::cross().with_color(gpui::rgb(0x00ff00).into()),
+                    )
+                    .marker(
+                        Pos::new(3, 3),
+                        Marker::triangle().with_color(gpui::rgb(0x0000ff).into()),
+                    )
+                    .marker(
+                        Pos::new(4, 3),
+                        Marker::square().with_color(gpui::rgb(0xffff00).into()),
+                    )
+                    .marker(
+                        Pos::new(5, 3),
+                        Marker::dot().with_color(gpui::rgb(0xff00ff).into()),
+                    )
+                    // Row 4: Label markers
+                    .marker(Pos::new(1, 4), Marker::label("A"))
+                    .marker(
+                        Pos::new(2, 4),
+                        Marker::label("B").with_color(gpui::rgb(0xff0000).into()),
+                    )
+                    .marker(
+                        Pos::new(3, 4),
+                        Marker::label("1").with_color(gpui::rgb(0x0000ff).into()),
+                    )
+                    .marker(Pos::new(4, 4), Marker::label("2"))
+                    // Row 6: Different colored markers (z-index not supported in new API)
+                    .marker(
+                        Pos::new(1, 6),
+                        Marker::circle().with_color(gpui::rgb(0x0000ff).into()),
+                    )
+                    .marker(
+                        Pos::new(2, 6),
+                        Marker::square().with_color(gpui::rgb(0x00ff00).into()),
+                    )
+                    .marker(
+                        Pos::new(3, 6),
+                        Marker::cross().with_color(gpui::rgb(0xff0000).into()),
+                    )
+                    .coordinates(true);
 
-                // Row 3: Different sizes
-                marker_map[3][1] = Some(Marker::new(MarkerType::Circle).with_size(0.8));
-                marker_map[3][2] = Some(Marker::new(MarkerType::Cross).with_size(1.2));
-                marker_map[3][3] = Some(Marker::new(MarkerType::Triangle).with_size(1.5));
-                marker_map[3][4] = Some(Marker::new(MarkerType::Square).with_size(0.6));
-                marker_map[3][5] = Some(Marker::new(MarkerType::Point).with_size(2.0));
-
-                // Row 4: Label markers
-                marker_map[4][1] = Some(Marker::new(MarkerType::Label("A".to_string())));
-                marker_map[4][2] = Some(
-                    Marker::new(MarkerType::Label("B".to_string())).with_color("red".to_string()),
-                );
-                marker_map[4][3] = Some(
-                    Marker::new(MarkerType::Label("1".to_string())).with_color("blue".to_string()),
-                );
-                marker_map[4][4] =
-                    Some(Marker::new(MarkerType::Label("2".to_string())).with_size(1.5));
-
-                // Row 5: Loader markers
-                marker_map[5][2] = Some(Marker::new(MarkerType::Loader));
-                marker_map[5][3] =
-                    Some(Marker::new(MarkerType::Loader).with_color("red".to_string()));
-                marker_map[5][4] = Some(Marker::new(MarkerType::Loader).with_size(1.3));
-
-                // Row 6: Z-index layering demonstration - overlapping markers
-                // Background layer (z-index 1)
-                marker_map[6][1] = Some(
-                    Marker::new(MarkerType::Circle)
-                        .with_color("blue".to_string())
-                        .with_size(1.2)
-                        .with_z_index(1)
-                        .with_style_class("bg-layer".to_string()),
-                );
-
-                // Mid layer (z-index 5) - overlaps with background
-                marker_map[6][2] = Some(
-                    Marker::new(MarkerType::Square)
-                        .with_color("green".to_string())
-                        .with_size(1.0)
-                        .with_z_index(5)
-                        .with_style_class("mid-layer".to_string()),
-                );
-
-                // Foreground layer (z-index 10) - should appear on top
-                marker_map[6][3] = Some(
-                    Marker::new(MarkerType::Cross)
-                        .with_color("red".to_string())
-                        .with_size(0.8)
-                        .with_z_index(10)
-                        .with_style_class("fg-layer".to_string()),
-                );
-
-                board.set_marker_map(marker_map);
-                board.set_show_coordinates(true);
-                board
+                BoardView::new(board)
             }),
             selection_board: cx.new(|_| {
-                let mut board = GoBoard::with_size(9, 9).with_vertex_size(35.0);
+                let board = Board::with_size(9, 9).vertex_size(35.0);
 
-                // Create some stones for context
-                let sign_map = vec![
-                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0],
-                    vec![0, 1, 0, -1, 0, 0, 0, 0, 0],
-                    vec![0, 0, 0, 0, 1, 0, 0, 0, 0],
-                    vec![0, -1, 0, 0, 0, -1, 0, 0, 0],
-                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0],
-                    vec![0, 0, 0, 1, 0, 0, -1, 0, 0],
-                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0],
-                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0],
-                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0],
-                ];
-                board.set_sign_map(sign_map);
+                // Create some stones for context using the new API
+                let board = board
+                    .stone(Pos::new(1, 1), BLACK)
+                    .stone(Pos::new(3, 1), WHITE)
+                    .stone(Pos::new(4, 2), BLACK)
+                    .stone(Pos::new(3, 3), WHITE)
+                    .stone(Pos::new(5, 3), WHITE)
+                    .stone(Pos::new(3, 5), BLACK)
+                    .stone(Pos::new(6, 5), WHITE)
+                    // Selected vertices (highlighted in blue)
+                    .select(Pos::new(2, 2))
+                    .select(Pos::new(6, 6))
+                    // Dimmed vertices (reduced opacity) - Note: Dimming not directly supported in new API
+                    // Directional selection indicators not supported in new API
+                    .coordinates(true);
 
-                // Set up vertex selections to demonstrate different states
-                use gpui_component::go_board::Vertex;
-
-                // Selected vertices (highlighted in blue)
-                let selected_vertices = vec![
-                    Vertex::new(2, 2), // Normal selection
-                    Vertex::new(6, 6), // Another selection
-                ];
-                board.set_selected_vertices(selected_vertices);
-
-                // Dimmed vertices (reduced opacity)
-                let dimmed_vertices = vec![
-                    Vertex::new(0, 0), // Dimmed corner
-                    Vertex::new(8, 0), // Dimmed corner
-                    Vertex::new(0, 8), // Dimmed corner
-                    Vertex::new(8, 8), // Dimmed corner
-                    Vertex::new(4, 4), // Center dimmed
-                ];
-                board.set_dimmed_vertices(dimmed_vertices);
-
-                // Directional selection indicators
-                board.set_selected_left(vec![Vertex::new(1, 4)]); // Red left indicator
-                board.set_selected_right(vec![Vertex::new(7, 4)]); // Green right indicator
-                board.set_selected_top(vec![Vertex::new(4, 1)]); // Orange top indicator
-                board.set_selected_bottom(vec![Vertex::new(4, 7)]); // Purple bottom indicator
-
-                board.set_show_coordinates(true);
-                board
+                BoardView::new(board)
             }),
             paint_overlay_board: cx.new(|_| {
-                let mut board = GoBoard::with_size(9, 9).with_vertex_size(35.0);
+                let board = Board::with_size(9, 9).vertex_size(35.0);
 
-                // Create some stones for context
-                let sign_map = vec![
-                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0],
-                    vec![0, 1, 0, -1, 0, 0, 0, 0, 0],
-                    vec![0, 0, 1, 0, -1, 0, 0, 0, 0],
-                    vec![0, -1, 0, 1, 0, 0, 0, 0, 0],
-                    vec![0, 0, -1, 0, 1, 0, 0, 0, 0],
-                    vec![0, 0, 0, -1, 0, 1, 0, 0, 0],
-                    vec![0, 0, 0, 0, -1, 0, 1, 0, 0],
-                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0],
-                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0],
-                ];
-                board.set_sign_map(sign_map);
+                // Create some stones for context using the new API
+                let board = board
+                    .stone(Pos::new(1, 1), BLACK)
+                    .stone(Pos::new(3, 1), WHITE)
+                    .stone(Pos::new(2, 2), BLACK)
+                    .stone(Pos::new(4, 2), WHITE)
+                    .stone(Pos::new(3, 3), BLACK)
+                    .stone(Pos::new(1, 3), WHITE)
+                    .stone(Pos::new(4, 4), BLACK)
+                    .stone(Pos::new(2, 4), WHITE)
+                    .stone(Pos::new(3, 5), WHITE)
+                    .stone(Pos::new(5, 5), BLACK)
+                    .stone(Pos::new(4, 6), WHITE)
+                    .stone(Pos::new(6, 6), BLACK)
+                    // Note: Paint overlay functionality is not available in the new simplified API
+                    // The new API focuses on core board functionality without advanced overlays
+                    .coordinates(true);
 
-                // Create paint map for territory analysis
-                let paint_map = vec![
-                    vec![
-                        Some(PaintType::Fill { opacity: 0.8 }),
-                        Some(PaintType::Fill { opacity: 0.6 }),
-                        Some(PaintType::Fill { opacity: 0.4 }),
-                        None,
-                        None,
-                        None,
-                        None,
-                        None,
-                        None,
-                    ],
-                    vec![
-                        Some(PaintType::Fill { opacity: 0.7 }),
-                        None,
-                        Some(PaintType::Fill { opacity: 0.5 }),
-                        None,
-                        Some(PaintType::Fill { opacity: 0.3 }),
-                        Some(PaintType::Fill { opacity: 0.5 }),
-                        Some(PaintType::Fill { opacity: 0.7 }),
-                        Some(PaintType::Fill { opacity: 0.8 }),
-                        Some(PaintType::Fill { opacity: 0.9 }),
-                    ],
-                    vec![
-                        Some(PaintType::Fill { opacity: 0.6 }),
-                        Some(PaintType::Fill { opacity: 0.4 }),
-                        None,
-                        Some(PaintType::Fill { opacity: 0.2 }),
-                        None,
-                        Some(PaintType::Fill { opacity: 0.4 }),
-                        Some(PaintType::Fill { opacity: 0.6 }),
-                        Some(PaintType::Fill { opacity: 0.7 }),
-                        Some(PaintType::Fill { opacity: 0.8 }),
-                    ],
-                    vec![
-                        Some(PaintType::Fill { opacity: 0.5 }),
-                        None,
-                        Some(PaintType::Fill { opacity: 0.3 }),
-                        None,
-                        Some(PaintType::Fill { opacity: 0.2 }),
-                        Some(PaintType::Fill { opacity: 0.4 }),
-                        Some(PaintType::Fill { opacity: 0.6 }),
-                        Some(PaintType::Fill { opacity: 0.7 }),
-                        Some(PaintType::Fill { opacity: 0.8 }),
-                    ],
-                    vec![
-                        Some(PaintType::Fill { opacity: 0.4 }),
-                        Some(PaintType::Fill { opacity: 0.3 }),
-                        None,
-                        Some(PaintType::Fill { opacity: 0.1 }),
-                        None,
-                        Some(PaintType::Fill { opacity: 0.3 }),
-                        Some(PaintType::Fill { opacity: 0.5 }),
-                        Some(PaintType::Fill { opacity: 0.6 }),
-                        Some(PaintType::Fill { opacity: 0.7 }),
-                    ],
-                    vec![
-                        Some(PaintType::Fill { opacity: 0.3 }),
-                        Some(PaintType::Fill { opacity: 0.2 }),
-                        Some(PaintType::Fill { opacity: 0.1 }),
-                        None,
-                        Some(PaintType::Fill { opacity: 0.1 }),
-                        None,
-                        Some(PaintType::Fill { opacity: 0.4 }),
-                        Some(PaintType::Fill { opacity: 0.5 }),
-                        Some(PaintType::Fill { opacity: 0.6 }),
-                    ],
-                    vec![
-                        Some(PaintType::Fill { opacity: 0.2 }),
-                        Some(PaintType::Fill { opacity: 0.1 }),
-                        None,
-                        Some(PaintType::Fill { opacity: 0.1 }),
-                        None,
-                        Some(PaintType::Fill { opacity: 0.2 }),
-                        None,
-                        Some(PaintType::Fill { opacity: 0.3 }),
-                        Some(PaintType::Fill { opacity: 0.4 }),
-                    ],
-                    vec![
-                        Some(PaintType::Fill { opacity: 0.1 }),
-                        None,
-                        Some(PaintType::Fill { opacity: 0.1 }),
-                        Some(PaintType::Fill { opacity: 0.2 }),
-                        Some(PaintType::Fill { opacity: 0.3 }),
-                        Some(PaintType::Fill { opacity: 0.4 }),
-                        Some(PaintType::Fill { opacity: 0.5 }),
-                        Some(PaintType::Fill { opacity: 0.6 }),
-                        Some(PaintType::Fill { opacity: 0.7 }),
-                    ],
-                    vec![None, None, None, None, None, None, None, None, None],
-                ];
-                board.set_paint_map(paint_map);
-                board.set_show_coordinates(true);
-
-                board
+                BoardView::new(board)
             }),
             heat_overlay_board: cx.new(|_| {
-                let mut board = GoBoard::with_size(9, 9).with_vertex_size(35.0);
+                let board = Board::with_size(9, 9).vertex_size(35.0);
 
-                // Create some stones for context
-                let sign_map = vec![
-                    vec![0, 0, 0, 1, 0, -1, 0, 0, 0],
-                    vec![0, 1, 0, 0, 0, 0, 0, -1, 0],
-                    vec![0, 0, 0, 1, 0, -1, 0, 0, 0],
-                    vec![1, 0, 0, 0, 0, 0, 0, 0, -1],
-                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0],
-                    vec![-1, 0, 0, 0, 0, 0, 0, 0, 1],
-                    vec![0, 0, 0, -1, 0, 1, 0, 0, 0],
-                    vec![0, -1, 0, 0, 0, 0, 0, 1, 0],
-                    vec![0, 0, 0, -1, 0, 1, 0, 0, 0],
-                ];
-                board.set_sign_map(sign_map);
+                // Create some stones for context using the new API
+                let board = board
+                    .stone(Pos::new(3, 0), BLACK)
+                    .stone(Pos::new(5, 0), WHITE)
+                    .stone(Pos::new(1, 1), BLACK)
+                    .stone(Pos::new(7, 1), WHITE)
+                    .stone(Pos::new(3, 2), BLACK)
+                    .stone(Pos::new(5, 2), WHITE)
+                    .stone(Pos::new(0, 3), BLACK)
+                    .stone(Pos::new(8, 3), WHITE)
+                    .stone(Pos::new(0, 5), WHITE)
+                    .stone(Pos::new(8, 5), BLACK)
+                    .stone(Pos::new(3, 6), WHITE)
+                    .stone(Pos::new(5, 6), BLACK)
+                    .stone(Pos::new(1, 7), WHITE)
+                    .stone(Pos::new(7, 7), BLACK)
+                    .stone(Pos::new(3, 8), WHITE)
+                    .stone(Pos::new(5, 8), BLACK)
+                    // Note: Heat overlay functionality is not available in the new simplified API
+                    // The new API focuses on core board functionality without advanced overlays
+                    .coordinates(true);
 
-                // Create heat map for influence analysis
-                let heat_map = vec![
-                    vec![
-                        Some(HeatData::with_text(2, "2".to_string())),
-                        Some(HeatData::new(4)),
-                        Some(HeatData::new(6)),
-                        Some(HeatData::new(3)),
-                        None,
-                        Some(HeatData::new(3)),
-                        Some(HeatData::new(6)),
-                        Some(HeatData::new(4)),
-                        Some(HeatData::with_text(2, "2".to_string())),
-                    ],
-                    vec![
-                        Some(HeatData::new(3)),
-                        None,
-                        Some(HeatData::new(5)),
-                        Some(HeatData::new(7)),
-                        Some(HeatData::new(8)),
-                        Some(HeatData::new(7)),
-                        Some(HeatData::new(5)),
-                        None,
-                        Some(HeatData::new(3)),
-                    ],
-                    vec![
-                        Some(HeatData::new(4)),
-                        Some(HeatData::new(6)),
-                        Some(HeatData::new(8)),
-                        None,
-                        Some(HeatData::with_text(9, "MAX".to_string())),
-                        None,
-                        Some(HeatData::new(8)),
-                        Some(HeatData::new(6)),
-                        Some(HeatData::new(4)),
-                    ],
-                    vec![
-                        None,
-                        Some(HeatData::new(7)),
-                        Some(HeatData::with_text(9, "H".to_string())),
-                        Some(HeatData::new(8)),
-                        Some(HeatData::new(7)),
-                        Some(HeatData::new(8)),
-                        Some(HeatData::with_text(9, "H".to_string())),
-                        Some(HeatData::new(7)),
-                        None,
-                    ],
-                    vec![
-                        Some(HeatData::new(5)),
-                        Some(HeatData::new(8)),
-                        Some(HeatData::new(7)),
-                        Some(HeatData::new(6)),
-                        Some(HeatData::new(5)),
-                        Some(HeatData::new(6)),
-                        Some(HeatData::new(7)),
-                        Some(HeatData::new(8)),
-                        Some(HeatData::new(5)),
-                    ],
-                    vec![
-                        None,
-                        Some(HeatData::new(7)),
-                        Some(HeatData::with_text(9, "H".to_string())),
-                        Some(HeatData::new(8)),
-                        Some(HeatData::new(7)),
-                        Some(HeatData::new(8)),
-                        Some(HeatData::with_text(9, "H".to_string())),
-                        Some(HeatData::new(7)),
-                        None,
-                    ],
-                    vec![
-                        Some(HeatData::new(4)),
-                        Some(HeatData::new(6)),
-                        Some(HeatData::new(8)),
-                        None,
-                        Some(HeatData::with_text(9, "MAX".to_string())),
-                        None,
-                        Some(HeatData::new(8)),
-                        Some(HeatData::new(6)),
-                        Some(HeatData::new(4)),
-                    ],
-                    vec![
-                        Some(HeatData::new(3)),
-                        None,
-                        Some(HeatData::new(5)),
-                        Some(HeatData::new(7)),
-                        Some(HeatData::new(8)),
-                        Some(HeatData::new(7)),
-                        Some(HeatData::new(5)),
-                        None,
-                        Some(HeatData::new(3)),
-                    ],
-                    vec![
-                        Some(HeatData::with_text(2, "2".to_string())),
-                        Some(HeatData::new(4)),
-                        Some(HeatData::new(6)),
-                        Some(HeatData::new(3)),
-                        None,
-                        Some(HeatData::new(3)),
-                        Some(HeatData::new(6)),
-                        Some(HeatData::new(4)),
-                        Some(HeatData::with_text(2, "2".to_string())),
-                    ],
-                ];
-                board.set_heat_map(heat_map);
-                board.set_show_coordinates(true);
-
-                board
+                BoardView::new(board)
             }),
             ghost_stone_board: cx.new(|_| {
-                let mut board = GoBoard::with_size(9, 9).with_vertex_size(35.0);
+                let board = Board::with_size(9, 9).vertex_size(35.0);
 
-                // Create some stones for context
-                let sign_map = vec![
-                    vec![0, 0, 0, 1, 0, -1, 0, 0, 0],
-                    vec![0, 1, 0, 0, 0, 0, 0, -1, 0],
-                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0],
-                    vec![1, 0, 0, 0, 0, 0, 0, 0, -1],
-                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0],
-                    vec![-1, 0, 0, 0, 0, 0, 0, 0, 1],
-                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0],
-                    vec![0, -1, 0, 0, 0, 0, 0, 1, 0],
-                    vec![0, 0, 0, -1, 0, 1, 0, 0, 0],
-                ];
-                board.set_sign_map(sign_map);
+                // Create some stones for context using the new API
+                let board = board
+                    .stone(Pos::new(3, 0), BLACK)
+                    .stone(Pos::new(5, 0), WHITE)
+                    .stone(Pos::new(1, 1), BLACK)
+                    .stone(Pos::new(7, 1), WHITE)
+                    .stone(Pos::new(0, 3), BLACK)
+                    .stone(Pos::new(8, 3), WHITE)
+                    .stone(Pos::new(0, 5), WHITE)
+                    .stone(Pos::new(8, 5), BLACK)
+                    .stone(Pos::new(1, 7), WHITE)
+                    .stone(Pos::new(7, 7), BLACK)
+                    .stone(Pos::new(3, 8), WHITE)
+                    .stone(Pos::new(5, 8), BLACK)
+                    // Note: Ghost stone functionality is not available in the new simplified API
+                    // The new API focuses on core board functionality without advanced overlays
+                    .coordinates(true);
 
-                // Create ghost stone map for analysis visualization
-                let ghost_stone_map = vec![
-                    vec![
-                        Some(GhostStone::new(1, GhostStoneType::Good)),
-                        Some(GhostStone::new(-1, GhostStoneType::Interesting)),
-                        Some(GhostStone::new(1, GhostStoneType::Doubtful)),
-                        None,
-                        Some(GhostStone::new(-1, GhostStoneType::Good).faint()),
-                        None,
-                        Some(GhostStone::new(1, GhostStoneType::Bad)),
-                        Some(GhostStone::new(-1, GhostStoneType::Interesting)),
-                        Some(GhostStone::new(1, GhostStoneType::Good)),
-                    ],
-                    vec![
-                        Some(GhostStone::new(-1, GhostStoneType::Doubtful)),
-                        None,
-                        Some(GhostStone::new(1, GhostStoneType::Good)),
-                        Some(GhostStone::new(-1, GhostStoneType::Bad).faint()),
-                        Some(GhostStone::new(1, GhostStoneType::Interesting)),
-                        Some(GhostStone::new(-1, GhostStoneType::Doubtful)),
-                        Some(GhostStone::new(1, GhostStoneType::Bad)),
-                        None,
-                        Some(GhostStone::new(-1, GhostStoneType::Good)),
-                    ],
-                    vec![
-                        Some(GhostStone::new(1, GhostStoneType::Bad).faint()),
-                        Some(GhostStone::new(-1, GhostStoneType::Good)),
-                        Some(GhostStone::new(1, GhostStoneType::Interesting).faint()),
-                        Some(GhostStone::new(-1, GhostStoneType::Doubtful)),
-                        Some(GhostStone::new(1, GhostStoneType::Bad)),
-                        Some(GhostStone::new(-1, GhostStoneType::Interesting)),
-                        Some(GhostStone::new(1, GhostStoneType::Good).faint()),
-                        Some(GhostStone::new(-1, GhostStoneType::Bad)),
-                        Some(GhostStone::new(1, GhostStoneType::Doubtful)),
-                    ],
-                    vec![
-                        None,
-                        Some(GhostStone::new(-1, GhostStoneType::Interesting).faint()),
-                        Some(GhostStone::new(1, GhostStoneType::Good)),
-                        Some(GhostStone::new(-1, GhostStoneType::Bad)),
-                        Some(GhostStone::new(1, GhostStoneType::Doubtful).faint()),
-                        Some(GhostStone::new(-1, GhostStoneType::Good)),
-                        Some(GhostStone::new(1, GhostStoneType::Interesting)),
-                        Some(GhostStone::new(-1, GhostStoneType::Doubtful)),
-                        None,
-                    ],
-                    vec![
-                        Some(GhostStone::new(1, GhostStoneType::Good)),
-                        Some(GhostStone::new(-1, GhostStoneType::Bad).faint()),
-                        Some(GhostStone::new(1, GhostStoneType::Interesting)),
-                        Some(GhostStone::new(-1, GhostStoneType::Doubtful)),
-                        Some(GhostStone::new(1, GhostStoneType::Good).faint()),
-                        Some(GhostStone::new(-1, GhostStoneType::Bad)),
-                        Some(GhostStone::new(1, GhostStoneType::Interesting).faint()),
-                        Some(GhostStone::new(-1, GhostStoneType::Doubtful)),
-                        Some(GhostStone::new(1, GhostStoneType::Good)),
-                    ],
-                    vec![
-                        None,
-                        Some(GhostStone::new(-1, GhostStoneType::Doubtful)),
-                        Some(GhostStone::new(1, GhostStoneType::Bad).faint()),
-                        Some(GhostStone::new(-1, GhostStoneType::Good)),
-                        Some(GhostStone::new(1, GhostStoneType::Interesting)),
-                        Some(GhostStone::new(-1, GhostStoneType::Doubtful).faint()),
-                        Some(GhostStone::new(1, GhostStoneType::Bad)),
-                        Some(GhostStone::new(-1, GhostStoneType::Good)),
-                        None,
-                    ],
-                    vec![
-                        Some(GhostStone::new(1, GhostStoneType::Interesting).faint()),
-                        Some(GhostStone::new(-1, GhostStoneType::Bad)),
-                        Some(GhostStone::new(1, GhostStoneType::Good)),
-                        Some(GhostStone::new(-1, GhostStoneType::Doubtful).faint()),
-                        Some(GhostStone::new(1, GhostStoneType::Interesting)),
-                        Some(GhostStone::new(-1, GhostStoneType::Bad)),
-                        Some(GhostStone::new(1, GhostStoneType::Good).faint()),
-                        Some(GhostStone::new(-1, GhostStoneType::Doubtful)),
-                        Some(GhostStone::new(1, GhostStoneType::Bad)),
-                    ],
-                    vec![
-                        Some(GhostStone::new(-1, GhostStoneType::Good)),
-                        None,
-                        Some(GhostStone::new(1, GhostStoneType::Doubtful).faint()),
-                        Some(GhostStone::new(-1, GhostStoneType::Interesting)),
-                        Some(GhostStone::new(1, GhostStoneType::Bad)),
-                        Some(GhostStone::new(-1, GhostStoneType::Good).faint()),
-                        Some(GhostStone::new(1, GhostStoneType::Doubtful)),
-                        None,
-                        Some(GhostStone::new(-1, GhostStoneType::Interesting)),
-                    ],
-                    vec![
-                        Some(GhostStone::new(1, GhostStoneType::Bad).faint()),
-                        Some(GhostStone::new(-1, GhostStoneType::Good)),
-                        Some(GhostStone::new(1, GhostStoneType::Interesting)),
-                        None,
-                        Some(GhostStone::new(-1, GhostStoneType::Doubtful).faint()),
-                        None,
-                        Some(GhostStone::new(1, GhostStoneType::Bad)),
-                        Some(GhostStone::new(-1, GhostStoneType::Good)),
-                        Some(GhostStone::new(1, GhostStoneType::Interesting).faint()),
-                    ],
-                ];
-                board.set_ghost_stone_map(ghost_stone_map);
-
-                board
+                BoardView::new(board)
             }),
             line_board: cx.new(|_| {
-                let mut board = GoBoard::with_size(9, 9).with_vertex_size(35.0);
+                let mut board = Board::with_size(9, 9).vertex_size(35.0);
 
-                // Create some stones for context
-                let sign_map = vec![
-                    vec![0, 0, 0, 1, 0, -1, 0, 0, 0],
-                    vec![0, 1, 0, 0, 0, 0, 0, -1, 0],
-                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0],
-                    vec![1, 0, 0, 0, 0, 0, 0, 0, -1],
-                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0],
-                    vec![-1, 0, 0, 0, 0, 0, 0, 0, 1],
-                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0],
-                    vec![0, -1, 0, 0, 0, 0, 0, 1, 0],
-                    vec![0, 0, 0, -1, 0, 1, 0, 0, 0],
+                // Create some stones for context using the new API
+                let stones = vec![
+                    (Pos::new(3, 0), BLACK),
+                    (Pos::new(5, 0), WHITE),
+                    (Pos::new(1, 1), BLACK),
+                    (Pos::new(7, 1), WHITE),
+                    (Pos::new(0, 3), BLACK),
+                    (Pos::new(8, 3), WHITE),
+                    (Pos::new(0, 5), WHITE),
+                    (Pos::new(8, 5), BLACK),
+                    (Pos::new(1, 7), WHITE),
+                    (Pos::new(7, 7), BLACK),
+                    (Pos::new(3, 8), WHITE),
+                    (Pos::new(5, 8), BLACK),
                 ];
-                board.set_sign_map(sign_map);
+
+                for (pos, stone) in stones {
+                    board.data_mut().set_stone(pos, stone);
+                }
 
                 // Create line demonstrations
                 let lines = vec![
                     // Horizontal line connecting stones
-                    crate::go_board::core::Line::line(Pos::new(3, 0), Pos::new(5, 0)),
+                    Line::line(Pos::new(3, 0), Pos::new(5, 0)),
                     // Vertical line
-                    crate::go_board::core::Line::line(Pos::new(1, 1), Pos::new(1, 4)),
+                    Line::line(Pos::new(1, 1), Pos::new(1, 4)),
                     // Diagonal line
-                    crate::go_board::core::Line::line(Pos::new(2, 2), Pos::new(6, 6)),
+                    Line::line(Pos::new(2, 2), Pos::new(6, 6)),
                     // Arrows showing analysis directions
-                    crate::go_board::core::Line::arrow(Pos::new(0, 3), Pos::new(3, 6)),
-                    crate::go_board::core::Line::arrow(Pos::new(8, 3), Pos::new(5, 6)),
+                    Line::arrow(Pos::new(0, 3), Pos::new(3, 6)),
+                    Line::arrow(Pos::new(8, 3), Pos::new(5, 6)),
                     // Connection arrows between stones
-                    crate::go_board::core::Line::arrow(Pos::new(3, 8), Pos::new(5, 8)),
-                    crate::go_board::core::Line::arrow(Pos::new(7, 7), Pos::new(7, 4)),
+                    Line::arrow(Pos::new(3, 8), Pos::new(5, 8)),
+                    Line::arrow(Pos::new(7, 7), Pos::new(7, 4)),
                     // Analysis arrows
-                    crate::go_board::core::Line::arrow(Pos::new(4, 4), Pos::new(6, 2)),
-                    crate::go_board::core::Line::arrow(Pos::new(4, 4), Pos::new(2, 6)),
+                    Line::arrow(Pos::new(4, 4), Pos::new(6, 2)),
+                    Line::arrow(Pos::new(4, 4), Pos::new(2, 6)),
                     // Multiple line types demonstration
-                    crate::go_board::core::Line::line(Pos::new(0, 7), Pos::new(2, 7)), // Short horizontal
-                    crate::go_board::core::Line::line(Pos::new(6, 1), Pos::new(8, 1)), // Short horizontal
-                    crate::go_board::core::Line::arrow(Pos::new(1, 0), Pos::new(1, 2)), // Short vertical arrow
-                    crate::go_board::core::Line::arrow(Pos::new(7, 8), Pos::new(7, 6)), // Short vertical arrow
+                    Line::line(Pos::new(0, 7), Pos::new(2, 7)), // Short horizontal
+                    Line::line(Pos::new(6, 1), Pos::new(8, 1)), // Short horizontal
+                    Line::arrow(Pos::new(1, 0), Pos::new(1, 2)), // Short vertical arrow
+                    Line::arrow(Pos::new(7, 8), Pos::new(7, 6)), // Short vertical arrow
                 ];
-                board.set_lines(lines);
 
-                board
+                for line in lines {
+                    board.data_mut().add_line(line);
+                }
+
+                BoardView::new(board)
             }),
             interactive_board: cx.new(|_| {
-                let mut board = GoBoard::with_size(9, 9).with_vertex_size(40.0);
-                board.set_show_coordinates(true);
-                board
+                let board = Board::with_size(9, 9).vertex_size(40.0).coordinates(true);
+                BoardView::new(board)
             }),
             interactive_asset_board: cx.new(|_| {
-                // Create an interactive board using the specific assets
-                let asset_theme = BoardTheme::default();
-
-                let mut board = GoBoard::with_size(9, 9).with_vertex_size(40.0);
-                board.set_theme(asset_theme);
-                board.set_show_coordinates(true);
-                board
+                // Create an interactive board using default theme (assets disabled)
+                let board = Board::with_size(9, 9).vertex_size(40.0).coordinates(true);
+                BoardView::new(board)
             }),
             bounded_small_board: cx.new(|_| {
                 // Small bounded board - 9x9 in 150x150 space
-                let mut bounded = BoundedGoBoard::with_size(9, 9, 150.0, 150.0);
-                let sign_map = vec![
-                    vec![0, 1, 0, 0, 0, 0, 0, -1, 0],
-                    vec![1, 0, 1, 0, 0, 0, -1, 0, -1],
-                    vec![0, 1, 0, 0, 0, 0, 0, -1, 0],
-                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0],
-                    vec![0, 0, 0, 0, 1, 0, 0, 0, 0],
-                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0],
-                    vec![0, 1, 0, 0, 0, 0, 0, -1, 0],
-                    vec![1, 0, 1, 0, 0, 0, -1, 0, -1],
-                    vec![0, 1, 0, 0, 0, 0, 0, -1, 0],
-                ];
-                bounded.set_sign_map(sign_map);
-                bounded
+                let bounded = BoundedBoard::with_size(9, 9, 150.0, 150.0).update(|board| {
+                    // Convert sign_map to stone placements
+                    let stones = vec![
+                        (Pos::new(1, 0), BLACK),
+                        (Pos::new(7, 0), WHITE),
+                        (Pos::new(0, 1), BLACK),
+                        (Pos::new(2, 1), BLACK),
+                        (Pos::new(6, 1), WHITE),
+                        (Pos::new(8, 1), WHITE),
+                        (Pos::new(1, 2), BLACK),
+                        (Pos::new(7, 2), WHITE),
+                        (Pos::new(4, 4), BLACK),
+                        (Pos::new(1, 6), BLACK),
+                        (Pos::new(7, 6), WHITE),
+                        (Pos::new(0, 7), BLACK),
+                        (Pos::new(2, 7), BLACK),
+                        (Pos::new(6, 7), WHITE),
+                        (Pos::new(8, 7), WHITE),
+                        (Pos::new(1, 8), BLACK),
+                        (Pos::new(7, 8), WHITE),
+                    ];
+
+                    let mut board = board;
+                    for (pos, stone) in stones {
+                        board.data_mut().set_stone(pos, stone);
+                    }
+                    board
+                });
+
+                BoardView::new(bounded.into_inner())
             }),
             bounded_medium_board: cx.new(|_| {
                 // Medium bounded board - 13x13 in 250x250 space
-                let mut bounded = BoundedGoBoard::with_size(13, 13, 250.0, 250.0);
-                bounded.set_show_coordinates(true);
-                let sign_map = vec![
-                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                    vec![0, 0, 0, 1, 0, 0, 0, 0, 0, -1, 0, 0, 0],
-                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                    vec![0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, 0],
-                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                    vec![0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0],
-                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                    vec![0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0],
-                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                    vec![0, 0, 0, -1, 0, 0, 0, 0, 0, 1, 0, 0, 0],
-                    vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                ];
-                bounded.set_sign_map(sign_map);
-                bounded
+                let bounded = BoundedBoard::with_size(13, 13, 250.0, 250.0).update(|board| {
+                    // Convert sign_map to stone placements
+                    let stones = vec![
+                        (Pos::new(3, 1), BLACK),
+                        (Pos::new(9, 1), WHITE),
+                        (Pos::new(1, 3), BLACK),
+                        (Pos::new(11, 3), WHITE),
+                        (Pos::new(6, 6), BLACK),
+                        (Pos::new(1, 9), WHITE),
+                        (Pos::new(11, 9), BLACK),
+                        (Pos::new(3, 11), WHITE),
+                        (Pos::new(9, 11), BLACK),
+                    ];
+
+                    let mut board = board.coordinates(true);
+                    for (pos, stone) in stones {
+                        board.data_mut().set_stone(pos, stone);
+                    }
+                    board
+                });
+
+                BoardView::new(bounded.into_inner())
             }),
             bounded_large_board: cx.new(|_| {
                 // Large bounded board - 19x19 in 380x380 space
-                let mut bounded = BoundedGoBoard::with_size(19, 19, 380.0, 380.0);
-                let sign_map = vec![vec![0; 19]; 19]; // Empty 19x19 board
-                bounded.set_sign_map(sign_map);
-                bounded
+                let bounded = BoundedBoard::with_size(19, 19, 380.0, 380.0);
+                // Empty 19x19 board
+                BoardView::new(bounded.into_inner())
             }),
             bounded_constrained_board: cx.new(|_| {
                 // Constrained aspect ratio - 19x19 in 200x400 space (height-constrained)
-                let mut bounded = BoundedGoBoard::with_size(19, 19, 200.0, 400.0)
-                    .with_vertex_size_limits(5.0, 25.0);
+                let bounded =
+                    BoundedBoard::with_size(19, 19, 200.0, 400.0).vertex_size_limits(5.0, 25.0);
 
                 // Add some stones to show the scaling effect
                 let sign_map = vec![
@@ -845,14 +560,22 @@ impl GoBoardStory {
                     vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
                     vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1],
                 ];
-                bounded.set_sign_map(sign_map);
-                bounded
+                // Apply the sign map using the new API
+                let mut board = bounded.into_inner();
+                for (y, row) in sign_map.iter().enumerate() {
+                    for (x, &sign) in row.iter().enumerate() {
+                        if sign != 0 {
+                            let stone = if sign > 0 { BLACK } else { WHITE };
+                            board = board.stone(Pos::new(x, y), stone);
+                        }
+                    }
+                }
+
+                BoardView::new(board)
             }),
             partial_board_center: cx.new(|_| {
                 // Partial board showing center area of a 19x19 board
-                let mut bounded = BoundedGoBoard::with_size(5, 5, 200.0, 200.0); // 5x5 visible area
-
-                bounded.set_show_coordinates(true);
+                let bounded = BoundedBoard::with_size(5, 5, 200.0, 200.0); // 5x5 visible area
 
                 // Create a 5x5 sign map for just the visible area (coordinates 0-4)
                 let sign_map = vec![
@@ -863,14 +586,22 @@ impl GoBoardStory {
                     vec![0, 0, 0, 0, 0],
                 ];
 
-                bounded.set_sign_map(sign_map);
-                bounded
+                // Apply the sign map using the new API
+                let mut board = bounded.into_inner();
+                for (y, row) in sign_map.iter().enumerate() {
+                    for (x, &sign) in row.iter().enumerate() {
+                        if sign != 0 {
+                            let stone = if sign > 0 { BLACK } else { WHITE };
+                            board = board.stone(Pos::new(x, y), stone);
+                        }
+                    }
+                }
+
+                BoardView::new(board)
             }),
             partial_board_corner: cx.new(|_| {
                 // Partial board showing corner area
-                let mut bounded = BoundedGoBoard::with_size(7, 7, 200.0, 200.0); // 7x7 visible area
-
-                bounded.set_show_coordinates(true);
+                let bounded = BoundedBoard::with_size(7, 7, 200.0, 200.0); // 7x7 visible area
 
                 // Create a 7x7 sign map showing typical corner pattern (coordinates 0-6)
                 let sign_map = vec![
@@ -883,14 +614,22 @@ impl GoBoardStory {
                     vec![0, 0, 0, 0, 0, 0, 0],
                 ];
 
-                bounded.set_sign_map(sign_map);
-                bounded
+                // Apply the sign map using the new API
+                let mut board = bounded.into_inner();
+                for (y, row) in sign_map.iter().enumerate() {
+                    for (x, &sign) in row.iter().enumerate() {
+                        if sign != 0 {
+                            let stone = if sign > 0 { BLACK } else { WHITE };
+                            board = board.stone(Pos::new(x, y), stone);
+                        }
+                    }
+                }
+
+                BoardView::new(board)
             }),
             partial_board_edge: cx.new(|_| {
                 // Partial board showing side edge
-                let mut bounded = BoundedGoBoard::with_size(19, 3, 300.0, 150.0); // 19x3 slice
-
-                bounded.set_show_coordinates(true);
+                let bounded = BoundedBoard::with_size(19, 3, 300.0, 150.0); // 19x3 slice
 
                 // Create a 19x3 sign map for edge play (coordinates 0-18 x 0-2)
                 let sign_map = vec![
@@ -899,24 +638,38 @@ impl GoBoardStory {
                     vec![0, 1, 0, -1, 0, 1, 0, -1, 0, 1, 0, -1, 0, 1, 0, 0, 0, 0, 0],
                 ];
 
-                bounded.set_sign_map(sign_map);
-                bounded
+                // Apply the sign map using the new API
+                let mut board = bounded.into_inner();
+                for (y, row) in sign_map.iter().enumerate() {
+                    for (x, &sign) in row.iter().enumerate() {
+                        if sign != 0 {
+                            let stone = if sign > 0 { BLACK } else { WHITE };
+                            board = board.stone(Pos::new(x, y), stone);
+                        }
+                    }
+                }
+
+                BoardView::new(board)
             }),
             // Demonstration of efficient differential updates
             efficient_update_demo: cx.new(|_| {
-                let mut board = GoBoard::with_size(9, 9).with_vertex_size(30.0);
+                let mut board = Board::with_size(9, 9).vertex_size(30.0);
 
                 // Demonstrate efficient bulk updates
                 let initial_stones = vec![
-                    (Vertex::new(2, 2), 1),
-                    (Vertex::new(6, 2), -1),
-                    (Vertex::new(2, 6), -1),
-                    (Vertex::new(6, 6), 1),
-                    (Vertex::new(4, 4), 1), // Center stone
+                    (Pos::new(2, 2), BLACK),
+                    (Pos::new(6, 2), WHITE),
+                    (Pos::new(2, 6), WHITE),
+                    (Pos::new(6, 6), BLACK),
+                    (Pos::new(4, 4), BLACK), // Center stone
                 ];
 
-                board.update_stones(&initial_stones);
-                board
+                // Apply stones using the new API
+                for (pos, stone) in initial_stones {
+                    board = board.stone(pos, stone);
+                }
+
+                BoardView::new(board)
             }),
         }
     }
@@ -1165,14 +918,14 @@ impl Render for GoBoardStory {
                                     v_flex()
                                         .gap_2()
                                         .child("Small (9x9 in 150x150)")
-                                        .child(format!("Vertex size: {:.1}px", self.bounded_small_board.read(cx).vertex_size()))
+                                        .child(format!("Vertex size: {:.1}px", self.bounded_small_board.read(cx).board().vertex_size))
                                         .child(self.bounded_small_board.clone()),
                                 )
                                 .child(
                                     v_flex()
                                         .gap_2()
                                         .child("Medium (13x13 in 250x250)")
-                                        .child(format!("Vertex size: {:.1}px", self.bounded_medium_board.read(cx).vertex_size()))
+                                        .child(format!("Vertex size: {:.1}px", self.bounded_medium_board.read(cx).board().vertex_size))
                                         .child(self.bounded_medium_board.clone()),
                                 ),
                         )
@@ -1183,14 +936,14 @@ impl Render for GoBoardStory {
                                     v_flex()
                                         .gap_2()
                                         .child("Large (19x19 in 380x380)")
-                                        .child(format!("Vertex size: {:.1}px", self.bounded_large_board.read(cx).vertex_size()))
+                                        .child(format!("Vertex size: {:.1}px", self.bounded_large_board.read(cx).board().vertex_size))
                                         .child(self.bounded_large_board.clone()),
                                 )
                                 .child(
                                     v_flex()
                                         .gap_2()
                                         .child("Constrained (19x19 in 200x400)")
-                                        .child(format!("Vertex size: {:.1}px", self.bounded_constrained_board.read(cx).vertex_size()))
+                                        .child(format!("Vertex size: {:.1}px", self.bounded_constrained_board.read(cx).board().vertex_size))
                                         .child("Width-constrained with size limits (5-25px)")
                                         .child(self.bounded_constrained_board.clone()),
                                 ),
@@ -1210,7 +963,7 @@ impl Render for GoBoardStory {
                                         .gap_2()
                                         .child("Center Area (5x5)")
                                         .child("Typical center fighting pattern")
-                                        .child(format!("Vertex size: {:.1}px", self.partial_board_center.read(cx).vertex_size()))
+                                        .child(format!("Vertex size: {:.1}px", self.partial_board_center.read(cx).board().vertex_size))
                                         .child(self.partial_board_center.clone()),
                                 )
                                 .child(
@@ -1218,7 +971,7 @@ impl Render for GoBoardStory {
                                         .gap_2()
                                         .child("Corner Area (7x7)")
                                         .child("Corner opening pattern")
-                                        .child(format!("Vertex size: {:.1}px", self.partial_board_corner.read(cx).vertex_size()))
+                                        .child(format!("Vertex size: {:.1}px", self.partial_board_corner.read(cx).board().vertex_size))
                                         .child(self.partial_board_corner.clone()),
                                 )
                                 .child(
@@ -1226,7 +979,7 @@ impl Render for GoBoardStory {
                                         .gap_2()
                                         .child("Edge Slice (19x3)")
                                         .child("Side edge patterns")
-                                        .child(format!("Vertex size: {:.1}px", self.partial_board_edge.read(cx).vertex_size()))
+                                        .child(format!("Vertex size: {:.1}px", self.partial_board_edge.read(cx).board().vertex_size))
                                         .child(self.partial_board_edge.clone()),
                                 ),
                         ),
@@ -1245,56 +998,14 @@ impl Render for GoBoardStory {
                                     v_flex()
                                         .gap_2()
                                         .child("Standard Interactive Board")
-                                        .child(self.interactive_board.update(cx, |board, _| {
-                                            let handlers = VertexEventHandlers::new()
-                                                .with_click(|event: VertexClickEvent| {
-                                                    println!(
-                                                        "Click: ({}, {}) - coordinates: {:?}",
-                                                        event.vertex.x, event.vertex.y, event.coordinates
-                                                    );
-                                                })
-                                                .with_mouse_down(|event: VertexMouseDownEvent| {
-                                                    println!(
-                                                        "Mouse Down: ({}, {}) - button: {:?}",
-                                                        event.vertex.x, event.vertex.y, event.button
-                                                    );
-                                                })
-                                                .with_mouse_up(|event: VertexMouseUpEvent| {
-                                                    println!(
-                                                        "Mouse Up: ({}, {}) - button: {:?}",
-                                                        event.vertex.x, event.vertex.y, event.button
-                                                    );
-                                                })
-                                                .with_mouse_move(|event: VertexMouseMoveEvent| {
-                                                    println!(
-                                                        "Mouse Move: ({}, {})",
-                                                        event.vertex.x, event.vertex.y
-                                                    );
-                                                });
-
-                                            board.render_with_vertex_handlers(handlers)
-                                        })),
+                                        .child(self.interactive_board.clone()),
                                 )
                                 .child(
                                     v_flex()
                                         .gap_2()
                                         .child("Asset Board with Stone Placement")
                                         .child("Click to place stones alternating black/white")
-                                        .child(self.interactive_asset_board.update(cx, |board, cx| {
-                                            // Static variable to track current player (alternating black/white)
-                                            // In a real app, this would be proper state management
-                                            let handlers = VertexEventHandlers::new()
-                                                .with_click(|event: VertexClickEvent| {
-                                                    println!(
-                                                        "Asset Board Click: ({}, {}) - placing stone",
-                                                        event.vertex.x, event.vertex.y
-                                                    );
-                                                    // Note: In a real implementation, we'd need mutable access to the board
-                                                    // to actually place stones. This demonstrates the event handling.
-                                                });
-
-                                            board.render_with_vertex_handlers(handlers)
-                                        })),
+                                        .child(self.interactive_asset_board.clone()),
                                 ),
                         ),
                 ),

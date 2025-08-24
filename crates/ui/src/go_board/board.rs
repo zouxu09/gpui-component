@@ -4,6 +4,7 @@ use std::rc::Rc;
 
 /// Simplified Go board component with ergonomic API
 /// This replaces the complex GoBoard + GoBoardState + multiple overlay system
+#[derive(Clone)]
 pub struct Board {
     data: BoardData,
     pub theme: Theme,
@@ -447,10 +448,10 @@ pub fn demo_board() -> Board {
         .stone(Pos::new(3, 3), BLACK)
         .stone(Pos::new(15, 15), WHITE)
         .stone(Pos::new(9, 9), BLACK)
-        .marker(Pos::new(3, 15), Marker::circle().with_color(rgb(0xff0000)))
+        .marker(Pos::new(3, 15), Marker::circle().with_color(rgb(0xff0000).into()))
         .marker(
             Pos::new(15, 3),
-            Marker::triangle().with_color(rgb(0x0000ff)),
+            Marker::triangle().with_color(rgb(0x0000ff).into()),
         )
         .ghost(Pos::new(4, 4), Ghost::good(WHITE))
         .ghost(Pos::new(5, 5), Ghost::bad(BLACK))

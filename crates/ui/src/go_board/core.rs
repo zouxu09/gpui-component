@@ -67,48 +67,48 @@ pub const WHITE: Stone = -1;
 /// Marker types for board annotations
 #[derive(Debug, Clone, PartialEq)]
 pub enum Marker {
-    Circle { color: Rgba },
-    Cross { color: Rgba },
-    Triangle { color: Rgba },
-    Square { color: Rgba },
-    Dot { color: Rgba },
-    Label { text: String, color: Rgba },
+    Circle { color: Hsla },
+    Cross { color: Hsla },
+    Triangle { color: Hsla },
+    Square { color: Hsla },
+    Dot { color: Hsla },
+    Label { text: String, color: Hsla },
 }
 
 impl Marker {
     pub fn circle() -> Self {
         Self::Circle {
-            color: rgb(0x000000),
+            color: rgb(0x000000).into(),
         }
     }
     pub fn cross() -> Self {
         Self::Cross {
-            color: rgb(0x000000),
+            color: rgb(0x000000).into(),
         }
     }
     pub fn triangle() -> Self {
         Self::Triangle {
-            color: rgb(0x000000),
+            color: rgb(0x000000).into(),
         }
     }
     pub fn square() -> Self {
         Self::Square {
-            color: rgb(0x000000),
+            color: rgb(0x000000).into(),
         }
     }
     pub fn dot() -> Self {
         Self::Dot {
-            color: rgb(0x000000),
+            color: rgb(0x000000).into(),
         }
     }
     pub fn label(text: impl Into<String>) -> Self {
         Self::Label {
             text: text.into(),
-            color: rgb(0x000000),
+            color: rgb(0x000000).into(),
         }
     }
 
-    pub fn with_color(mut self, color: Rgba) -> Self {
+    pub fn with_color(mut self, color: Hsla) -> Self {
         match &mut self {
             Self::Circle { color: c }
             | Self::Cross { color: c }
@@ -546,23 +546,23 @@ pub enum NavEvent {
 #[derive(Debug, Clone)]
 pub struct Theme {
     // Board appearance
-    pub background: Rgba,
-    pub border: Rgba,
+    pub background: Hsla,
+    pub border: Hsla,
     pub border_width: f32,
 
     // Grid
-    pub grid_lines: Rgba,
+    pub grid_lines: Hsla,
     pub grid_width: f32,
-    pub star_points: Rgba,
+    pub star_points: Hsla,
     pub star_size: f32,
 
     // Stones
-    pub black_stone: Rgba,
-    pub white_stone: Rgba,
+    pub black_stone: Hsla,
+    pub white_stone: Hsla,
     pub stone_size: f32, // Ratio of vertex size (0.0-1.0)
 
     // Coordinates
-    pub coordinates: Rgba,
+    pub coordinates: Hsla,
     pub coord_size: f32,
 
     // Effects
@@ -573,20 +573,20 @@ pub struct Theme {
 impl Default for Theme {
     fn default() -> Self {
         Self {
-            background: rgb(0xebb55b), // Traditional wood color
-            border: rgb(0xca933a),
+            background: rgb(0xebb55b).into(), // Traditional wood color
+            border: rgb(0xca933a).into(),
             border_width: 2.0,
 
-            grid_lines: rgb(0x000000),
+            grid_lines: rgb(0x000000).into(),
             grid_width: 1.0,
-            star_points: rgb(0x000000),
+            star_points: rgb(0x000000).into(),
             star_size: 6.0,
 
-            black_stone: rgb(0x000000),
-            white_stone: rgb(0xffffff),
+            black_stone: rgb(0x000000).into(),
+            white_stone: rgb(0xffffff).into(),
             stone_size: 0.85,
 
-            coordinates: rgb(0x000000),
+            coordinates: rgb(0x000000).into(),
             coord_size: 12.0,
 
             stone_shadow: true,
@@ -599,10 +599,10 @@ impl Theme {
     /// Dark theme variant
     pub fn dark() -> Self {
         Self {
-            background: rgb(0x2d2d2d),
-            border: rgb(0x404040),
-            grid_lines: rgb(0x808080),
-            coordinates: rgb(0xcccccc),
+            background: rgb(0x2d2d2d).into(),
+            border: rgb(0x404040).into(),
+            grid_lines: rgb(0x808080).into(),
+            coordinates: rgb(0xcccccc).into(),
             ..Default::default()
         }
     }
@@ -610,12 +610,12 @@ impl Theme {
     /// High contrast theme
     pub fn high_contrast() -> Self {
         Self {
-            background: rgb(0xffffff),
-            border: rgb(0x000000),
+            background: rgb(0xffffff).into(),
+            border: rgb(0x000000).into(),
             border_width: 3.0,
-            grid_lines: rgb(0x000000),
+            grid_lines: rgb(0x000000).into(),
             grid_width: 2.0,
-            coordinates: rgb(0x000000),
+            coordinates: rgb(0x000000).into(),
             coord_size: 14.0,
             ..Default::default()
         }
@@ -624,18 +624,36 @@ impl Theme {
     /// Minimal theme
     pub fn minimal() -> Self {
         Self {
-            background: rgb(0xf8f8f8),
-            border: rgb(0xe0e0e0),
+            background: rgb(0xf8f8f8).into(),
+            border: rgb(0xe0e0e0).into(),
             border_width: 1.0,
-            grid_lines: rgb(0x666666),
+            grid_lines: rgb(0x666666).into(),
             grid_width: 0.5,
-            star_points: rgb(0x666666),
+            star_points: rgb(0x666666).into(),
             star_size: 4.0,
-            coordinates: rgb(0x666666),
+            coordinates: rgb(0x666666).into(),
             coord_size: 10.0,
             stone_shadow: false,
             ..Default::default()
         }
+    }
+
+    /// Builder methods for theme customization
+    pub fn with_board_background(mut self, color: Hsla) -> Self {
+        self.background = color;
+        self
+    }
+
+    pub fn with_stone_colors(mut self, black: Hsla, white: Hsla) -> Self {
+        self.black_stone = black;
+        self.white_stone = white;
+        self
+    }
+
+    pub fn with_grid_lines(mut self, color: Hsla, width: f32) -> Self {
+        self.grid_lines = color;
+        self.grid_width = width;
+        self
     }
 }
 
