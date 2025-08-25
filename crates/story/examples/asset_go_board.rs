@@ -1,126 +1,99 @@
 use gpui::*;
 use gpui_component::{
-    go_board::{core::Heat, Board, BoardView, Pos, Theme, BLACK, WHITE},
+    go_board::{Board, BoardView, Ghost, Pos, Theme, BLACK, WHITE},
     h_flex, v_flex, ActiveTheme,
 };
-use story::{create_new_window, init, Assets};
+use story::Assets;
 
-/// Standalone demo of Go board using the specified assets
-/// Run with: cargo run --example asset_go_board
-struct AssetGoBoardDemo {
-    focus_handle: FocusHandle,
-    board_view: Entity<BoardView>,
-}
+/// Example demonstrating Go board with asset-based rendering
+///
+/// Run with: cargo run -p story --example asset_go_board
+pub struct AssetGoBoardExample;
 
-impl AssetGoBoardDemo {
-    fn new(_window: &mut Window, cx: &mut Context<Self>) -> Self {
-        // Create a board using the default theme
-        let mut board = Board::with_size(9, 9)
-            .vertex_size(40.0)
-            .theme(Theme::default());
-
-        // Add a sample game pattern to demonstrate the stones
-        let stones = [
-            (Pos::new(3, 0), BLACK),
-            (Pos::new(5, 0), WHITE),
-            (Pos::new(1, 1), BLACK),
-            (Pos::new(7, 1), WHITE),
-            (Pos::new(2, 2), BLACK),
-            (Pos::new(6, 2), WHITE),
-            (Pos::new(0, 3), BLACK),
-            (Pos::new(3, 3), BLACK),
-            (Pos::new(5, 3), WHITE),
-            (Pos::new(8, 3), WHITE),
-            (Pos::new(4, 4), BLACK),
-            (Pos::new(0, 5), WHITE),
-            (Pos::new(3, 5), WHITE),
-            (Pos::new(5, 5), BLACK),
-            (Pos::new(8, 5), BLACK),
-            (Pos::new(2, 6), WHITE),
-            (Pos::new(6, 6), BLACK),
-            (Pos::new(1, 7), WHITE),
-            (Pos::new(7, 7), BLACK),
-            (Pos::new(3, 8), WHITE),
-            (Pos::new(5, 8), BLACK),
-        ];
-
-        board = board
-            .stones(stones)
-            // Add some heat data to demonstrate the improved heatmap
-            .heat(Pos::new(2, 4), Heat::new(3).with_label("3"))
-            .heat(Pos::new(6, 4), Heat::new(7).with_label("7"))
-            .heat(Pos::new(4, 4), Heat::new(9).with_label("★"))
-            .heat(Pos::new(1, 3), Heat::new(5))
-            .heat(Pos::new(7, 3), Heat::new(4))
-            .heat(Pos::new(0, 2), Heat::new(6))
-            .heat(Pos::new(8, 2), Heat::new(2))
-            .heat(Pos::new(4, 7), Heat::new(8).with_label("8"))
-            .heat(Pos::new(2, 7), Heat::new(1))
-            .heat(Pos::new(6, 7), Heat::new(4));
-
-        let board_view = cx.new(|_| {
-            BoardView::new(board).coordinates(true).on_click(|event| {
-                println!("Board Click: ({}, {})", event.pos.x, event.pos.y);
-            })
-        });
-
-        Self {
-            focus_handle: cx.focus_handle(),
-            board_view,
-        }
+impl AssetGoBoardExample {
+    fn view(_window: &mut Window, cx: &mut App) -> Entity<Self> {
+        cx.new(|_| Self)
     }
 }
 
-impl Focusable for AssetGoBoardDemo {
-    fn focus_handle(&self, _cx: &App) -> FocusHandle {
-        self.focus_handle.clone()
-    }
-}
-
-impl Render for AssetGoBoardDemo {
-    fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        let theme = cx.theme();
-
+impl Render for AssetGoBoardExample {
+    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         v_flex()
+            .gap_8()
+            .p_8()
             .size_full()
-            .gap_4()
-            .p_4()
-            .bg(theme.background)
-            .track_focus(&self.focus_handle)
+            .bg(cx.theme().background)
             .child(
-                h_flex().justify_center().child(
-                    v_flex()
-                        .gap_2()
-                        .child("Go Board (fixed alignment)")
-                        .child("Testing grid and vertex alignment"),
-                ),
+                h_flex()
+                    .gap_8()
+                    .child(v_flex().gap_4().child("Default Theme").child(cx.new(|_| {
+                        let board = Board::with_size(9, 9)
+                            .vertex_size(30.0)
+                            .stone(Pos::new(2, 2), BLACK)
+                            .stone(Pos::new(6, 6), WHITE)
+                            .stone(Pos::new(4, 4), BLACK)
+                            .stone(Pos::new(3, 5), WHITE)
+                            .ghost(Pos::new(5, 5), Ghost::good(BLACK))
+                            .ghost(Pos::new(1, 1), Ghost::bad(WHITE))
+                            .last_move(Pos::new(4, 4));
+                        BoardView::new(board).coordinates(true)
+                    })))
+                    .child(
+                        v_flex()
+                            .gap_4()
+                            .child("Asset Theme (PNG background + SVG stones)")
+                            .child(cx.new(|_| {
+                                let board = Board::with_size(9, 9)
+                                    .vertex_size(30.0)
+                                    .theme(Theme::with_assets())
+                                    .stone(Pos::new(2, 2), BLACK)
+                                    .stone(Pos::new(6, 6), WHITE)
+                                    .stone(Pos::new(4, 4), BLACK)
+                                    .stone(Pos::new(3, 5), WHITE)
+                                    .ghost(Pos::new(5, 5), Ghost::good(BLACK))
+                                    .ghost(Pos::new(1, 1), Ghost::bad(WHITE))
+                                    .last_move(Pos::new(4, 4));
+                                BoardView::new(board).coordinates(true)
+                            })),
+                    ),
             )
-            .child(h_flex().justify_center().child(self.board_view.clone()))
             .child(
-                h_flex().justify_center().child(
-                    v_flex()
-                        .gap_2()
-                        .child("Features Demonstrated:")
-                        .child("• Fixed grid line and vertex alignment")
-                        .child("• Coordinate labels")
-                        .child("• Properly aligned stones and markers")
-                        .child("• Click interactions (see console output)"),
-                ),
+                v_flex()
+                    .gap_4()
+                    .child("Custom Asset Paths")
+                    .child(cx.new(|_| {
+                        let board = Board::with_size(9, 9)
+                            .vertex_size(30.0)
+                            .theme(
+                                Theme::default()
+                                    .with_board_background("icons/board.png")
+                                    .with_black_stone_asset("icons/black_stone.svg")
+                                    .with_white_stone_asset("icons/white_stone.svg"),
+                            )
+                            .stone(Pos::new(2, 2), BLACK)
+                            .stone(Pos::new(6, 6), WHITE)
+                            .stone(Pos::new(4, 4), BLACK)
+                            .stone(Pos::new(3, 5), WHITE)
+                            .ghost(Pos::new(5, 5), Ghost::good(BLACK))
+                            .ghost(Pos::new(1, 1), Ghost::bad(WHITE))
+                            .ghost(Pos::new(7, 3), Ghost::neutral(BLACK))
+                            .last_move(Pos::new(4, 4));
+                        BoardView::new(board).coordinates(true)
+                    })),
             )
     }
 }
 
 fn main() {
-    let app = gpui::Application::new().with_assets(Assets);
+    let app = Application::new().with_assets(Assets);
 
     app.run(move |cx| {
-        init(cx);
-        cx.activate(true);
+        gpui_component::init(cx);
 
-        create_new_window(
-            "Go Board Asset Demo",
-            move |window, cx| cx.new(|cx| AssetGoBoardDemo::new(window, cx)),
-            cx,
-        );
+        cx.open_window(Default::default(), |window, cx| {
+            window.set_window_title("Asset Go Board Example");
+            AssetGoBoardExample::view(window, cx)
+        })
+        .unwrap();
     });
 }

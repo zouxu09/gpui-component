@@ -5,7 +5,7 @@ use gpui::{
 
 use gpui_component::{
     go_board::{
-        core::{Heat, Line, Marker, Pos, Theme, BLACK, WHITE},
+        core::{Ghost, Heat, Line, Marker, Pos, Theme, BLACK, WHITE},
         Board, BoardView, BoundedBoard,
     },
     h_flex, v_flex, ActiveTheme,
@@ -50,9 +50,9 @@ impl GoBoardStory {
     pub fn new(_window: &mut Window, cx: &mut Context<Self>) -> Self {
         Self {
             focus_handle: cx.focus_handle(),
-            board_19x19: cx.new(|_| BoardView::new(Board::new())),
-            board_13x13: cx.new(|_| BoardView::new(Board::with_size(13, 13))),
-            board_9x9: cx.new(|_| BoardView::new(Board::with_size(9, 9))),
+            board_19x19: cx.new(|_| BoardView::new(Board::new()).coordinates(true)),
+            board_13x13: cx.new(|_| BoardView::new(Board::with_size(13, 13)).coordinates(true)),
+            board_9x9: cx.new(|_| BoardView::new(Board::with_size(9, 9)).coordinates(true)),
             custom_theme_board: cx.new(|_| {
                 // Create a custom theme using the new Theme system
                 let mut custom_theme = Theme::default();
@@ -72,6 +72,7 @@ impl GoBoardStory {
                         .theme(Theme::dark())
                         .vertex_size(30.0),
                 )
+                .coordinates(true)
             }),
             minimalist_theme_board: cx.new(|_| {
                 BoardView::new(
@@ -79,6 +80,7 @@ impl GoBoardStory {
                         .theme(Theme::minimal())
                         .vertex_size(30.0),
                 )
+                .coordinates(true)
             }),
             high_contrast_board: cx.new(|_| {
                 BoardView::new(
@@ -86,6 +88,7 @@ impl GoBoardStory {
                         .theme(Theme::high_contrast())
                         .vertex_size(30.0),
                 )
+                .coordinates(true)
             }),
             textured_board: cx.new(|_| {
                 // Create a board with default theme
@@ -110,11 +113,13 @@ impl GoBoardStory {
                     .stone(Pos::new(3, 8), WHITE)
                     .stone(Pos::new(5, 8), BLACK);
 
-                BoardView::new(board)
+                BoardView::new(board).coordinates(true)
             }),
             asset_board: cx.new(|_| {
-                // Asset demo disabled to avoid missing embedded resources; use default theme
-                let board = Board::with_size(9, 9).vertex_size(35.0);
+                // Use assets for board background and stones
+                let board = Board::with_size(9, 9)
+                    .vertex_size(35.0)
+                    .theme(Theme::with_assets());
 
                 // Add a sample game pattern using the new API
                 let board = board
@@ -138,7 +143,12 @@ impl GoBoardStory {
                     .stone(Pos::new(1, 7), WHITE)
                     .stone(Pos::new(7, 7), BLACK)
                     .stone(Pos::new(3, 8), WHITE)
-                    .stone(Pos::new(5, 8), BLACK);
+                    .stone(Pos::new(5, 8), BLACK)
+                    // Add some ghost stones to demonstrate asset tinting
+                    .ghost(Pos::new(4, 3), Ghost::good(WHITE))
+                    .ghost(Pos::new(4, 5), Ghost::bad(BLACK))
+                    .ghost(Pos::new(7, 4), Ghost::neutral(WHITE))
+                    .last_move(Pos::new(5, 8));
 
                 BoardView::new(board)
             }),
@@ -162,7 +172,7 @@ impl GoBoardStory {
                 BoardView::new(board)
             }),
             coordinate_board: cx.new(|_| {
-                let board = Board::with_size(9, 9).vertex_size(25.0).coordinates(true);
+                let board = Board::with_size(9, 9).vertex_size(25.0);
                 // Add stones to demonstrate coordinates
                 let board = board
                     .stone(Pos::new(3, 0), BLACK)
@@ -181,7 +191,7 @@ impl GoBoardStory {
                     .stone(Pos::new(7, 7), BLACK)
                     .stone(Pos::new(3, 8), WHITE)
                     .stone(Pos::new(5, 8), BLACK);
-                BoardView::new(board)
+                BoardView::new(board).coordinates(true)
             }),
             stone_board: cx.new(|_| {
                 let board = Board::with_size(9, 9).vertex_size(35.0);
@@ -204,7 +214,7 @@ impl GoBoardStory {
                     .stone(Pos::new(6, 6), BLACK)
                     .stone(Pos::new(3, 7), WHITE)
                     .stone(Pos::new(5, 7), BLACK);
-                BoardView::new(board)
+                BoardView::new(board).coordinates(true)
             }),
             fuzzy_stone_board: cx.new(|_| {
                 let board = Board::with_size(9, 9).vertex_size(35.0);
@@ -230,7 +240,7 @@ impl GoBoardStory {
 
                 // Note: Fuzzy positioning and visual variation features are not available
                 // in the new simplified API. The new API focuses on core functionality.
-                BoardView::new(board)
+                BoardView::new(board).coordinates(true)
             }),
             marker_board: cx.new(|_| {
                 let board = Board::with_size(9, 9).vertex_size(35.0);
@@ -325,10 +335,9 @@ impl GoBoardStory {
                     .marker(
                         Pos::new(3, 6),
                         Marker::cross().with_color(gpui::rgb(0xff0000).into()),
-                    )
-                    .coordinates(true);
+                    );
 
-                BoardView::new(board)
+                BoardView::new(board).coordinates(true)
             }),
             selection_board: cx.new(|_| {
                 let board = Board::with_size(9, 9).vertex_size(35.0);
@@ -349,7 +358,7 @@ impl GoBoardStory {
                     // Directional selection indicators not supported in new API
                     .coordinates(true);
 
-                BoardView::new(board)
+                BoardView::new(board).coordinates(true)
             }),
             paint_overlay_board: cx.new(|_| {
                 let board = Board::with_size(9, 9).vertex_size(35.0);
@@ -506,13 +515,22 @@ impl GoBoardStory {
                 BoardView::new(board)
             }),
             interactive_board: cx.new(|_| {
-                let board = Board::with_size(9, 9).vertex_size(40.0).coordinates(true);
-                BoardView::new(board)
+                let board = Board::with_size(9, 9).vertex_size(40.0);
+                BoardView::new(board).coordinates(true)
             }),
             interactive_asset_board: cx.new(|_| {
-                // Create an interactive board using default theme (assets disabled)
-                let board = Board::with_size(9, 9).vertex_size(40.0).coordinates(true);
-                BoardView::new(board)
+                // Create an interactive board using assets for stones and background
+                let board = Board::with_size(9, 9)
+                    .vertex_size(40.0)
+                    .theme(Theme::with_assets())
+                    .stone(Pos::new(2, 2), BLACK)
+                    .stone(Pos::new(6, 6), WHITE)
+                    .stone(Pos::new(4, 4), BLACK)
+                    .stone(Pos::new(3, 5), WHITE)
+                    .ghost(Pos::new(5, 5), Ghost::good(BLACK))
+                    .ghost(Pos::new(1, 1), Ghost::bad(WHITE))
+                    .last_move(Pos::new(4, 4));
+                BoardView::new(board).coordinates(true)
             }),
             bounded_small_board: cx.new(|_| {
                 // Small bounded board - 9x9 in 150x150 space
@@ -563,14 +581,14 @@ impl GoBoardStory {
                         (Pos::new(9, 11), BLACK),
                     ];
 
-                    let mut board = board.coordinates(true);
+                    let mut board = board;
                     for (pos, stone) in stones {
                         board.data_mut().set_stone(pos, stone);
                     }
                     board
                 });
 
-                BoardView::new(bounded.into_inner())
+                BoardView::new(bounded.into_inner()).coordinates(true)
             }),
             bounded_large_board: cx.new(|_| {
                 // Large bounded board - 19x19 in 380x380 space
@@ -850,7 +868,7 @@ impl Render for GoBoardStory {
                                     v_flex()
                                         .gap_2()
                                         .child("Asset Board")
-                                        .child("Using default theme (assets disabled)")
+                                        .child("Using assets for stones and board background")
                                         .child(self.asset_board.clone()),
                                 ),
                         )

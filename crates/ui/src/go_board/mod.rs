@@ -1,149 +1,124 @@
 // =============================================================================
-// NEW SIMPLIFIED GO BOARD API
+// GO BOARD MODULE - Simplified and consolidated
 // =============================================================================
-// This replaces the complex, fragmented previous system with a clean, ergonomic API
 
-// Core types and data structures
-pub mod core;
-
-// Main board component with data management
 pub mod board;
-
-// Unified rendering system
+pub mod core;
 pub mod render;
-
-// View component with interactions
 pub mod view;
 
-// Examples removed - use the story examples instead
-
-// Refactoring complete - see story examples for usage
-
 // =============================================================================
-// MAIN NEW API EXPORTS
+// MAIN EXPORTS
 // =============================================================================
 
-// Primary components for the new simplified API
 pub use board::{Board, BoundedBoard};
 pub use render::Renderer;
 pub use view::BoardView;
 
-// Core types for the new API
 pub use core::{
     BoardData, Ghost, GhostKind, Heat, Line, LineStyle, Marker, NavEvent, Pos, PosEvent, Range,
     Selection, SelectionStyle, Stone, Territory, Theme, BLACK, EMPTY, WHITE,
 };
 
 // =============================================================================
-// COMPATIBILITY EXPORTS REMOVED
-// =============================================================================
-// All legacy components have been removed as part of the refactoring.
-// Use the new simplified API instead.
-
-// =============================================================================
-// COMPATIBILITY LAYER REMOVED
-// =============================================================================
-// All deprecated modules have been removed as part of the refactoring.
-// Use the new simplified API instead.
-
-// All deprecated modules removed
-
-// All deprecated types removed - use the new simplified API instead
-
-// =============================================================================
-// CONVENIENCE RE-EXPORTS
+// CONVENIENCE MODULES
 // =============================================================================
 
-/// Quick access to commonly used constants
 pub mod constants {
     pub use crate::go_board::core::{BLACK, EMPTY, WHITE};
 }
 
-/// Quick access to theme presets
 pub mod themes {
     pub use crate::go_board::core::Theme;
 
     pub fn default() -> Theme {
         Theme::default()
     }
+
     pub fn dark() -> Theme {
         Theme::dark()
     }
+
     pub fn minimal() -> Theme {
         Theme::minimal()
     }
+
     pub fn high_contrast() -> Theme {
         Theme::high_contrast()
     }
+
+    pub fn with_assets() -> Theme {
+        Theme::with_assets()
+    }
 }
 
-/// Quick access to marker creation - use crate::go_board::markers for legacy code
-/// New code should use crate::go_board::core::Marker directly
 pub mod marker_helpers {
     pub use crate::go_board::core::Marker;
 
     pub fn circle() -> Marker {
         Marker::circle()
     }
+
     pub fn cross() -> Marker {
         Marker::cross()
     }
+
     pub fn triangle() -> Marker {
         Marker::triangle()
     }
+
     pub fn square() -> Marker {
         Marker::square()
     }
+
     pub fn dot() -> Marker {
         Marker::dot()
     }
+
     pub fn label(text: impl Into<String>) -> Marker {
         Marker::label(text)
     }
 }
 
-/// Quick access to ghost stone creation
 pub mod ghosts {
     pub use crate::go_board::core::{Ghost, GhostKind, Stone, BLACK, WHITE};
 
     pub fn good(stone: Stone) -> Ghost {
         Ghost::good(stone)
     }
+
     pub fn bad(stone: Stone) -> Ghost {
         Ghost::bad(stone)
     }
+
     pub fn neutral(stone: Stone) -> Ghost {
         Ghost::neutral(stone)
     }
 }
 
-/// Quick access to line creation
 pub mod lines {
     pub use crate::go_board::core::{Line, Pos};
 
     pub fn line(from: Pos, to: Pos) -> Line {
         Line::line(from, to)
     }
+
     pub fn arrow(from: Pos, to: Pos) -> Line {
         Line::arrow(from, to)
     }
 }
 
-/// Factory functions for common board setups
 pub mod factory {
     use crate::go_board::{Board, BoardView, Pos, BLACK, WHITE};
 
-    /// Create a simple empty board
     pub fn empty_board() -> Board {
         Board::new()
     }
 
-    /// Create a 9x9 board for teaching
     pub fn teaching_board() -> Board {
         Board::with_size(9, 9).vertex_size(30.0)
     }
 
-    /// Create a demo board with some stones
     pub fn demo_board() -> Board {
         Board::new()
             .stone(Pos::new(3, 3), BLACK)
@@ -152,7 +127,6 @@ pub mod factory {
             .last_move(Pos::new(9, 9))
     }
 
-    /// Create a simple interactive board view
     pub fn simple_board_view() -> BoardView {
         BoardView::new(empty_board()).on_click(|event| {
             println!("Clicked at position {:?}", event.pos);
@@ -161,7 +135,7 @@ pub mod factory {
 }
 
 // =============================================================================
-// EXAMPLE USAGE DOCUMENTATION
+// USAGE EXAMPLES
 // =============================================================================
 
 /// # Go Board Usage Examples
@@ -171,13 +145,11 @@ pub mod factory {
 /// ```rust
 /// use crate::go_board::*;
 ///
-/// // Create a simple board
 /// let board = Board::new()
 ///     .stone(Pos::new(3, 3), BLACK)
 ///     .stone(Pos::new(15, 15), WHITE)
 ///     .marker(Pos::new(4, 4), markers::circle().with_color(rgb(0xff0000)));
 ///
-/// // Create an interactive view
 /// let view = BoardView::new(board)
 ///     .on_click(|event| {
 ///         println!("Clicked at {:?}", event.pos);
@@ -189,7 +161,6 @@ pub mod factory {
 /// ```rust
 /// use crate::go_board::*;
 ///
-/// // Create a complex board with analysis
 /// let board = Board::new()
 ///     .theme(themes::dark())
 ///     .stones([
@@ -225,7 +196,6 @@ pub mod factory {
 /// ```rust
 /// use crate::go_board::*;
 ///
-/// // Create a board that automatically fits in the given space
 /// let bounded = BoundedBoard::new(400.0, 400.0)
 ///     .update(|board| {
 ///         board.stone(Pos::new(9, 9), BLACK)
@@ -277,10 +247,7 @@ mod integration_tests {
     #[test]
     fn test_board_view_creation() {
         let board = Board::new().stone(Pos::new(9, 9), BLACK);
-
         let view = BoardView::new(board).coordinates(false).on_click(|_| {});
-
-        // Field is private but we can test functionality
         assert_eq!(view.board().stone_at(Pos::new(9, 9)), BLACK);
     }
 
@@ -298,11 +265,9 @@ mod integration_tests {
         let line = lines::arrow(Pos::new(0, 0), Pos::new(1, 1));
         let theme = themes::dark();
 
-        // Just test that they compile and create valid objects
         assert!(matches!(marker, Marker::Circle { .. }));
         assert_eq!(ghost.stone, BLACK);
         assert!(matches!(line.style, LineStyle::Arrow { .. }));
-        // Theme tests would depend on actual implementation
     }
 
     #[test]

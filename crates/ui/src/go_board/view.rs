@@ -2,22 +2,18 @@ use crate::go_board::{board::Board, core::*, render::Renderer};
 use gpui::*;
 use std::rc::Rc;
 
-/// View component that combines Board with Renderer and handles all interactions
-/// This is the main component that users will interact with - much simpler than the previous system
+/// View component that combines Board with Renderer and handles interactions
 pub struct BoardView {
     board: Board,
     renderer: Renderer,
     show_coordinates: bool,
     focus: Option<Pos>,
-
-    // Event handlers
     on_click: Option<Rc<dyn Fn(PosEvent)>>,
     on_hover: Option<Rc<dyn Fn(Option<Pos>)>>,
     on_key: Option<Rc<dyn Fn(KeyDownEvent) -> Option<NavEvent>>>,
 }
 
 impl BoardView {
-    /// Create a new board view
     pub fn new(board: Board) -> Self {
         let theme = board.theme.clone();
         let vertex_size = board.vertex_size;
@@ -25,22 +21,13 @@ impl BoardView {
         Self {
             board,
             renderer: Renderer::new(vertex_size, theme),
-            show_coordinates: true,
+            show_coordinates: false,
             focus: None,
             on_click: None,
             on_hover: None,
             on_key: None,
         }
     }
-
-    /// Create from builder pattern
-    pub fn from_board(board: Board) -> Self {
-        Self::new(board)
-    }
-
-    // =============================================================================
-    // CONFIGURATION METHODS
-    // =============================================================================
 
     pub fn coordinates(mut self, show: bool) -> Self {
         self.show_coordinates = show;
@@ -52,7 +39,6 @@ impl BoardView {
         self
     }
 
-    // Event handlers
     pub fn on_click<F>(mut self, handler: F) -> Self
     where
         F: Fn(PosEvent) + 'static,
@@ -77,21 +63,14 @@ impl BoardView {
         self
     }
 
-    // =============================================================================
-    // ACCESS TO UNDERLYING BOARD
-    // =============================================================================
-
-    /// Get reference to the board
     pub fn board(&self) -> &Board {
         &self.board
     }
 
-    /// Get mutable reference to the board
     pub fn board_mut(&mut self) -> &mut Board {
         &mut self.board
     }
 
-    /// Apply changes to the board and update renderer accordingly
     pub fn update_board<F>(mut self, f: F) -> Self
     where
         F: FnOnce(Board) -> Board,
@@ -101,14 +80,9 @@ impl BoardView {
         self
     }
 
-    /// Update renderer to match board state
     fn sync_renderer(&mut self) {
         self.renderer = Renderer::new(self.board.vertex_size, self.board.theme.clone());
     }
-
-    // =============================================================================
-    // CONVENIENT MUTATION METHODS (forwarded to board)
-    // =============================================================================
 
     pub fn stone(mut self, pos: Pos, stone: Stone) -> Self {
         self.board.data_mut().set_stone(pos, stone);
@@ -149,10 +123,6 @@ impl BoardView {
         self
     }
 
-    // =============================================================================
-    // FOCUS AND NAVIGATION
-    // =============================================================================
-
     pub fn set_focus(&mut self, pos: Option<Pos>) {
         self.focus = pos;
     }
@@ -170,7 +140,6 @@ impl BoardView {
                 None
             }
         } else {
-            // If no focus, start at center or top-left
             let (width, height) = self.board.dimensions();
             let start_pos = Pos::new(width / 2, height / 2);
             self.focus = Some(start_pos);
@@ -178,50 +147,17 @@ impl BoardView {
         }
     }
 
-    /// Handle keyboard input for navigation
     pub fn handle_key_input(&mut self, event: &KeyDownEvent) -> Option<NavEvent> {
-        // Default keyboard navigation
         let nav_event = match event.keystroke.key.as_str() {
-            "ArrowLeft" => {
-                if let Some(pos) = self.move_focus(-1, 0) {
-                    Some(NavEvent::MoveFocus(pos))
-                } else {
-                    None
-                }
-            }
-            "ArrowRight" => {
-                if let Some(pos) = self.move_focus(1, 0) {
-                    Some(NavEvent::MoveFocus(pos))
-                } else {
-                    None
-                }
-            }
-            "ArrowUp" => {
-                if let Some(pos) = self.move_focus(0, -1) {
-                    Some(NavEvent::MoveFocus(pos))
-                } else {
-                    None
-                }
-            }
-            "ArrowDown" => {
-                if let Some(pos) = self.move_focus(0, 1) {
-                    Some(NavEvent::MoveFocus(pos))
-                } else {
-                    None
-                }
-            }
-            "Enter" | "Space" => {
-                if let Some(pos) = self.focus {
-                    Some(NavEvent::Select(pos))
-                } else {
-                    None
-                }
-            }
+            "ArrowLeft" => self.move_focus(-1, 0).map(NavEvent::MoveFocus),
+            "ArrowRight" => self.move_focus(1, 0).map(NavEvent::MoveFocus),
+            "ArrowUp" => self.move_focus(0, -1).map(NavEvent::MoveFocus),
+            "ArrowDown" => self.move_focus(0, 1).map(NavEvent::MoveFocus),
+            "Enter" | "Space" => self.focus.map(NavEvent::Select),
             "Escape" => Some(NavEvent::ClearSelection),
             _ => None,
         };
 
-        // Call custom handler if provided
         if let Some(ref handler) = self.on_key {
             handler(event.clone()).or(nav_event)
         } else {
@@ -229,11 +165,6 @@ impl BoardView {
         }
     }
 
-    // =============================================================================
-    // MOUSE INTERACTION HELPERS
-    // =============================================================================
-
-    /// Convert mouse position to board position
     pub fn pos_from_mouse(
         &self,
         mouse_pos: Point<Pixels>,
@@ -257,14 +188,12 @@ impl BoardView {
         self.board.pos_from_pixel(relative_mouse, offset)
     }
 
-    /// Handle mouse click
     pub fn handle_mouse_click(&self, pos: Pos, modifiers: Modifiers) {
         if let Some(ref handler) = self.on_click {
             handler(PosEvent::new(pos, modifiers));
         }
     }
 
-    /// Handle mouse hover
     pub fn handle_mouse_hover(&self, pos: Option<Pos>) {
         if let Some(ref handler) = self.on_hover {
             handler(pos);
@@ -274,16 +203,13 @@ impl BoardView {
 
 impl Render for BoardView {
     fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        // Get current focus position to highlight
         if let Some(focus_pos) = self.focus {
-            // Add focus highlight to the board data
             self.board.data_mut().set_selection(
                 focus_pos,
                 Some(Selection::selected(focus_pos).with_color(rgb(0x80ff80))),
             );
         }
 
-        // Main board container - calculate size including coordinate margins
         let base_size = self.board.pixel_size();
         let (total_width, total_height) = if self.show_coordinates {
             let spacing =
@@ -310,17 +236,13 @@ impl Render for BoardView {
                 renderer.render(self.board.data(), self.show_coordinates)
             });
 
-        // Add interaction layer
         container = container.child(self.render_interactions(cx));
 
-        // Add keyboard handling
-        container = container
-            .key_context("go-board")
-            .on_key_down(cx.listener(|view, event, _cx, _phase| {
+        container = container.key_context("go-board").on_key_down(cx.listener(
+            |view, event, _cx, _phase| {
                 if let Some(nav_event) = view.handle_key_input(event) {
                     match nav_event {
                         NavEvent::MoveFocus(pos) => {
-                            // Focus is already updated in handle_key_input
                             println!("Focus moved to {:?}", pos);
                         }
                         NavEvent::Select(pos) => {
@@ -331,16 +253,14 @@ impl Render for BoardView {
                         }
                     }
                 }
-            }))
-            // Focus handling would be implemented here
-            ;
+            },
+        ));
 
         container
     }
 }
 
 impl BoardView {
-    /// Render interaction layer with mouse event handling
     fn render_interactions(&self, cx: &mut Context<Self>) -> impl IntoElement {
         let range = self.board.visible_range();
         let vertex_size = self.board.vertex_size;
@@ -357,14 +277,12 @@ impl BoardView {
 
         let mut interactions = div().absolute().inset_0();
 
-        // Create invisible interaction areas for each board position
         for y in range.y.0..=range.y.1 {
             for x in range.x.0..=range.x.1 {
                 let pos = Pos::new(x, y);
                 let pixel_pos = self.board.pixel_from_pos(pos, offset);
                 let button_size = vertex_size * 0.8;
 
-                // Create interaction button
                 let button = div()
                     .absolute()
                     .left(pixel_pos.x - px(button_size / 2.0))
@@ -373,7 +291,6 @@ impl BoardView {
                     .h(px(button_size))
                     .id(("board_pos", x * 1000 + y))
                     .cursor_pointer()
-                    // Hover effect would be implemented here
                     .on_mouse_down(
                         MouseButton::Left,
                         cx.listener(move |view, event: &MouseDownEvent, _cx, _phase| {
@@ -388,26 +305,10 @@ impl BoardView {
             }
         }
 
-        // Add mouse leave handler for the entire board
-        interactions = interactions.on_mouse_move(cx.listener(|_view, _event, _cx, _phase| {
-            // Could implement more sophisticated hover detection here
-        }));
-
         interactions
-    }
-
-    /// Get focus handle for keyboard events
-    fn _get_focus_handle(&self, _entity_id: EntityId) -> Option<FocusHandle> {
-        // Focus handle implementation would go here
-        None
     }
 }
 
-// =============================================================================
-// CONVENIENT FACTORY FUNCTIONS
-// =============================================================================
-
-/// Create a simple board view with basic click handling
 pub fn simple_board<F>(click_handler: F) -> BoardView
 where
     F: Fn(PosEvent) + 'static,
@@ -415,7 +316,6 @@ where
     BoardView::new(Board::new()).on_click(click_handler)
 }
 
-/// Create a board view with stones and click handling
 pub fn board_with_stones<F>(stones: Vec<(Pos, Stone)>, click_handler: F) -> BoardView
 where
     F: Fn(PosEvent) + 'static,
@@ -428,7 +328,6 @@ where
     BoardView::new(board).on_click(click_handler)
 }
 
-/// Create a demo board view for testing
 pub fn demo_board_view() -> BoardView {
     let board = Board::new()
         .stone(Pos::new(3, 3), BLACK)
@@ -453,15 +352,12 @@ pub fn demo_board_view() -> BoardView {
         })
 }
 
-/// Create a bounded board view that auto-sizes
 pub fn bounded_board_view(max_width: f32, max_height: f32) -> BoardView {
     use crate::go_board::board::BoundedBoard;
 
     let bounded = BoundedBoard::new(max_width, max_height);
     BoardView::new(bounded.into_inner())
 }
-
-// Note: Deprecated compatibility functions removed - use new simplified API instead
 
 #[cfg(test)]
 mod tests {
@@ -479,15 +375,12 @@ mod tests {
     fn test_focus_movement() {
         let mut view = BoardView::new(Board::new());
 
-        // Test initial focus
         assert_eq!(view.focus, None);
 
-        // Move focus should create initial focus
         let pos = view.move_focus(0, 0);
         assert!(pos.is_some());
         assert_eq!(view.focus, pos);
 
-        // Test movement
         view.set_focus(Some(Pos::new(5, 5)));
         let new_pos = view.move_focus(1, 0).unwrap();
         assert_eq!(new_pos, Pos::new(6, 5));

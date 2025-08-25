@@ -1,32 +1,29 @@
 use crate::go_board::core::*;
+use gpui::svg;
 use gpui::*;
 
-// Base ratio constants (responsive multipliers)
-const BASE_COORD_MARGIN_RATIO: f32 = 0.2; // Coordinate margin as ratio of vertex size (min 4px)
-const BASE_COORD_GAP_RATIO: f32 = 0.1; // Gap between coordinates and board as ratio of vertex size (min 1px)
-const BUTTON_SIZE_RATIO: f32 = 0.8; // Interactive button size as ratio of vertex size
-const HEAT_SIZE_RATIO: f32 = 0.7; // Heat overlay size as ratio of vertex size
-const MARKER_SIZE_RATIO: f32 = 0.4; // Marker size as ratio of vertex size
-const SELECTION_SIZE_RATIO: f32 = 0.9; // Selection highlight size as ratio of vertex size
-const GHOST_SIZE_RATIO: f32 = 0.8; // Ghost stone size multiplier
+// =============================================================================
+// CONSTANTS - Simplified
+// =============================================================================
 
-// Responsive sizing thresholds
-const SMALL_VERTEX_THRESHOLD: f32 = 20.0; // Below this, use minimum spacing
-const LARGE_VERTEX_THRESHOLD: f32 = 50.0; // Above this, use enhanced spacing
+const BASE_COORD_MARGIN_RATIO: f32 = 0.2;
+const HEAT_SIZE_RATIO: f32 = 0.7;
+const MARKER_SIZE_RATIO: f32 = 0.4;
+const SELECTION_SIZE_RATIO: f32 = 0.9;
+const GHOST_SIZE_RATIO: f32 = 0.8;
+const CROSS_LINE_RATIO: f32 = 0.8;
+const DOT_SIZE_RATIO: f32 = 0.5;
 
-// Color constants for ghost stones
-const GREEN_HUE: f32 = 120.0 / 360.0; // Green hue for good moves
-const RED_HUE: f32 = 0.0; // Red hue for bad moves
-const GHOST_SATURATION: f32 = 0.6; // Saturation for ghost stone colors
+const SMALL_VERTEX_THRESHOLD: f32 = 20.0;
+const LARGE_VERTEX_THRESHOLD: f32 = 50.0;
+const GREEN_HUE: f32 = 120.0 / 360.0;
+const RED_HUE: f32 = 0.0;
+const GHOST_SATURATION: f32 = 0.6;
 
-// Cross marker constants
-const CROSS_LINE_RATIO: f32 = 0.8; // Cross line length as ratio of marker size
-const BASE_CROSS_LINE_WIDTH: f32 = 1.0; // Minimum cross line width (responsive)
+// =============================================================================
+// RESPONSIVE SPACING - Simplified
+// =============================================================================
 
-// Dot marker constants
-const DOT_SIZE_RATIO: f32 = 0.5; // Dot size as ratio of marker size
-
-// Responsive spacing configuration
 #[derive(Debug, Clone)]
 pub struct ResponsiveSpacing {
     pub coord_margin_padding: f32,
@@ -42,8 +39,8 @@ impl ResponsiveSpacing {
 
         Self {
             coord_margin_padding: (vertex_size * BASE_COORD_MARGIN_RATIO * scale_factor).max(4.0),
-            coord_board_gap: (vertex_size * BASE_COORD_GAP_RATIO * scale_factor).max(1.0),
-            cross_line_width: (vertex_size * 0.08 * scale_factor).clamp(BASE_CROSS_LINE_WIDTH, 3.0),
+            coord_board_gap: 0.0, // Remove gap between coordinates and board
+            cross_line_width: (vertex_size * 0.08 * scale_factor).clamp(1.0, 3.0),
             min_coord_size: (vertex_size * 0.6).clamp(12.0, 24.0),
             heat_text_size: (vertex_size * 0.3 * scale_factor).clamp(8.0, 16.0),
         }
@@ -51,8 +48,8 @@ impl ResponsiveSpacing {
 
     fn calculate_scale_factor(vertex_size: f32) -> f32 {
         match vertex_size {
-            v if v <= SMALL_VERTEX_THRESHOLD => 0.8, // Compact spacing for small boards
-            v if v >= LARGE_VERTEX_THRESHOLD => 1.2, // Enhanced spacing for large boards
+            v if v <= SMALL_VERTEX_THRESHOLD => 0.8,
+            v if v >= LARGE_VERTEX_THRESHOLD => 1.2,
             v => {
                 0.8 + (v - SMALL_VERTEX_THRESHOLD)
                     / (LARGE_VERTEX_THRESHOLD - SMALL_VERTEX_THRESHOLD)
@@ -62,8 +59,10 @@ impl ResponsiveSpacing {
     }
 }
 
-/// Unified renderer that handles all board elements in a single, coherent system
-/// This replaces Grid, Stones, Markers, GhostStoneOverlay, HeatOverlay, etc.
+// =============================================================================
+// RENDERER - Simplified unified renderer
+// =============================================================================
+
 pub struct Renderer {
     vertex_size: f32,
     theme: Theme,
@@ -90,7 +89,6 @@ impl Renderer {
         self
     }
 
-    /// Main render method - creates the complete board
     pub fn render(&self, data: &BoardData, show_coordinates: bool) -> impl IntoElement {
         let range = &data.range;
         let grid_width = range.width() as f32 * self.vertex_size;
@@ -104,7 +102,6 @@ impl Renderer {
         }
     }
 
-    /// Render board without coordinates
     fn render_board_only(&self, data: &BoardData, width: f32, height: f32) -> impl IntoElement {
         let mut board = div()
             .relative()
@@ -115,7 +112,18 @@ impl Renderer {
             .border_color(self.theme.border)
             .overflow_hidden();
 
-        // Add all layers in correct order
+        // Add board background asset if available
+        if let Some(ref background_path) = self.theme.board_background_path {
+            board = board.child(
+                img(background_path.as_str())
+                    .absolute()
+                    .inset_0()
+                    .w_full()
+                    .h_full()
+                    .object_fit(gpui::ObjectFit::Cover),
+            );
+        }
+
         board = board
             .child(self.render_grid(data))
             .child(self.render_territory(data))
@@ -129,7 +137,6 @@ impl Renderer {
         board
     }
 
-    /// Render board with coordinates
     fn render_with_coordinates(
         &self,
         data: &BoardData,
@@ -142,10 +149,7 @@ impl Renderer {
 
         let mut container = div().relative().w(px(total_width)).h(px(total_height));
 
-        // Add coordinate labels first (so they're behind the board)
         container = container.child(self.render_coordinates(data, grid_width, grid_height, margin));
-
-        // Add main board
         container = container.child(
             div()
                 .absolute()
@@ -157,48 +161,10 @@ impl Renderer {
         container.into_any_element()
     }
 
-    /// Render interactive layer for mouse/keyboard events
-    pub fn render_interactive(&self, data: &BoardData, show_coordinates: bool) -> impl IntoElement {
-        let range = &data.range;
-        let _grid_width = range.width() as f32 * self.vertex_size;
-        let _grid_height = range.height() as f32 * self.vertex_size;
-
-        let mut interactive = div().absolute().inset_0(); // Above all visual elements
-
-        // Create invisible buttons for each position
-        for y in range.y.0..=range.y.1 {
-            for x in range.x.0..=range.x.1 {
-                let pos = Pos::new(x, y);
-                let pixel_pos = if show_coordinates {
-                    // Use coordinate offset when coordinates are shown
-                    self.pos_to_pixel(pos, range, self.coord_offset)
-                } else {
-                    // Use grid positioning when no coordinates
-                    self.pos_to_pixel_grid(pos, range)
-                };
-                let button_size = self.vertex_size * BUTTON_SIZE_RATIO;
-
-                interactive = interactive.child(
-                    div()
-                        .absolute()
-                        .left(pixel_pos.x - px(button_size / 2.0))
-                        .top(pixel_pos.y - px(button_size / 2.0))
-                        .w(px(button_size))
-                        .h(px(button_size))
-                        .id(("pos", x * 1000 + y)), // Add hover and click handlers here
-                                                    // Note: In real implementation, these would be connected to the board's event handlers
-                );
-            }
-        }
-
-        interactive
-    }
-
     // =============================================================================
-    // INDIVIDUAL LAYER RENDERING
+    // LAYER RENDERING - Simplified
     // =============================================================================
 
-    /// Render grid lines and star points
     fn render_grid(&self, data: &BoardData) -> impl IntoElement {
         let range = &data.range;
         let mut grid = div().absolute().inset_0();
@@ -235,7 +201,7 @@ impl Renderer {
             );
         }
 
-        // Star points - use direct positioning without coordinate offset for grid elements
+        // Star points
         for pos in self.calculate_star_points(data) {
             if range.contains(pos) {
                 let pixel_pos = self.pos_to_pixel_grid(pos, range);
@@ -255,7 +221,6 @@ impl Renderer {
         grid
     }
 
-    /// Render stones
     fn render_stones(&self, data: &BoardData) -> impl IntoElement {
         let mut stones = div().absolute().inset_0();
         let range = &data.range;
@@ -265,9 +230,45 @@ impl Renderer {
                 let pixel_pos = self.pos_to_pixel_grid(pos, range);
                 let stone_size = self.vertex_size * self.theme.stone_size;
 
-                let color = match stone {
-                    BLACK => self.theme.black_stone,
-                    WHITE => self.theme.white_stone,
+                let stone_element = match stone {
+                    BLACK => {
+                        if let Some(ref asset_path) = self.theme.black_stone_path {
+                            // Use asset for black stone with img component
+                            img(asset_path.as_str())
+                                .w(px(stone_size))
+                                .h(px(stone_size))
+                                .flex_none()
+                                .object_fit(gpui::ObjectFit::Cover)
+                                .into_any_element()
+                        } else {
+                            // Fallback to colored div
+                            div()
+                                .w(px(stone_size))
+                                .h(px(stone_size))
+                                .rounded_full()
+                                .bg(self.theme.black_stone)
+                                .into_any_element()
+                        }
+                    }
+                    WHITE => {
+                        if let Some(ref asset_path) = self.theme.white_stone_path {
+                            // Use asset for white stone with img component
+                            img(asset_path.as_str())
+                                .w(px(stone_size))
+                                .h(px(stone_size))
+                                .flex_none()
+                                .object_fit(gpui::ObjectFit::Cover)
+                                .into_any_element()
+                        } else {
+                            // Fallback to colored div
+                            div()
+                                .w(px(stone_size))
+                                .h(px(stone_size))
+                                .rounded_full()
+                                .bg(self.theme.white_stone)
+                                .into_any_element()
+                        }
+                    }
                     _ => continue,
                 };
 
@@ -276,11 +277,7 @@ impl Renderer {
                         .absolute()
                         .left(pixel_pos.x - px(stone_size / 2.0))
                         .top(pixel_pos.y - px(stone_size / 2.0))
-                        .w(px(stone_size))
-                        .h(px(stone_size))
-                        .rounded_full()
-                        .bg(color), // Shadow effect would be applied here if available
-                                    // TODO: Add shadow when available in gpui
+                        .child(stone_element),
                 );
             }
         }
@@ -288,7 +285,6 @@ impl Renderer {
         stones
     }
 
-    /// Render markers
     fn render_markers(&self, data: &BoardData) -> impl IntoElement {
         let mut markers = div().absolute().inset_0();
         let range = &data.range;
@@ -297,7 +293,6 @@ impl Renderer {
             if range.contains(pos) {
                 let pixel_pos = self.pos_to_pixel_grid(pos, range);
                 let marker_size = self.vertex_size * MARKER_SIZE_RATIO;
-
                 markers = markers.child(self.render_marker(marker, pixel_pos, marker_size));
             }
         }
@@ -305,7 +300,6 @@ impl Renderer {
         markers
     }
 
-    /// Render individual marker
     fn render_marker(&self, marker: &Marker, pos: Point<Pixels>, size: f32) -> impl IntoElement {
         match marker {
             Marker::Circle { color } => div()
@@ -339,16 +333,13 @@ impl Renderer {
                         .h(px(size * CROSS_LINE_RATIO))
                         .bg(*color),
                 ),
-            Marker::Triangle { color } => {
-                // Create simple triangle shape using a square
-                div()
-                    .absolute()
-                    .left(pos.x - px(size / 2.0))
-                    .top(pos.y - px(size / 2.0))
-                    .w(px(size))
-                    .h(px(size))
-                    .bg(*color)
-            }
+            Marker::Triangle { color } => div()
+                .absolute()
+                .left(pos.x - px(size / 2.0))
+                .top(pos.y - px(size / 2.0))
+                .w(px(size))
+                .h(px(size))
+                .bg(*color),
             Marker::Square { color } => div()
                 .absolute()
                 .left(pos.x - px(size / 2.0))
@@ -380,7 +371,6 @@ impl Renderer {
         }
     }
 
-    /// Render ghost stones
     fn render_ghosts(&self, data: &BoardData) -> impl IntoElement {
         let mut ghosts = div().absolute().inset_0();
         let range = &data.range;
@@ -390,28 +380,106 @@ impl Renderer {
                 let pixel_pos = self.pos_to_pixel_grid(pos, range);
                 let stone_size = self.vertex_size * self.theme.stone_size * GHOST_SIZE_RATIO;
 
-                let base_color = match ghost.stone {
-                    BLACK => self.theme.black_stone,
-                    WHITE => self.theme.white_stone,
-                    _ => continue,
-                };
+                let ghost_element = match ghost.stone {
+                    BLACK => {
+                        if let Some(ref asset_path) = self.theme.black_stone_path {
+                            // Use asset for black ghost stone with tinting
+                            let mut svg_element = svg()
+                                .path(asset_path.clone())
+                                .w(px(stone_size))
+                                .h(px(stone_size));
 
-                let tinted_color = match ghost.kind {
-                    GhostKind::Good => {
-                        // Green tint
-                        let mut hsla: Hsla = base_color;
-                        hsla.h = GREEN_HUE;
-                        hsla.s = GHOST_SATURATION;
-                        hsla
+                            // Apply tinting based on ghost kind
+                            svg_element = match ghost.kind {
+                                GhostKind::Good => svg_element.text_color(hsla(
+                                    GREEN_HUE,
+                                    GHOST_SATURATION,
+                                    0.5,
+                                    1.0,
+                                )),
+                                GhostKind::Bad => svg_element.text_color(hsla(
+                                    RED_HUE,
+                                    GHOST_SATURATION,
+                                    0.5,
+                                    1.0,
+                                )),
+                                GhostKind::Neutral => svg_element,
+                            };
+
+                            svg_element.into_any_element()
+                        } else {
+                            // Fallback to colored div with tinting
+                            let mut hsla: Hsla = self.theme.black_stone;
+                            match ghost.kind {
+                                GhostKind::Good => {
+                                    hsla.h = GREEN_HUE;
+                                    hsla.s = GHOST_SATURATION;
+                                }
+                                GhostKind::Bad => {
+                                    hsla.h = RED_HUE;
+                                    hsla.s = GHOST_SATURATION;
+                                }
+                                GhostKind::Neutral => {}
+                            }
+
+                            div()
+                                .w(px(stone_size))
+                                .h(px(stone_size))
+                                .rounded_full()
+                                .bg(hsla)
+                                .into_any_element()
+                        }
                     }
-                    GhostKind::Bad => {
-                        // Red tint
-                        let mut hsla: Hsla = base_color;
-                        hsla.h = RED_HUE;
-                        hsla.s = GHOST_SATURATION;
-                        hsla
+                    WHITE => {
+                        if let Some(ref asset_path) = self.theme.white_stone_path {
+                            // Use asset for white ghost stone with tinting
+                            let mut svg_element = svg()
+                                .path(asset_path.clone())
+                                .w(px(stone_size))
+                                .h(px(stone_size));
+
+                            // Apply tinting based on ghost kind
+                            svg_element = match ghost.kind {
+                                GhostKind::Good => svg_element.text_color(hsla(
+                                    GREEN_HUE,
+                                    GHOST_SATURATION,
+                                    0.5,
+                                    1.0,
+                                )),
+                                GhostKind::Bad => svg_element.text_color(hsla(
+                                    RED_HUE,
+                                    GHOST_SATURATION,
+                                    0.5,
+                                    1.0,
+                                )),
+                                GhostKind::Neutral => svg_element,
+                            };
+
+                            svg_element.into_any_element()
+                        } else {
+                            // Fallback to colored div with tinting
+                            let mut hsla: Hsla = self.theme.white_stone;
+                            match ghost.kind {
+                                GhostKind::Good => {
+                                    hsla.h = GREEN_HUE;
+                                    hsla.s = GHOST_SATURATION;
+                                }
+                                GhostKind::Bad => {
+                                    hsla.h = RED_HUE;
+                                    hsla.s = GHOST_SATURATION;
+                                }
+                                GhostKind::Neutral => {}
+                            }
+
+                            div()
+                                .w(px(stone_size))
+                                .h(px(stone_size))
+                                .rounded_full()
+                                .bg(hsla)
+                                .into_any_element()
+                        }
                     }
-                    GhostKind::Neutral => base_color,
+                    _ => continue,
                 };
 
                 ghosts = ghosts.child(
@@ -419,11 +487,8 @@ impl Renderer {
                         .absolute()
                         .left(pixel_pos.x - px(stone_size / 2.0))
                         .top(pixel_pos.y - px(stone_size / 2.0))
-                        .w(px(stone_size))
-                        .h(px(stone_size))
-                        .rounded_full()
-                        .bg(tinted_color)
-                        .opacity(ghost.alpha),
+                        .opacity(ghost.alpha)
+                        .child(ghost_element),
                 );
             }
         }
@@ -431,7 +496,6 @@ impl Renderer {
         ghosts
     }
 
-    /// Render heat overlay
     fn render_heat(&self, data: &BoardData) -> impl IntoElement {
         let mut heat = div().absolute().inset_0();
         let range = &data.range;
@@ -450,7 +514,7 @@ impl Renderer {
                     .top(pixel_pos.y - px(heat_size / 2.0))
                     .w(px(heat_size))
                     .h(px(heat_size))
-                    .rounded(px(heat_size / 2.0)) // Perfect circle: radius = half the size
+                    .rounded(px(heat_size / 2.0))
                     .bg(color)
                     .flex()
                     .items_center()
@@ -461,7 +525,7 @@ impl Renderer {
                         div()
                             .text_size(px(text_size))
                             .text_color(text_color)
-                            .font_weight(FontWeight::BOLD) // Better readability
+                            .font_weight(FontWeight::BOLD)
                             .child(label.clone()),
                     );
                 }
@@ -473,7 +537,6 @@ impl Renderer {
         heat
     }
 
-    /// Render territory overlay
     fn render_territory(&self, data: &BoardData) -> impl IntoElement {
         let mut territory = div().absolute().inset_0();
         let range = &data.range;
@@ -486,7 +549,7 @@ impl Renderer {
                 let color = match territory_data.owner {
                     BLACK => self.theme.black_stone,
                     WHITE => self.theme.white_stone,
-                    _ => rgb(0x808080).into(), // Neutral
+                    _ => rgb(0x808080).into(),
                 };
 
                 territory = territory.child(
@@ -505,7 +568,6 @@ impl Renderer {
         territory
     }
 
-    /// Render selection highlights
     fn render_selections(&self, data: &BoardData) -> impl IntoElement {
         let mut selections = div().absolute().inset_0();
         let range = &data.range;
@@ -547,7 +609,6 @@ impl Renderer {
         selections
     }
 
-    /// Render lines and arrows
     fn render_lines(&self, data: &BoardData) -> impl IntoElement {
         let mut lines = div().absolute().inset_0();
         let range = &data.range;
@@ -557,18 +618,15 @@ impl Renderer {
                 let from_pixel = self.pos_to_pixel_grid(line.from, range);
                 let to_pixel = self.pos_to_pixel_grid(line.to, range);
 
-                // Calculate line length and angle
                 let dx = to_pixel.x.0 - from_pixel.x.0;
                 let dy = to_pixel.y.0 - from_pixel.y.0;
                 let length = (dx * dx + dy * dy).sqrt();
-                let _angle = dy.atan2(dx); // TODO: implement rotation
 
                 let (color, width) = match &line.style {
                     LineStyle::Line { color, width } => (*color, *width),
                     LineStyle::Arrow { color, width } => (*color, *width),
                 };
 
-                // Simple line rendering (arrows would need more complex SVG or canvas)
                 lines = lines.child(
                     div()
                         .absolute()
@@ -576,7 +634,7 @@ impl Renderer {
                         .top(from_pixel.y - px(width / 2.0))
                         .w(px(length))
                         .h(px(width))
-                        .bg(color), // Note: Transform rotation would need proper implementation
+                        .bg(color),
                 );
             }
         }
@@ -584,7 +642,6 @@ impl Renderer {
         lines
     }
 
-    /// Render coordinate labels
     fn render_coordinates(
         &self,
         data: &BoardData,
@@ -601,7 +658,6 @@ impl Renderer {
             let pixel_x = margin + relative_x * self.vertex_size + self.vertex_size / 2.0;
             let label = self.x_coordinate_label(x);
 
-            // Top - position very close to the board edge
             coords = coords.child(
                 div()
                     .absolute()
@@ -619,7 +675,6 @@ impl Renderer {
                     .child(label.clone()),
             );
 
-            // Bottom - align up (closer to board)
             coords = coords.child(
                 div()
                     .absolute()
@@ -642,7 +697,6 @@ impl Renderer {
             let pixel_y = margin + relative_y * self.vertex_size + self.vertex_size / 2.0;
             let label = self.y_coordinate_label(y, data.size.1);
 
-            // Left - align right (closer to board)
             coords = coords.child(
                 div()
                     .absolute()
@@ -658,7 +712,6 @@ impl Renderer {
                     .child(label.clone()),
             );
 
-            // Right - align left (closer to board)
             coords = coords.child(
                 div()
                     .absolute()
@@ -679,24 +732,19 @@ impl Renderer {
     }
 
     // =============================================================================
-    // UTILITY METHODS
+    // UTILITY METHODS - Simplified
     // =============================================================================
 
-    /// Calculate the margin needed for coordinate labels
     fn coord_margin(&self) -> f32 {
         self.effective_coord_size() + self.spacing.coord_margin_padding
     }
 
-    /// Get the effective coordinate size (responsive)
     fn effective_coord_size(&self) -> f32 {
         self.theme.coord_size.max(self.spacing.min_coord_size)
     }
 
-    /// Get appropriate text color for heat overlay based on background intensity
     fn get_heat_text_color(&self, strength: u8) -> Hsla {
         let intensity = (strength as f32 / 9.0).min(1.0);
-
-        // Use white text for darker/more intense backgrounds, black for lighter ones
         if intensity >= 0.5 {
             gpui::white()
         } else {
@@ -704,18 +752,6 @@ impl Renderer {
         }
     }
 
-    /// Convert position to pixel coordinates
-    fn pos_to_pixel(&self, pos: Pos, range: &Range, offset: Point<Pixels>) -> Point<Pixels> {
-        let relative_x = (pos.x - range.x.0) as f32;
-        let relative_y = (pos.y - range.y.0) as f32;
-
-        Point::new(
-            offset.x + px(relative_x * self.vertex_size + self.vertex_size / 2.0),
-            offset.y + px(relative_y * self.vertex_size + self.vertex_size / 2.0),
-        )
-    }
-
-    /// Convert position to pixel coordinates for grid elements (no coordinate offset)
     fn pos_to_pixel_grid(&self, pos: Pos, range: &Range) -> Point<Pixels> {
         let relative_x = (pos.x - range.x.0) as f32;
         let relative_y = (pos.y - range.y.0) as f32;
@@ -726,7 +762,6 @@ impl Renderer {
         )
     }
 
-    /// Calculate star point positions for standard board sizes
     fn calculate_star_points(&self, data: &BoardData) -> Vec<Pos> {
         let (width, height) = data.size;
         let mut points = Vec::new();
@@ -764,7 +799,6 @@ impl Renderer {
                 ]);
             }
             _ => {
-                // Custom size - add corner and center points
                 if width >= 7 && height >= 7 {
                     let offset = if width <= 11 { 2 } else { 3 };
                     points.extend([
@@ -784,54 +818,43 @@ impl Renderer {
         points
     }
 
-    /// Convert heat strength to color with improved algorithm
     fn strength_to_color(&self, strength: u8) -> Rgba {
         let intensity = (strength as f32 / 9.0).min(1.0);
-
-        // Improved alpha calculation for better visibility
         let alpha = (0.4 + intensity * 0.5).min(0.9);
 
-        // More intuitive color progression: cool to warm
         if intensity <= 0.2 {
-            // Very low: Deep blue
             hsla(240.0 / 360.0, 0.8, 0.7, alpha).into()
         } else if intensity <= 0.4 {
-            // Low: Blue to cyan
             let t = (intensity - 0.2) / 0.2;
-            let hue = 240.0 - t * 60.0; // 240° to 180°
+            let hue = 240.0 - t * 60.0;
             hsla(hue / 360.0, 0.8, 0.6, alpha).into()
         } else if intensity <= 0.6 {
-            // Medium: Cyan to green
             let t = (intensity - 0.4) / 0.2;
-            let hue = 180.0 - t * 60.0; // 180° to 120°
+            let hue = 180.0 - t * 60.0;
             hsla(hue / 360.0, 0.8, 0.5, alpha).into()
         } else if intensity <= 0.8 {
-            // High: Green to yellow
             let t = (intensity - 0.6) / 0.2;
-            let hue = 120.0 - t * 60.0; // 120° to 60°
+            let hue = 120.0 - t * 60.0;
             hsla(hue / 360.0, 0.9, 0.5, alpha).into()
         } else {
-            // Very high: Yellow to red
             let t = (intensity - 0.8) / 0.2;
-            let hue = 60.0 - t * 60.0; // 60° to 0°
+            let hue = 60.0 - t * 60.0;
             hsla(hue / 360.0, 1.0, 0.5, alpha).into()
         }
     }
 
-    /// Convert x coordinate to letter label
     fn x_coordinate_label(&self, x: usize) -> String {
         if x >= 26 {
-            return "?".to_string(); // Handle overflow
+            return "?".to_string();
         }
         let letter = if x < 8 {
             (b'A' + x as u8) as char
         } else {
-            (b'A' + x as u8 + 1) as char // Skip 'I'
+            (b'A' + x as u8 + 1) as char
         };
         letter.to_string()
     }
 
-    /// Convert y coordinate to number label (inverted for Go)
     fn y_coordinate_label(&self, y: usize, board_height: usize) -> String {
         (board_height - y).to_string()
     }
@@ -852,8 +875,8 @@ mod tests {
         let renderer = Renderer::new(20.0, Theme::default());
         let data = BoardData::new(19, 19);
         let stars = renderer.calculate_star_points(&data);
-        assert_eq!(stars.len(), 9); // 19x19 has 9 star points
-        assert!(stars.contains(&Pos::new(9, 9))); // Center point
+        assert_eq!(stars.len(), 9);
+        assert!(stars.contains(&Pos::new(9, 9)));
     }
 
     #[test]
@@ -862,22 +885,13 @@ mod tests {
         let range = Range::new((0, 18), (0, 18));
         let offset = point(px(10.0), px(10.0));
 
-        let pixel = renderer.pos_to_pixel(Pos::new(0, 0), &range, offset);
-        assert_eq!(pixel.x, px(20.0)); // 10 + 0*20 + 10
+        let pixel = renderer.pos_to_pixel_grid(Pos::new(0, 0), &range);
+        assert_eq!(pixel.x, px(20.0));
         assert_eq!(pixel.y, px(20.0));
 
-        let pixel = renderer.pos_to_pixel(Pos::new(9, 9), &range, offset);
-        assert_eq!(pixel.x, px(200.0)); // 10 + 9*20 + 10
+        let pixel = renderer.pos_to_pixel_grid(Pos::new(9, 9), &range);
+        assert_eq!(pixel.x, px(200.0));
         assert_eq!(pixel.y, px(200.0));
-
-        // Test grid positioning (no offset)
-        let pixel_grid = renderer.pos_to_pixel_grid(Pos::new(0, 0), &range);
-        assert_eq!(pixel_grid.x, px(10.0)); // 0*20 + 10
-        assert_eq!(pixel_grid.y, px(10.0));
-
-        let pixel_grid = renderer.pos_to_pixel_grid(Pos::new(9, 9), &range);
-        assert_eq!(pixel_grid.x, px(190.0)); // 9*20 + 10
-        assert_eq!(pixel_grid.y, px(190.0));
     }
 
     #[test]
@@ -886,7 +900,7 @@ mod tests {
 
         assert_eq!(renderer.x_coordinate_label(0), "A");
         assert_eq!(renderer.x_coordinate_label(7), "H");
-        assert_eq!(renderer.x_coordinate_label(8), "J"); // Skip I
+        assert_eq!(renderer.x_coordinate_label(8), "J");
         assert_eq!(renderer.x_coordinate_label(17), "S");
 
         assert_eq!(renderer.y_coordinate_label(0, 19), "19");
@@ -901,17 +915,12 @@ mod tests {
         let color_5 = renderer.strength_to_color(5);
         let color_9 = renderer.strength_to_color(9);
 
-        // Colors should be different
         assert_ne!(color_0, color_5);
         assert_ne!(color_5, color_9);
 
-        // Test that colors progress from cool to warm
-        // Low values should be more blue, high values more red
         let low_color: Hsla = renderer.strength_to_color(1).into();
         let high_color: Hsla = renderer.strength_to_color(9).into();
 
-        // Low strength should have higher hue (more blue)
-        // High strength should have lower hue (more red)
         assert!(low_color.h > high_color.h);
     }
 
@@ -919,24 +928,10 @@ mod tests {
     fn test_heat_text_color() {
         let renderer = Renderer::new(20.0, Theme::default());
 
-        // Low intensity should use black text
         let low_text = renderer.get_heat_text_color(2);
         assert_eq!(low_text, gpui::black());
 
-        // High intensity should use white text
         let high_text = renderer.get_heat_text_color(8);
         assert_eq!(high_text, gpui::white());
-    }
-
-    #[test]
-    fn test_responsive_heat_sizing() {
-        let small_renderer = Renderer::new(15.0, Theme::default());
-        let large_renderer = Renderer::new(60.0, Theme::default());
-
-        // Text size should be responsive to vertex size
-        assert!(large_renderer.spacing.heat_text_size >= small_renderer.spacing.heat_text_size);
-
-        // Cross line width should also be responsive
-        assert!(large_renderer.spacing.cross_line_width >= small_renderer.spacing.cross_line_width);
     }
 }

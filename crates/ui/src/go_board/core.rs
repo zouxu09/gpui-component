@@ -1,11 +1,8 @@
 use gpui::*;
 use std::collections::HashMap;
 
-// Core types for the Go board - simplified and consolidated
-// This replaces the scattered type definitions across multiple files
-
 // =============================================================================
-// CORE POSITION TYPES
+// CORE TYPES - Simplified and consolidated
 // =============================================================================
 
 /// A position on the Go board
@@ -21,7 +18,7 @@ impl Pos {
     }
 }
 
-/// Range of positions visible on the board (like Shudan's rangeX/rangeY)
+/// Range of positions visible on the board
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct Range {
     pub x: (usize, usize),
@@ -54,7 +51,7 @@ impl Range {
 }
 
 // =============================================================================
-// BOARD CONTENT TYPES
+// BOARD CONTENT TYPES - Simplified
 // =============================================================================
 
 /// Stone color/player (-1: white, 0: empty, 1: black)
@@ -81,26 +78,31 @@ impl Marker {
             color: rgb(0x000000).into(),
         }
     }
+
     pub fn cross() -> Self {
         Self::Cross {
             color: rgb(0x000000).into(),
         }
     }
+
     pub fn triangle() -> Self {
         Self::Triangle {
             color: rgb(0x000000).into(),
         }
     }
+
     pub fn square() -> Self {
         Self::Square {
             color: rgb(0x000000).into(),
         }
     }
+
     pub fn dot() -> Self {
         Self::Dot {
             color: rgb(0x000000).into(),
         }
     }
+
     pub fn label(text: impl Into<String>) -> Self {
         Self::Label {
             text: text.into(),
@@ -126,7 +128,7 @@ impl Marker {
 pub struct Ghost {
     pub stone: Stone,
     pub kind: GhostKind,
-    pub alpha: f32, // 0.0 - 1.0
+    pub alpha: f32,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -191,8 +193,8 @@ impl Heat {
 /// Territory/area marking
 #[derive(Debug, Clone, PartialEq)]
 pub struct Territory {
-    pub owner: Stone, // BLACK, WHITE, or EMPTY for neutral
-    pub alpha: f32,   // 0.0 - 1.0
+    pub owner: Stone,
+    pub alpha: f32,
 }
 
 impl Territory {
@@ -324,28 +326,21 @@ impl Selection {
 }
 
 // =============================================================================
-// BOARD DATA CONTAINERS
+// BOARD DATA - Simplified storage
 // =============================================================================
 
-/// Simplified board data using sparse HashMap storage for efficiency
+/// Board data using sparse HashMap storage
 #[derive(Debug, Clone, Default)]
 pub struct BoardData {
-    // Core game state
     pub stones: HashMap<Pos, Stone>,
-
-    // Visual annotations
     pub markers: HashMap<Pos, Marker>,
     pub ghosts: HashMap<Pos, Ghost>,
     pub heat: HashMap<Pos, Heat>,
     pub territory: HashMap<Pos, Territory>,
     pub selections: HashMap<Pos, Selection>,
-
-    // Lines and overlays
     pub lines: Vec<Line>,
-
-    // Board dimensions
-    pub size: (usize, usize), // (width, height)
-    pub range: Range,         // Visible area
+    pub size: (usize, usize),
+    pub range: Range,
 }
 
 impl BoardData {
@@ -384,13 +379,9 @@ impl BoardData {
     pub fn set_marker(&mut self, pos: Pos, marker: Option<Marker>) {
         if self.is_valid_pos(pos) {
             match marker {
-                Some(m) => {
-                    self.markers.insert(pos, m);
-                }
-                None => {
-                    self.markers.remove(&pos);
-                }
-            }
+                Some(m) => self.markers.insert(pos, m),
+                None => self.markers.remove(&pos),
+            };
         }
     }
 
@@ -406,13 +397,9 @@ impl BoardData {
     pub fn set_ghost(&mut self, pos: Pos, ghost: Option<Ghost>) {
         if self.is_valid_pos(pos) {
             match ghost {
-                Some(g) => {
-                    self.ghosts.insert(pos, g);
-                }
-                None => {
-                    self.ghosts.remove(&pos);
-                }
-            }
+                Some(g) => self.ghosts.insert(pos, g),
+                None => self.ghosts.remove(&pos),
+            };
         }
     }
 
@@ -424,13 +411,9 @@ impl BoardData {
     pub fn set_heat(&mut self, pos: Pos, heat: Option<Heat>) {
         if self.is_valid_pos(pos) {
             match heat {
-                Some(h) => {
-                    self.heat.insert(pos, h);
-                }
-                None => {
-                    self.heat.remove(&pos);
-                }
-            }
+                Some(h) => self.heat.insert(pos, h),
+                None => self.heat.remove(&pos),
+            };
         }
     }
 
@@ -442,13 +425,9 @@ impl BoardData {
     pub fn set_territory(&mut self, pos: Pos, territory: Option<Territory>) {
         if self.is_valid_pos(pos) {
             match territory {
-                Some(t) => {
-                    self.territory.insert(pos, t);
-                }
-                None => {
-                    self.territory.remove(&pos);
-                }
-            }
+                Some(t) => self.territory.insert(pos, t),
+                None => self.territory.remove(&pos),
+            };
         }
     }
 
@@ -460,13 +439,9 @@ impl BoardData {
     pub fn set_selection(&mut self, pos: Pos, selection: Option<Selection>) {
         if self.is_valid_pos(pos) {
             match selection {
-                Some(s) => {
-                    self.selections.insert(pos, s);
-                }
-                None => {
-                    self.selections.remove(&pos);
-                }
-            }
+                Some(s) => self.selections.insert(pos, s),
+                None => self.selections.remove(&pos),
+            };
         }
     }
 
@@ -496,7 +471,7 @@ impl BoardData {
         self.size = (width, height);
         self.range = Range::full(width, height);
 
-        // Remove any positions that are now out of bounds
+        // Remove out-of-bounds positions
         let new_size = (width, height);
         self.stones
             .retain(|&pos, _| pos.x < new_size.0 && pos.y < new_size.1);
@@ -514,7 +489,7 @@ impl BoardData {
 }
 
 // =============================================================================
-// EVENT TYPES
+// EVENT TYPES - Simplified
 // =============================================================================
 
 /// Mouse events on board positions
@@ -539,64 +514,53 @@ pub enum NavEvent {
 }
 
 // =============================================================================
-// THEME SIMPLIFICATION
+// THEME - Simplified
 // =============================================================================
 
-/// Unified theme for the entire Go board
+/// Unified theme for the Go board
 #[derive(Debug, Clone)]
 pub struct Theme {
-    // Board appearance
     pub background: Hsla,
     pub border: Hsla,
     pub border_width: f32,
-
-    // Grid
     pub grid_lines: Hsla,
     pub grid_width: f32,
     pub star_points: Hsla,
     pub star_size: f32,
-
-    // Stones
     pub black_stone: Hsla,
     pub white_stone: Hsla,
-    pub stone_size: f32, // Ratio of vertex size (0.0-1.0)
-
-    // Coordinates
+    pub stone_size: f32,
     pub coordinates: Hsla,
     pub coord_size: f32,
-
-    // Effects
-    pub stone_shadow: bool,
-    pub fuzzy_stones: bool,
+    // Asset support
+    pub board_background_path: Option<SharedString>,
+    pub black_stone_path: Option<SharedString>,
+    pub white_stone_path: Option<SharedString>,
 }
 
 impl Default for Theme {
     fn default() -> Self {
         Self {
-            background: rgb(0xebb55b).into(), // Traditional wood color
+            background: rgb(0xebb55b).into(),
             border: rgb(0xca933a).into(),
             border_width: 2.0,
-
             grid_lines: rgb(0x000000).into(),
             grid_width: 1.0,
             star_points: rgb(0x000000).into(),
             star_size: 6.0,
-
             black_stone: rgb(0x000000).into(),
             white_stone: rgb(0xffffff).into(),
             stone_size: 0.85,
-
             coordinates: rgb(0x000000).into(),
             coord_size: 16.0,
-
-            stone_shadow: true,
-            fuzzy_stones: false,
+            board_background_path: None,
+            black_stone_path: None,
+            white_stone_path: None,
         }
     }
 }
 
 impl Theme {
-    /// Dark theme variant
     pub fn dark() -> Self {
         Self {
             background: rgb(0x2d2d2d).into(),
@@ -607,7 +571,6 @@ impl Theme {
         }
     }
 
-    /// High contrast theme
     pub fn high_contrast() -> Self {
         Self {
             background: rgb(0xffffff).into(),
@@ -621,7 +584,6 @@ impl Theme {
         }
     }
 
-    /// Minimal theme
     pub fn minimal() -> Self {
         Self {
             background: rgb(0xf8f8f8).into(),
@@ -633,26 +595,31 @@ impl Theme {
             star_size: 4.0,
             coordinates: rgb(0x666666).into(),
             coord_size: 10.0,
-            stone_shadow: false,
             ..Default::default()
         }
     }
 
-    /// Builder methods for theme customization
-    pub fn with_board_background(mut self, color: Hsla) -> Self {
-        self.background = color;
+    pub fn with_assets() -> Self {
+        Self {
+            board_background_path: Some("icons/board.png".into()),
+            black_stone_path: Some("icons/black_stone.svg".into()),
+            white_stone_path: Some("icons/white_stone.svg".into()),
+            ..Default::default()
+        }
+    }
+
+    pub fn with_board_background(mut self, path: impl Into<SharedString>) -> Self {
+        self.board_background_path = Some(path.into());
         self
     }
 
-    pub fn with_stone_colors(mut self, black: Hsla, white: Hsla) -> Self {
-        self.black_stone = black;
-        self.white_stone = white;
+    pub fn with_black_stone_asset(mut self, path: impl Into<SharedString>) -> Self {
+        self.black_stone_path = Some(path.into());
         self
     }
 
-    pub fn with_grid_lines(mut self, color: Hsla, width: f32) -> Self {
-        self.grid_lines = color;
-        self.grid_width = width;
+    pub fn with_white_stone_asset(mut self, path: impl Into<SharedString>) -> Self {
+        self.white_stone_path = Some(path.into());
         self
     }
 }
@@ -681,16 +648,13 @@ mod tests {
     fn test_board_data_operations() {
         let mut board = BoardData::new(9, 9);
 
-        // Test stone operations
         board.set_stone(Pos::new(4, 4), BLACK);
         assert_eq!(board.get_stone(Pos::new(4, 4)), BLACK);
         assert_eq!(board.get_stone(Pos::new(0, 0)), EMPTY);
 
-        // Test marker operations
         board.set_marker(Pos::new(2, 2), Some(Marker::circle()));
         assert!(board.get_marker(Pos::new(2, 2)).is_some());
 
-        // Test clear operations
         board.clear_stones();
         assert_eq!(board.get_stone(Pos::new(4, 4)), EMPTY);
     }
@@ -717,10 +681,10 @@ mod tests {
     fn test_board_resize() {
         let mut board = BoardData::new(9, 9);
         board.set_stone(Pos::new(8, 8), BLACK);
-        board.set_stone(Pos::new(10, 10), WHITE); // Out of bounds
+        board.set_stone(Pos::new(10, 10), WHITE);
 
         board.resize(5, 5);
         assert_eq!(board.size, (5, 5));
-        assert_eq!(board.get_stone(Pos::new(8, 8)), EMPTY); // Removed due to resize
+        assert_eq!(board.get_stone(Pos::new(8, 8)), EMPTY);
     }
 }

@@ -3,22 +3,18 @@ use gpui::*;
 use std::rc::Rc;
 
 /// Simplified Go board component with ergonomic API
-/// This replaces the complex GoBoard + GoBoardState + multiple overlay system
 #[derive(Clone)]
 pub struct Board {
     data: BoardData,
     pub theme: Theme,
     pub vertex_size: f32,
     show_coordinates: bool,
-
-    // Event handlers - much simpler than the previous complex system
     on_click: Option<Rc<dyn Fn(PosEvent)>>,
     on_hover: Option<Rc<dyn Fn(Option<Pos>)>>,
     on_key: Option<Rc<dyn Fn(KeyDownEvent) -> Option<NavEvent>>>,
 }
 
 impl Board {
-    /// Create a new board with default 19x19 size
     pub fn new() -> Self {
         Self {
             data: BoardData::standard(),
@@ -31,7 +27,6 @@ impl Board {
         }
     }
 
-    /// Create board with specific size
     pub fn with_size(width: usize, height: usize) -> Self {
         Self {
             data: BoardData::new(width, height),
@@ -45,7 +40,7 @@ impl Board {
     }
 
     // =============================================================================
-    // BUILDER PATTERN API - Much more ergonomic than previous scattered methods
+    // BUILDER PATTERN API
     // =============================================================================
 
     pub fn theme(mut self, theme: Theme) -> Self {
@@ -68,7 +63,6 @@ impl Board {
         self
     }
 
-    // Event handlers with simple closures
     pub fn on_click<F>(mut self, handler: F) -> Self
     where
         F: Fn(PosEvent) + 'static,
@@ -94,20 +88,17 @@ impl Board {
     }
 
     // =============================================================================
-    // DATA ACCESS - Direct, simple API
+    // DATA ACCESS
     // =============================================================================
 
-    /// Get reference to board data for reading
     pub fn data(&self) -> &BoardData {
         &self.data
     }
 
-    /// Get mutable reference to board data for modifications
     pub fn data_mut(&mut self) -> &mut BoardData {
         &mut self.data
     }
 
-    /// Immutable access to specific data
     pub fn stone_at(&self, pos: Pos) -> Stone {
         self.data.get_stone(pos)
     }
@@ -117,16 +108,14 @@ impl Board {
     }
 
     // =============================================================================
-    // CONVENIENT MUTATION METHODS
+    // MUTATION METHODS
     // =============================================================================
 
-    /// Set a stone and return self for chaining
     pub fn stone(mut self, pos: Pos, stone: Stone) -> Self {
         self.data.set_stone(pos, stone);
         self
     }
 
-    /// Set multiple stones from iterator
     pub fn stones<I>(mut self, stones: I) -> Self
     where
         I: IntoIterator<Item = (Pos, Stone)>,
@@ -137,13 +126,11 @@ impl Board {
         self
     }
 
-    /// Set a marker
     pub fn marker(mut self, pos: Pos, marker: Marker) -> Self {
         self.data.set_marker(pos, Some(marker));
         self
     }
 
-    /// Set multiple markers
     pub fn markers<I>(mut self, markers: I) -> Self
     where
         I: IntoIterator<Item = (Pos, Marker)>,
@@ -154,13 +141,11 @@ impl Board {
         self
     }
 
-    /// Set ghost stone
     pub fn ghost(mut self, pos: Pos, ghost: Ghost) -> Self {
         self.data.set_ghost(pos, Some(ghost));
         self
     }
 
-    /// Set multiple ghost stones
     pub fn ghosts<I>(mut self, ghosts: I) -> Self
     where
         I: IntoIterator<Item = (Pos, Ghost)>,
@@ -171,13 +156,11 @@ impl Board {
         self
     }
 
-    /// Add a line
     pub fn line(mut self, line: Line) -> Self {
         self.data.add_line(line);
         self
     }
 
-    /// Add multiple lines
     pub fn lines<I>(mut self, lines: I) -> Self
     where
         I: IntoIterator<Item = Line>,
@@ -188,13 +171,11 @@ impl Board {
         self
     }
 
-    /// Select a position
     pub fn select(mut self, pos: Pos) -> Self {
         self.data.set_selection(pos, Some(Selection::selected(pos)));
         self
     }
 
-    /// Select multiple positions
     pub fn selections<I>(mut self, positions: I) -> Self
     where
         I: IntoIterator<Item = Pos>,
@@ -205,20 +186,16 @@ impl Board {
         self
     }
 
-    /// Mark last move
     pub fn last_move(mut self, pos: Pos) -> Self {
-        self.data
-            .set_selection(pos, Some(Selection::last_move(pos)));
+        self.data.set_selection(pos, Some(Selection::last_move(pos)));
         self
     }
 
-    /// Set territory
     pub fn territory(mut self, pos: Pos, territory: Territory) -> Self {
         self.data.set_territory(pos, Some(territory));
         self
     }
 
-    /// Set heat/influence
     pub fn heat(mut self, pos: Pos, heat: Heat) -> Self {
         self.data.set_heat(pos, Some(heat));
         self
@@ -280,7 +257,6 @@ impl Board {
         self.data.resize(width, height);
     }
 
-    /// Calculate board pixel size
     pub fn pixel_size(&self) -> Size<Pixels> {
         let range = &self.data.range;
         let width = range.width() as f32 * self.vertex_size;
@@ -288,7 +264,6 @@ impl Board {
         Size::new(px(width), px(height))
     }
 
-    /// Get position from pixel coordinates (for click handling)
     pub fn pos_from_pixel(&self, pixel: Point<Pixels>, offset: Point<Pixels>) -> Option<Pos> {
         let relative_x = (pixel.x - offset.x).0;
         let relative_y = (pixel.y - offset.y).0;
@@ -312,7 +287,6 @@ impl Board {
         }
     }
 
-    /// Get pixel coordinates for a position
     pub fn pixel_from_pos(&self, pos: Pos, offset: Point<Pixels>) -> Point<Pixels> {
         let range = &self.data.range;
         let relative_x = (pos.x - range.x.0) as f32;
@@ -332,7 +306,7 @@ impl Default for Board {
 }
 
 // =============================================================================
-// BOUNDED BOARD - Simple replacement for BoundedGoBoard
+// BOUNDED BOARD - Auto-sizing board
 // =============================================================================
 
 /// Auto-sizing board that fits within given constraints
@@ -347,8 +321,7 @@ pub struct BoundedBoard {
 impl BoundedBoard {
     pub fn new(max_width: f32, max_height: f32) -> Self {
         let mut board = Board::new();
-        let vertex_size =
-            Self::calculate_vertex_size(max_width, max_height, board.dimensions(), 10.0, 50.0);
+        let vertex_size = Self::calculate_vertex_size(max_width, max_height, board.dimensions(), 10.0, 50.0);
         board.vertex_size = vertex_size;
 
         Self {
@@ -362,8 +335,7 @@ impl BoundedBoard {
 
     pub fn with_size(width: usize, height: usize, max_width: f32, max_height: f32) -> Self {
         let mut board = Board::with_size(width, height);
-        let vertex_size =
-            Self::calculate_vertex_size(max_width, max_height, (width, height), 10.0, 50.0);
+        let vertex_size = Self::calculate_vertex_size(max_width, max_height, (width, height), 10.0, 50.0);
         board.vertex_size = vertex_size;
 
         Self {
@@ -389,7 +361,6 @@ impl BoundedBoard {
         self
     }
 
-    /// Delegate all Board methods
     pub fn inner(&self) -> &Board {
         &self.board
     }
@@ -398,12 +369,10 @@ impl BoundedBoard {
         &mut self.board
     }
 
-    /// Consume the BoundedBoard and return the inner Board
     pub fn into_inner(self) -> Board {
         self.board
     }
 
-    /// Apply closure to inner board and recalculate size
     pub fn update<F>(mut self, f: F) -> Self
     where
         F: FnOnce(Board) -> Board,
@@ -439,7 +408,7 @@ impl BoundedBoard {
 }
 
 // =============================================================================
-// CONVENIENT HELPER FUNCTIONS
+// HELPER FUNCTIONS
 // =============================================================================
 
 /// Create a standard 19x19 board with some stones
@@ -449,10 +418,7 @@ pub fn demo_board() -> Board {
         .stone(Pos::new(15, 15), WHITE)
         .stone(Pos::new(9, 9), BLACK)
         .marker(Pos::new(3, 15), Marker::circle().with_color(rgb(0xff0000).into()))
-        .marker(
-            Pos::new(15, 3),
-            Marker::triangle().with_color(rgb(0x0000ff).into()),
-        )
+        .marker(Pos::new(15, 3), Marker::triangle().with_color(rgb(0x0000ff).into()))
         .ghost(Pos::new(4, 4), Ghost::good(WHITE))
         .ghost(Pos::new(5, 5), Ghost::bad(BLACK))
         .select(Pos::new(3, 3))
@@ -522,7 +488,6 @@ mod tests {
     #[test]
     fn test_bounded_board() {
         let bounded = BoundedBoard::new(200.0, 200.0);
-        // For 19x19 board in 200x200, expect roughly 200/19 ≈ 10.5
         assert!(bounded.inner().vertex_size >= 10.0);
         assert!(bounded.inner().vertex_size <= 11.0);
     }
@@ -532,7 +497,6 @@ mod tests {
         let board = Board::new().vertex_size(20.0);
         let offset = Point::new(px(10.0), px(10.0));
 
-        // Convert position to pixel and back
         let pos = Pos::new(5, 5);
         let pixel = board.pixel_from_pos(pos, offset);
         let converted_pos = board.pos_from_pixel(pixel, offset).unwrap();
@@ -550,8 +514,8 @@ mod tests {
     #[test]
     fn test_position_string_parsing() {
         let board = from_position_string((19, 19), "B[dd],W[pp],B[pd]");
-        assert_eq!(board.stone_at(Pos::new(3, 3)), BLACK); // 'd' = 3
-        assert_eq!(board.stone_at(Pos::new(15, 15)), WHITE); // 'p' = 15
+        assert_eq!(board.stone_at(Pos::new(3, 3)), BLACK);
+        assert_eq!(board.stone_at(Pos::new(15, 15)), WHITE);
         assert_eq!(board.stone_at(Pos::new(15, 3)), BLACK);
     }
 
@@ -560,14 +524,8 @@ mod tests {
         let board = Board::new()
             .clear_all()
             .stones([(Pos::new(3, 3), BLACK), (Pos::new(4, 4), WHITE)])
-            .markers([
-                (Pos::new(1, 1), Marker::circle()),
-                (Pos::new(2, 2), Marker::triangle()),
-            ])
-            .ghosts([
-                (Pos::new(5, 5), Ghost::good(BLACK)),
-                (Pos::new(6, 6), Ghost::bad(WHITE)),
-            ]);
+            .markers([(Pos::new(1, 1), Marker::circle()), (Pos::new(2, 2), Marker::triangle())])
+            .ghosts([(Pos::new(5, 5), Ghost::good(BLACK)), (Pos::new(6, 6), Ghost::bad(WHITE))]);
 
         assert_eq!(board.stone_at(Pos::new(3, 3)), BLACK);
         assert_eq!(board.stone_at(Pos::new(4, 4)), WHITE);
