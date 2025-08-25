@@ -279,7 +279,7 @@ impl Render for BoardView {
             // Add focus highlight to the board data
             self.board.data_mut().set_selection(
                 focus_pos,
-                Some(Selection::selected(focus_pos).with_color(rgb(0x80ff80).into())),
+                Some(Selection::selected(focus_pos).with_color(rgb(0x80ff80))),
             );
         }
 

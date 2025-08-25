@@ -43,11 +43,9 @@ impl ResponsiveSpacing {
         Self {
             coord_margin_padding: (vertex_size * BASE_COORD_MARGIN_RATIO * scale_factor).max(4.0),
             coord_board_gap: (vertex_size * BASE_COORD_GAP_RATIO * scale_factor).max(1.0),
-            cross_line_width: (vertex_size * 0.08 * scale_factor)
-                .max(BASE_CROSS_LINE_WIDTH)
-                .min(3.0),
-            min_coord_size: (vertex_size * 0.6).max(12.0).min(24.0),
-            heat_text_size: (vertex_size * 0.3 * scale_factor).max(8.0).min(16.0),
+            cross_line_width: (vertex_size * 0.08 * scale_factor).clamp(BASE_CROSS_LINE_WIDTH, 3.0),
+            min_coord_size: (vertex_size * 0.6).clamp(12.0, 24.0),
+            heat_text_size: (vertex_size * 0.3 * scale_factor).clamp(8.0, 16.0),
         }
     }
 
@@ -401,17 +399,17 @@ impl Renderer {
                 let tinted_color = match ghost.kind {
                     GhostKind::Good => {
                         // Green tint
-                        let mut hsla: Hsla = base_color.into();
+                        let mut hsla: Hsla = base_color;
                         hsla.h = GREEN_HUE;
                         hsla.s = GHOST_SATURATION;
-                        hsla.into()
+                        hsla
                     }
                     GhostKind::Bad => {
                         // Red tint
-                        let mut hsla: Hsla = base_color.into();
+                        let mut hsla: Hsla = base_color;
                         hsla.h = RED_HUE;
                         hsla.s = GHOST_SATURATION;
-                        hsla.into()
+                        hsla
                     }
                     GhostKind::Neutral => base_color,
                 };

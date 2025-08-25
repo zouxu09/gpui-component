@@ -1,8 +1,8 @@
 use gpui::*;
 use std::collections::HashMap;
 
-/// Core types for the Go board - simplified and consolidated
-/// This replaces the scattered type definitions across multiple files
+// Core types for the Go board - simplified and consolidated
+// This replaces the scattered type definitions across multiple files
 
 // =============================================================================
 // CORE POSITION TYPES
