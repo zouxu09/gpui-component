@@ -73,6 +73,8 @@ pub use description_list_story::DescriptionListStory;
 pub use drawer_story::DrawerStory;
 pub use dropdown_story::DropdownStory;
 pub use form_story::FormStory;
+pub use go_board_story::GoBoardStory;
+pub use group_box_story::GroupBoxStory;
 pub use icon_story::IconStory;
 pub use image_story::ImageStory;
 pub use indicator_story::IndicatorStory;
