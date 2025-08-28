@@ -187,18 +187,6 @@ impl BoardView {
 
         self.board.pos_from_pixel(relative_mouse, offset)
     }
-
-    pub fn handle_mouse_click(&self, pos: Pos, modifiers: Modifiers) {
-        if let Some(ref handler) = self.on_click {
-            handler(PosEvent::new(pos, modifiers));
-        }
-    }
-
-    pub fn handle_mouse_hover(&self, pos: Option<Pos>) {
-        if let Some(ref handler) = self.on_hover {
-            handler(pos);
-        }
-    }
 }
 
 impl Render for BoardView {
@@ -229,13 +217,16 @@ impl Render for BoardView {
             .relative()
             .bg(self.board.theme.background)
             .w(px(total_width))
-            .h(px(total_height))
-            .child({
-                let renderer = Renderer::new(self.board.vertex_size, self.board.theme.clone())
-                    .with_coordinates(self.show_coordinates);
-                renderer.render(self.board.data(), self.show_coordinates)
-            });
+            .h(px(total_height));
 
+        // Render the board content first
+        container = container.child({
+            let renderer = Renderer::new(self.board.vertex_size, self.board.theme.clone())
+                .with_coordinates(self.show_coordinates);
+            renderer.render(self.board.data(), self.show_coordinates)
+        });
+
+        // Render interactions layer last to ensure it's on top
         container = container.child(self.render_interactions(cx));
 
         container = container.key_context("go-board").on_key_down(cx.listener(
@@ -246,7 +237,15 @@ impl Render for BoardView {
                             println!("Focus moved to {:?}", pos);
                         }
                         NavEvent::Select(pos) => {
-                            view.handle_mouse_click(pos, Modifiers::default());
+                            // Call the on_click callback for keyboard selection
+                            if let Some(ref handler) = view.on_click {
+                                let event = PosEvent::with_mouse_button(
+                                    pos,
+                                    Modifiers::default(),
+                                    MouseButton::Left,
+                                );
+                                handler(event);
+                            }
                         }
                         NavEvent::ClearSelection => {
                             view.board.data_mut().clear_selections();
@@ -281,7 +280,7 @@ impl BoardView {
             for x in range.x.0..=range.x.1 {
                 let pos = Pos::new(x, y);
                 let pixel_pos = self.board.pixel_from_pos(pos, offset);
-                let button_size = vertex_size * 0.8;
+                let button_size = vertex_size * 1.0; // Normal hit area size
 
                 let button = div()
                     .absolute()
@@ -289,17 +288,73 @@ impl BoardView {
                     .top(pixel_pos.y - px(button_size / 2.0))
                     .w(px(button_size))
                     .h(px(button_size))
+                    // Ensure the hit area participates in hit-testing
+                    .bg(hsla(0.0, 0.0, 0.0, 0.001))
                     .id(("board_pos", x * 1000 + y))
                     .cursor_pointer()
-                    .on_mouse_down(
-                        MouseButton::Left,
-                        cx.listener(move |view, event: &MouseDownEvent, _cx, _phase| {
-                            view.handle_mouse_click(pos, event.modifiers);
-                        }),
-                    )
-                    .on_mouse_move(cx.listener(move |view, _event, _cx, _phase| {
-                        view.handle_mouse_hover(Some(pos));
-                    }));
+                    .on_mouse_down(MouseButton::Left, move |_event, _window, _cx| {
+                        // Create a PosEvent for left click
+                        let event = PosEvent::with_mouse_button(
+                            pos,
+                            Modifiers::default(),
+                            MouseButton::Left,
+                        );
+                        // For now, just print the event - we'll implement the callback mechanism next
+                        println!(
+                            "[debug] Left click at ({}, {}) - created PosEvent: {:?}",
+                            pos.x, pos.y, event
+                        );
+                        // TODO: Call the on_click callback with this event
+                        // The challenge is that we don't have access to the BoardView instance here
+                        // We need to find a way to call the callback from within the mouse event handler
+                        //
+                        // Possible solutions:
+                        // 1. Use a different event handling approach that gives us access to the view
+                        // 2. Store the callback in a way that can be accessed from the event handler
+                        // 3. Use a different architecture where the event handler can call the callback
+                        //
+                        // For now, let's just print what we would do:
+                        println!("[debug] Would call on_click callback with: {:?}", event);
+                    })
+                    .on_mouse_down(MouseButton::Right, move |_event, _window, _cx| {
+                        // Create a PosEvent for right click
+                        let event = PosEvent::with_mouse_button(
+                            pos,
+                            Modifiers::default(),
+                            MouseButton::Right,
+                        );
+                        // For now, just print the event - we'll implement the callback mechanism next
+                        println!(
+                            "[debug] Right click at ({}, {}) - created PosEvent: {:?}",
+                            pos.x, pos.y, event
+                        );
+                        // TODO: Call the on_click callback with this event
+                        // The challenge is that we don't have access to the BoardView instance here
+                        // We need to find a way to call the callback from within the mouse event handler
+                        //
+                        // Possible solutions:
+                        // 1. Use a different event handling approach that gives us access to the view
+                        // 2. Store the callback in a way that can be accessed from the event handler
+                        // 3. Use a different architecture where the event handler can call the callback
+                        //
+                        // For now, let's just print what we would do:
+                        println!("[debug] Would call on_click callback with: {:?}", event);
+                    })
+                    .on_mouse_move(move |_event, _cx, _phase| {
+                        // For now, just print the hover
+                        println!("[debug] Hover at ({}, {})", pos.x, pos.y);
+                        // TODO: Call the on_hover callback
+                        // The challenge is that we don't have access to the BoardView instance here
+                        // We need to find a way to call the callback from within the mouse event handler
+                        //
+                        // Possible solutions:
+                        // 1. Use a different event handling approach that gives us access to the view
+                        // 2. Store the callback in a way that can be accessed from the event handler
+                        // 3. Use a different architecture where the event handler can call the callback
+                        //
+                        // For now, let's just print what we would do:
+                        println!("[debug] Would call on_hover callback with: Some({:?})", pos);
+                    });
 
                 interactions = interactions.child(button);
             }

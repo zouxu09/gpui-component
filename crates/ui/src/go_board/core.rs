@@ -497,11 +497,24 @@ impl BoardData {
 pub struct PosEvent {
     pub pos: Pos,
     pub modifiers: Modifiers,
+    pub mouse_button: Option<MouseButton>,
 }
 
 impl PosEvent {
     pub fn new(pos: Pos, modifiers: Modifiers) -> Self {
-        Self { pos, modifiers }
+        Self {
+            pos,
+            modifiers,
+            mouse_button: None,
+        }
+    }
+
+    pub fn with_mouse_button(pos: Pos, modifiers: Modifiers, button: MouseButton) -> Self {
+        Self {
+            pos,
+            modifiers,
+            mouse_button: Some(button),
+        }
     }
 }
 

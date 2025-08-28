@@ -7,12 +7,12 @@ use gpui::*;
 // =============================================================================
 
 const BASE_COORD_MARGIN_RATIO: f32 = 0.2;
-const HEAT_SIZE_RATIO: f32 = 0.7;
-const MARKER_SIZE_RATIO: f32 = 0.4;
+const HEAT_SIZE_RATIO: f32 = 0.9;
+const MARKER_SIZE_RATIO: f32 = 0.6;
 const SELECTION_SIZE_RATIO: f32 = 0.9;
-const GHOST_SIZE_RATIO: f32 = 0.8;
-const CROSS_LINE_RATIO: f32 = 0.8;
-const DOT_SIZE_RATIO: f32 = 0.5;
+const GHOST_SIZE_RATIO: f32 = 0.9;
+const CROSS_LINE_RATIO: f32 = 0.9;
+const DOT_SIZE_RATIO: f32 = 0.6;
 
 const SMALL_VERTEX_THRESHOLD: f32 = 20.0;
 const LARGE_VERTEX_THRESHOLD: f32 = 50.0;
@@ -589,11 +589,24 @@ impl Renderer {
                         .h(px(selection_size))
                         .bg(rgb(0x000000))
                         .opacity(*alpha),
-                    SelectionStyle::LastMove { color } => div()
-                        .w(px(selection_size * 0.5))
-                        .h(px(selection_size * 0.5))
-                        .rounded_full()
-                        .bg(*color),
+                    SelectionStyle::LastMove { color } => {
+                        // Use a full-size container and center a smaller dot inside it
+                        // so the last-move indicator appears exactly at the vertex center.
+                        let dot_size = selection_size * 0.5;
+                        div()
+                            .w(px(selection_size))
+                            .h(px(selection_size))
+                            .flex()
+                            .items_center()
+                            .justify_center()
+                            .child(
+                                div()
+                                    .w(px(dot_size))
+                                    .h(px(dot_size))
+                                    .rounded_full()
+                                    .bg(*color),
+                            )
+                    }
                 };
 
                 selections = selections.child(
