@@ -282,7 +282,7 @@ impl BoardView {
                 let pixel_pos = self.board.pixel_from_pos(pos, offset);
                 let button_size = vertex_size * 1.0; // Normal hit area size
 
-                let button = div()
+                let mut button = div()
                     .absolute()
                     .left(pixel_pos.x - px(button_size / 2.0))
                     .top(pixel_pos.y - px(button_size / 2.0))
@@ -291,70 +291,38 @@ impl BoardView {
                     // Ensure the hit area participates in hit-testing
                     .bg(hsla(0.0, 0.0, 0.0, 0.001))
                     .id(("board_pos", x * 1000 + y))
-                    .cursor_pointer()
-                    .on_mouse_down(MouseButton::Left, move |_event, _window, _cx| {
-                        // Create a PosEvent for left click
-                        let event = PosEvent::with_mouse_button(
-                            pos,
-                            Modifiers::default(),
-                            MouseButton::Left,
-                        );
-                        // For now, just print the event - we'll implement the callback mechanism next
-                        println!(
-                            "[debug] Left click at ({}, {}) - created PosEvent: {:?}",
-                            pos.x, pos.y, event
-                        );
-                        // TODO: Call the on_click callback with this event
-                        // The challenge is that we don't have access to the BoardView instance here
-                        // We need to find a way to call the callback from within the mouse event handler
-                        //
-                        // Possible solutions:
-                        // 1. Use a different event handling approach that gives us access to the view
-                        // 2. Store the callback in a way that can be accessed from the event handler
-                        // 3. Use a different architecture where the event handler can call the callback
-                        //
-                        // For now, let's just print what we would do:
-                        println!("[debug] Would call on_click callback with: {:?}", event);
-                    })
-                    .on_mouse_down(MouseButton::Right, move |_event, _window, _cx| {
-                        // Create a PosEvent for right click
-                        let event = PosEvent::with_mouse_button(
-                            pos,
-                            Modifiers::default(),
-                            MouseButton::Right,
-                        );
-                        // For now, just print the event - we'll implement the callback mechanism next
-                        println!(
-                            "[debug] Right click at ({}, {}) - created PosEvent: {:?}",
-                            pos.x, pos.y, event
-                        );
-                        // TODO: Call the on_click callback with this event
-                        // The challenge is that we don't have access to the BoardView instance here
-                        // We need to find a way to call the callback from within the mouse event handler
-                        //
-                        // Possible solutions:
-                        // 1. Use a different event handling approach that gives us access to the view
-                        // 2. Store the callback in a way that can be accessed from the event handler
-                        // 3. Use a different architecture where the event handler can call the callback
-                        //
-                        // For now, let's just print what we would do:
-                        println!("[debug] Would call on_click callback with: {:?}", event);
-                    })
-                    .on_mouse_move(move |_event, _cx, _phase| {
-                        // For now, just print the hover
-                        println!("[debug] Hover at ({}, {})", pos.x, pos.y);
-                        // TODO: Call the on_hover callback
-                        // The challenge is that we don't have access to the BoardView instance here
-                        // We need to find a way to call the callback from within the mouse event handler
-                        //
-                        // Possible solutions:
-                        // 1. Use a different event handling approach that gives us access to the view
-                        // 2. Store the callback in a way that can be accessed from the event handler
-                        // 3. Use a different architecture where the event handler can call the callback
-                        //
-                        // For now, let's just print what we would do:
-                        println!("[debug] Would call on_hover callback with: Some({:?})", pos);
+                    .cursor_pointer();
+
+                // Add click handlers if on_click is set
+                if let Some(ref on_click) = self.on_click {
+                    let on_click_left = on_click.clone();
+                    let on_click_right = on_click.clone();
+                    button = button
+                        .on_mouse_down(MouseButton::Left, move |_, _window, _cx| {
+                            let event = PosEvent::with_mouse_button(
+                                pos,
+                                Modifiers::default(),
+                                MouseButton::Left,
+                            );
+                            (on_click_left)(event);
+                        })
+                        .on_mouse_down(MouseButton::Right, move |_, _window, _cx| {
+                            let event = PosEvent::with_mouse_button(
+                                pos,
+                                Modifiers::default(),
+                                MouseButton::Right,
+                            );
+                            (on_click_right)(event);
+                        });
+                }
+
+                // Add hover handlers if on_hover is set
+                if let Some(ref on_hover) = self.on_hover {
+                    let on_hover = on_hover.clone();
+                    button = button.on_mouse_move(move |_event, _window, _cx| {
+                        (on_hover)(Some(pos));
                     });
+                }
 
                 interactions = interactions.child(button);
             }
