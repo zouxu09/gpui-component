@@ -123,43 +123,40 @@ impl Marker {
     }
 }
 
-/// Ghost stones for move analysis
+/// Ghost stones for move analysis - simplified
 #[derive(Debug, Clone, PartialEq)]
 pub struct Ghost {
     pub stone: Stone,
-    pub kind: GhostKind,
     pub alpha: f32,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub enum GhostKind {
-    Good,    // Green tint
-    Bad,     // Red tint
-    Neutral, // No tint
+    pub is_good: bool,
+    pub is_bad: bool,
 }
 
 impl Ghost {
     pub fn good(stone: Stone) -> Self {
         Self {
             stone,
-            kind: GhostKind::Good,
             alpha: 0.6,
+            is_good: true,
+            is_bad: false,
         }
     }
 
     pub fn bad(stone: Stone) -> Self {
         Self {
             stone,
-            kind: GhostKind::Bad,
             alpha: 0.6,
+            is_good: false,
+            is_bad: true,
         }
     }
 
     pub fn neutral(stone: Stone) -> Self {
         Self {
             stone,
-            kind: GhostKind::Neutral,
             alpha: 0.6,
+            is_good: false,
+            is_bad: false,
         }
     }
 
@@ -220,18 +217,14 @@ impl Territory {
     }
 }
 
-/// Lines and arrows for analysis
+/// Lines and arrows for analysis - simplified
 #[derive(Debug, Clone, PartialEq)]
 pub struct Line {
     pub from: Pos,
     pub to: Pos,
-    pub style: LineStyle,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub enum LineStyle {
-    Line { color: Rgba, width: f32 },
-    Arrow { color: Rgba, width: f32 },
+    pub color: Rgba,
+    pub width: f32,
+    pub is_arrow: bool,
 }
 
 impl Line {
@@ -239,10 +232,9 @@ impl Line {
         Self {
             from,
             to,
-            style: LineStyle::Line {
-                color: rgb(0x808080), // Gray for simple lines
-                width: 2.0,
-            },
+            color: rgb(0x808080), // Gray for simple lines
+            width: 2.0,
+            is_arrow: false,
         }
     }
 
@@ -250,99 +242,62 @@ impl Line {
         Self {
             from,
             to,
-            style: LineStyle::Arrow {
-                color: rgb(0x404040), // Dark gray/black for arrows
-                width: 2.5,
-            },
+            color: rgb(0x404040), // Dark gray/black for arrows
+            width: 2.5,
+            is_arrow: true,
         }
     }
 
     pub fn with_color(mut self, color: Rgba) -> Self {
-        match &mut self.style {
-            LineStyle::Line { color: c, .. } | LineStyle::Arrow { color: c, .. } => *c = color,
-        }
+        self.color = color;
         self
     }
 
     pub fn with_width(mut self, width: f32) -> Self {
-        match &mut self.style {
-            LineStyle::Line { width: w, .. } | LineStyle::Arrow { width: w, .. } => *w = width,
-        }
+        self.width = width;
         self
-    }
-
-    pub fn with_style(mut self, style: LineStyle) -> Self {
-        self.style = style;
-        self
-    }
-
-    // Convenience methods for common line types
-    pub fn connection(from: Pos, to: Pos) -> Self {
-        Self::line(from, to).with_color(rgb(0x808080)) // Gray connection lines
-    }
-
-    pub fn analysis_arrow(from: Pos, to: Pos) -> Self {
-        Self::arrow(from, to).with_color(rgb(0x404040)) // Dark analysis arrows
-    }
-
-    pub fn highlight_line(from: Pos, to: Pos) -> Self {
-        Self::line(from, to).with_color(rgb(0x0066cc)).with_width(3.0) // Blue highlight lines
-    }
-
-    pub fn direction_arrow(from: Pos, to: Pos) -> Self {
-        Self::arrow(from, to).with_color(rgb(0xcc3300)).with_width(2.5) // Red direction arrows
     }
 }
 
-/// Selection highlighting
+/// Selection highlighting - simplified
 #[derive(Debug, Clone, PartialEq)]
 pub struct Selection {
     pub pos: Pos,
-    pub style: SelectionStyle,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub enum SelectionStyle {
-    Selected { color: Rgba },
-    Dimmed { alpha: f32 },
-    LastMove { color: Rgba },
+    pub color: Rgba,
+    pub alpha: f32,
+    pub is_last_move: bool,
 }
 
 impl Selection {
     pub fn selected(pos: Pos) -> Self {
         Self {
             pos,
-            style: SelectionStyle::Selected {
-                color: rgb(0x0080ff),
-            },
+            color: rgb(0x0080ff),
+            alpha: 1.0,
+            is_last_move: false,
         }
     }
 
     pub fn dimmed(pos: Pos, alpha: f32) -> Self {
         Self {
             pos,
-            style: SelectionStyle::Dimmed {
-                alpha: alpha.clamp(0.0, 1.0),
-            },
+            color: rgb(0x0080ff),
+            alpha: alpha.clamp(0.0, 1.0),
+            is_last_move: false,
         }
     }
 
     pub fn last_move(pos: Pos) -> Self {
         Self {
             pos,
-            style: SelectionStyle::LastMove {
-                color: rgb(0xff8000),
-            },
+            color: rgb(0xff8000),
+            alpha: 1.0,
+            is_last_move: true,
         }
     }
 
     pub fn with_color(mut self, color: Rgba) -> Self {
-        match &mut self.style {
-            SelectionStyle::Selected { color: c } | SelectionStyle::LastMove { color: c } => {
-                *c = color
-            }
-            _ => {}
-        }
+        self.color = color;
         self
     }
 }
@@ -378,6 +333,16 @@ impl BoardData {
         Self::new(19, 19)
     }
 
+    // Generic helper for setting optional values
+    fn set_optional<T>(map: &mut HashMap<Pos, T>, pos: Pos, value: Option<T>, is_valid: bool) {
+        if is_valid {
+            match value {
+                Some(v) => map.insert(pos, v),
+                None => map.remove(&pos),
+            };
+        }
+    }
+
     // Stone operations
     pub fn set_stone(&mut self, pos: Pos, stone: Stone) {
         if self.is_valid_pos(pos) {
@@ -393,82 +358,38 @@ impl BoardData {
         self.stones.get(&pos).copied().unwrap_or(EMPTY)
     }
 
-    pub fn clear_stones(&mut self) {
-        self.stones.clear();
-    }
-
     // Marker operations
     pub fn set_marker(&mut self, pos: Pos, marker: Option<Marker>) {
-        if self.is_valid_pos(pos) {
-            match marker {
-                Some(m) => self.markers.insert(pos, m),
-                None => self.markers.remove(&pos),
-            };
-        }
+        let is_valid = self.is_valid_pos(pos);
+        Self::set_optional(&mut self.markers, pos, marker, is_valid);
     }
 
     pub fn get_marker(&self, pos: Pos) -> Option<&Marker> {
         self.markers.get(&pos)
     }
 
-    pub fn clear_markers(&mut self) {
-        self.markers.clear();
-    }
-
     // Ghost stone operations
     pub fn set_ghost(&mut self, pos: Pos, ghost: Option<Ghost>) {
-        if self.is_valid_pos(pos) {
-            match ghost {
-                Some(g) => self.ghosts.insert(pos, g),
-                None => self.ghosts.remove(&pos),
-            };
-        }
-    }
-
-    pub fn clear_ghosts(&mut self) {
-        self.ghosts.clear();
+        let is_valid = self.is_valid_pos(pos);
+        Self::set_optional(&mut self.ghosts, pos, ghost, is_valid);
     }
 
     // Heat operations
     pub fn set_heat(&mut self, pos: Pos, heat: Option<Heat>) {
-        if self.is_valid_pos(pos) {
-            match heat {
-                Some(h) => self.heat.insert(pos, h),
-                None => self.heat.remove(&pos),
-            };
-        }
-    }
-
-    pub fn clear_heat(&mut self) {
-        self.heat.clear();
+        let is_valid = self.is_valid_pos(pos);
+        Self::set_optional(&mut self.heat, pos, heat, is_valid);
     }
 
     // Territory operations
     pub fn set_territory(&mut self, pos: Pos, territory: Option<Territory>) {
-        if self.is_valid_pos(pos) {
-            match territory {
-                Some(t) => self.territory.insert(pos, t),
-                None => self.territory.remove(&pos),
-            };
-        }
-    }
-
-    pub fn clear_territory(&mut self) {
-        self.territory.clear();
+        let is_valid = self.is_valid_pos(pos);
+        Self::set_optional(&mut self.territory, pos, territory, is_valid);
     }
 
     // Selection operations
     pub fn set_selection(&mut self, pos: Pos, selection: Option<Selection>) {
-        if self.is_valid_pos(pos) {
-            match selection {
-                Some(s) => self.selections.insert(pos, s),
-                None => self.selections.remove(&pos),
-            };
-        }
-    }
-
-    pub fn clear_selections(&mut self) {
-        self.selections.clear();
+        let is_valid = self.is_valid_pos(pos);
+        Self::set_optional(&mut self.selections, pos, selection, is_valid);
     }
 
     // Line operations
@@ -476,8 +397,19 @@ impl BoardData {
         self.lines.push(line);
     }
 
-    pub fn clear_lines(&mut self) {
+    // Clear operations
+    pub fn clear_all(&mut self) {
+        self.stones.clear();
+        self.markers.clear();
+        self.ghosts.clear();
+        self.heat.clear();
+        self.territory.clear();
+        self.selections.clear();
         self.lines.clear();
+    }
+
+    pub fn clear_selections(&mut self) {
+        self.selections.clear();
     }
 
     // Utility functions
@@ -643,18 +575,16 @@ impl Theme {
         }
     }
 
-    pub fn with_board_background(mut self, path: impl Into<SharedString>) -> Self {
-        self.board_background_path = Some(path.into());
-        self
-    }
-
-    pub fn with_black_stone_asset(mut self, path: impl Into<SharedString>) -> Self {
-        self.black_stone_path = Some(path.into());
-        self
-    }
-
-    pub fn with_white_stone_asset(mut self, path: impl Into<SharedString>) -> Self {
-        self.white_stone_path = Some(path.into());
+    /// Set custom asset paths for board and stones
+    pub fn with_custom_assets(
+        mut self,
+        board_bg: impl Into<SharedString>,
+        black_stone: impl Into<SharedString>,
+        white_stone: impl Into<SharedString>,
+    ) -> Self {
+        self.board_background_path = Some(board_bg.into());
+        self.black_stone_path = Some(black_stone.into());
+        self.white_stone_path = Some(white_stone.into());
         self
     }
 }
@@ -690,7 +620,7 @@ mod tests {
         board.set_marker(Pos::new(2, 2), Some(Marker::circle()));
         assert!(board.get_marker(Pos::new(2, 2)).is_some());
 
-        board.clear_stones();
+        board.clear_all();
         assert_eq!(board.get_stone(Pos::new(4, 4)), EMPTY);
     }
 
@@ -708,7 +638,8 @@ mod tests {
     fn test_ghost_stone_builder() {
         let ghost = Ghost::good(BLACK).with_alpha(0.8);
         assert_eq!(ghost.stone, BLACK);
-        assert_eq!(ghost.kind, GhostKind::Good);
+        assert!(ghost.is_good);
+        assert!(!ghost.is_bad);
         assert_eq!(ghost.alpha, 0.8);
     }
 
@@ -798,10 +729,11 @@ mod tests {
 
     #[test]
     fn test_theme_builder_pattern() {
-        let theme = Theme::default()
-            .with_board_background("custom/board.jpg")
-            .with_black_stone_asset("custom/black.png")
-            .with_white_stone_asset("custom/white.png");
+        let theme = Theme::default().with_custom_assets(
+            "custom/board.jpg",
+            "custom/black.png",
+            "custom/white.png",
+        );
 
         assert_eq!(
             *theme.board_background_path.as_deref().unwrap(),

@@ -422,7 +422,7 @@ let board_view = BoardView::new(game_board)
 ### Interactive Demo Board
 
 ```rust
-let demo_board = Board::with_size(9, 9)
+let board = Board::with_size(9, 9)
     .vertex_size(35.0)
     .theme(Theme::dark())
     .coordinates(true)
@@ -434,7 +434,7 @@ let demo_board = Board::with_size(9, 9)
     .select(Pos::new(3, 3))
     .last_move(Pos::new(5, 5));
 
-let interactive_view = BoardView::new(demo_board)
+let interactive_view = BoardView::new(board)
     .on_click(|event| {
         match event.mouse_button {
             Some(MouseButton::Left) => println!("Black stone at {:?}", event.pos),

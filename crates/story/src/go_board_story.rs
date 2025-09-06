@@ -1,12 +1,12 @@
 use gpui::{
-    App, AppContext, Context, Entity, FocusHandle, Focusable, InteractiveElement, IntoElement,
-    ParentElement as _, Render, Styled as _, Window,
+    px, rgb, App, AppContext, Context, Entity, FocusHandle, Focusable, InteractiveElement,
+    IntoElement, ParentElement as _, Render, Styled as _, Window,
 };
 
 use gpui_component::{
     go_board::{
         core::{Ghost, Heat, Line, Marker, Pos, Theme, BLACK, WHITE},
-        Board, BoardView, BoundedBoard,
+        Board, BoardView,
     },
     h_flex, v_flex, ActiveTheme,
 };
@@ -64,35 +64,21 @@ impl GoBoardStory {
                 custom_theme.coordinates = gpui::rgb(0x654321).into(); // Dark brown coordinates
                 custom_theme.coord_size = 12.0;
 
-                BoardView::new(Board::with_size(9, 9).theme(custom_theme).vertex_size(30.0))
+                BoardView::new(Board::with_size(9, 9).theme(custom_theme))
             }),
             dark_theme_board: cx.new(|_| {
-                BoardView::new(
-                    Board::with_size(9, 9)
-                        .theme(Theme::dark())
-                        .vertex_size(30.0),
-                )
-                .coordinates(true)
+                BoardView::new(Board::with_size(9, 9).theme(Theme::dark())).coordinates(true)
             }),
             minimalist_theme_board: cx.new(|_| {
-                BoardView::new(
-                    Board::with_size(9, 9)
-                        .theme(Theme::minimal())
-                        .vertex_size(30.0),
-                )
-                .coordinates(true)
+                BoardView::new(Board::with_size(9, 9).theme(Theme::minimal())).coordinates(true)
             }),
             high_contrast_board: cx.new(|_| {
-                BoardView::new(
-                    Board::with_size(9, 9)
-                        .theme(Theme::high_contrast())
-                        .vertex_size(30.0),
-                )
-                .coordinates(true)
+                BoardView::new(Board::with_size(9, 9).theme(Theme::high_contrast()))
+                    .coordinates(true)
             }),
             textured_board: cx.new(|_| {
                 // Create a board with default theme
-                let board = Board::with_size(9, 9).vertex_size(30.0);
+                let board = Board::with_size(9, 9);
 
                 // Add stones using the new API - manually setting each position
                 let board = board
@@ -117,9 +103,7 @@ impl GoBoardStory {
             }),
             asset_board: cx.new(|_| {
                 // Use assets for board background and stones
-                let board = Board::with_size(9, 9)
-                    .vertex_size(35.0)
-                    .theme(Theme::with_assets());
+                let board = Board::with_size(9, 9).theme(Theme::default());
 
                 // Add a sample game pattern using the new API
                 let board = board
@@ -154,7 +138,7 @@ impl GoBoardStory {
             }),
             stone_variation_board: cx.new(|_| {
                 // Stone variation demo disabled (no external variation textures)
-                let board = Board::with_size(9, 9).vertex_size(35.0);
+                let board = Board::with_size(9, 9);
 
                 // Add many stones to demonstrate variation using the new API
                 // Create a checkerboard pattern manually
@@ -172,7 +156,7 @@ impl GoBoardStory {
                 BoardView::new(board)
             }),
             coordinate_board: cx.new(|_| {
-                let board = Board::with_size(9, 9).vertex_size(25.0);
+                let board = Board::with_size(9, 9);
                 // Add stones to demonstrate coordinates
                 let board = board
                     .stone(Pos::new(3, 0), BLACK)
@@ -194,7 +178,7 @@ impl GoBoardStory {
                 BoardView::new(board).coordinates(true)
             }),
             stone_board: cx.new(|_| {
-                let board = Board::with_size(9, 9).vertex_size(35.0);
+                let board = Board::with_size(9, 9);
 
                 // Create a simple game pattern using the new API
                 let board = board
@@ -217,7 +201,7 @@ impl GoBoardStory {
                 BoardView::new(board).coordinates(true)
             }),
             fuzzy_stone_board: cx.new(|_| {
-                let board = Board::with_size(9, 9).vertex_size(35.0);
+                let board = Board::with_size(9, 9);
 
                 // Create the same pattern as stone_board using the new API
                 let board = board
@@ -243,7 +227,7 @@ impl GoBoardStory {
                 BoardView::new(board).coordinates(true)
             }),
             marker_board: cx.new(|_| {
-                let board = Board::with_size(9, 9).vertex_size(35.0);
+                let board = Board::with_size(9, 9);
 
                 // Add markers using the new API - manually setting each position
                 let board = board
@@ -260,7 +244,7 @@ impl GoBoardStory {
                     )
                     .marker(
                         Pos::new(2, 2),
-                        Marker::cross().with_color(gpui::rgb(0x0000ff).into()),
+                        Marker::triangle().with_color(gpui::rgb(0x0000ff).into()),
                     )
                     .marker(
                         Pos::new(3, 2),
@@ -281,7 +265,7 @@ impl GoBoardStory {
                     )
                     .marker(
                         Pos::new(2, 3),
-                        Marker::cross().with_color(gpui::rgb(0x00ff00).into()),
+                        Marker::square().with_color(gpui::rgb(0x00ff00).into()),
                     )
                     .marker(
                         Pos::new(3, 3),
@@ -340,7 +324,7 @@ impl GoBoardStory {
                 BoardView::new(board).coordinates(true)
             }),
             selection_board: cx.new(|_| {
-                let board = Board::with_size(9, 9).vertex_size(35.0);
+                let board = Board::with_size(9, 9);
 
                 // Create some stones for context using the new API
                 let board = board
@@ -361,7 +345,7 @@ impl GoBoardStory {
                 BoardView::new(board).coordinates(true)
             }),
             paint_overlay_board: cx.new(|_| {
-                let board = Board::with_size(9, 9).vertex_size(35.0);
+                let board = Board::with_size(9, 9);
 
                 // Create some stones for context using the new API
                 let board = board
@@ -384,7 +368,7 @@ impl GoBoardStory {
                 BoardView::new(board)
             }),
             heat_overlay_board: cx.new(|_| {
-                let board = Board::with_size(9, 9).vertex_size(35.0);
+                let board = Board::with_size(9, 9);
 
                 // Create some stones for context using the new API
                 let board = board
@@ -439,7 +423,7 @@ impl GoBoardStory {
                 BoardView::new(board)
             }),
             ghost_stone_board: cx.new(|_| {
-                let board = Board::with_size(9, 9).vertex_size(35.0);
+                let board = Board::with_size(9, 9);
 
                 // Create some stones for context using the new API
                 let board = board
@@ -462,7 +446,7 @@ impl GoBoardStory {
                 BoardView::new(board)
             }),
             line_board: cx.new(|_| {
-                let board = Board::with_size(9, 9).vertex_size(35.0);
+                let board = Board::with_size(9, 9);
 
                 // Create some stones for context using the new API
                 let board = board
@@ -482,40 +466,46 @@ impl GoBoardStory {
                 // Create line demonstrations
                 let lines = vec![
                     // Simple connection lines (gray)
-                    Line::connection(Pos::new(3, 0), Pos::new(5, 0)), // Horizontal connection
-                    Line::connection(Pos::new(1, 1), Pos::new(1, 4)), // Vertical connection
-                    Line::connection(Pos::new(2, 2), Pos::new(6, 6)), // Diagonal connection
+                    Line::line(Pos::new(3, 0), Pos::new(5, 0)), // Horizontal connection
+                    Line::line(Pos::new(1, 1), Pos::new(1, 4)), // Vertical connection
+                    Line::line(Pos::new(2, 2), Pos::new(6, 6)), // Diagonal connection
                     // Analysis arrows (dark)
-                    Line::analysis_arrow(Pos::new(0, 3), Pos::new(3, 6)), // Analysis direction
-                    Line::analysis_arrow(Pos::new(8, 3), Pos::new(5, 6)), // Analysis direction
+                    Line::arrow(Pos::new(0, 3), Pos::new(3, 6)), // Analysis direction
+                    Line::arrow(Pos::new(8, 3), Pos::new(5, 6)), // Analysis direction
                     // Connection arrows between stones
-                    Line::analysis_arrow(Pos::new(3, 8), Pos::new(5, 8)), // Horizontal arrow
-                    Line::analysis_arrow(Pos::new(7, 7), Pos::new(7, 4)), // Vertical arrow
+                    Line::arrow(Pos::new(3, 8), Pos::new(5, 8)), // Horizontal arrow
+                    Line::arrow(Pos::new(7, 7), Pos::new(7, 4)), // Vertical arrow
                     // Strategic analysis arrows
-                    Line::analysis_arrow(Pos::new(4, 4), Pos::new(6, 2)), // Up-right analysis
-                    Line::analysis_arrow(Pos::new(4, 4), Pos::new(2, 6)), // Down-left analysis
+                    Line::arrow(Pos::new(4, 4), Pos::new(6, 2)), // Up-right analysis
+                    Line::arrow(Pos::new(4, 4), Pos::new(2, 6)), // Down-left analysis
                     // Multiple line types demonstration
-                    Line::connection(Pos::new(0, 7), Pos::new(2, 7)), // Short horizontal connection
-                    Line::connection(Pos::new(6, 1), Pos::new(8, 1)), // Short horizontal connection
-                    Line::analysis_arrow(Pos::new(1, 0), Pos::new(1, 2)), // Short vertical arrow
-                    Line::analysis_arrow(Pos::new(7, 8), Pos::new(7, 6)), // Short vertical arrow
+                    Line::line(Pos::new(0, 7), Pos::new(2, 7)), // Short horizontal connection
+                    Line::line(Pos::new(6, 1), Pos::new(8, 1)), // Short horizontal connection
+                    Line::arrow(Pos::new(1, 0), Pos::new(1, 2)), // Short vertical arrow
+                    Line::arrow(Pos::new(7, 8), Pos::new(7, 6)), // Short vertical arrow
                     // Highlight lines for special connections
-                    Line::highlight_line(Pos::new(2, 3), Pos::new(6, 3)), // Blue highlight
-                    Line::direction_arrow(Pos::new(4, 1), Pos::new(4, 3)), // Red direction
+                    Line::line(Pos::new(2, 3), Pos::new(6, 3))
+                        .with_color(rgb(0x0066cc))
+                        .with_width(3.0), // Blue highlight
+                    Line::arrow(Pos::new(4, 1), Pos::new(4, 3))
+                        .with_color(rgb(0xcc3300))
+                        .with_width(2.5), // Red direction
                 ];
 
-                let board = board.lines(lines);
+                let mut board = board;
+                for line in lines {
+                    board = board.line(line);
+                }
 
                 BoardView::new(board)
             }),
             interactive_board: cx.new(|_| {
-                let board = Board::with_size(9, 9).vertex_size(40.0);
+                let board = Board::with_size(9, 9);
                 BoardView::new(board).coordinates(true)
             }),
             interactive_asset_board: cx.new(|_| {
                 // Create an interactive board using assets for stones and background
                 let board = Board::with_size(9, 9)
-                    .vertex_size(40.0)
                     .theme(Theme::with_assets())
                     .stone(Pos::new(2, 2), BLACK)
                     .stone(Pos::new(6, 6), WHITE)
@@ -528,72 +518,61 @@ impl GoBoardStory {
             }),
             bounded_small_board: cx.new(|_| {
                 // Small bounded board - 9x9 in 150x150 space
-                let bounded = BoundedBoard::with_size(9, 9, 150.0, 150.0).update(|board| {
-                    // Convert sign_map to stone placements
-                    let stones = vec![
-                        (Pos::new(1, 0), BLACK),
-                        (Pos::new(7, 0), WHITE),
-                        (Pos::new(0, 1), BLACK),
-                        (Pos::new(2, 1), BLACK),
-                        (Pos::new(6, 1), WHITE),
-                        (Pos::new(8, 1), WHITE),
-                        (Pos::new(1, 2), BLACK),
-                        (Pos::new(7, 2), WHITE),
-                        (Pos::new(4, 4), BLACK),
-                        (Pos::new(1, 6), BLACK),
-                        (Pos::new(7, 6), WHITE),
-                        (Pos::new(0, 7), BLACK),
-                        (Pos::new(2, 7), BLACK),
-                        (Pos::new(6, 7), WHITE),
-                        (Pos::new(8, 7), WHITE),
-                        (Pos::new(1, 8), BLACK),
-                        (Pos::new(7, 8), WHITE),
-                    ];
+                let mut board = Board::with_size(9, 9);
+                let stones = vec![
+                    (Pos::new(1, 0), BLACK),
+                    (Pos::new(7, 0), WHITE),
+                    (Pos::new(0, 1), BLACK),
+                    (Pos::new(2, 1), BLACK),
+                    (Pos::new(6, 1), WHITE),
+                    (Pos::new(8, 1), WHITE),
+                    (Pos::new(1, 2), BLACK),
+                    (Pos::new(7, 2), WHITE),
+                    (Pos::new(4, 4), BLACK),
+                    (Pos::new(1, 6), BLACK),
+                    (Pos::new(7, 6), WHITE),
+                    (Pos::new(0, 7), BLACK),
+                    (Pos::new(2, 7), BLACK),
+                    (Pos::new(6, 7), WHITE),
+                    (Pos::new(8, 7), WHITE),
+                    (Pos::new(1, 8), BLACK),
+                    (Pos::new(7, 8), WHITE),
+                ];
 
-                    let mut board = board;
-                    for (pos, stone) in stones {
-                        board.data_mut().set_stone(pos, stone);
-                    }
-                    board
-                });
+                for (pos, stone) in stones {
+                    board = board.stone(pos, stone);
+                }
 
-                BoardView::new(bounded.into_inner())
+                BoardView::with_size(board, 150.0, 150.0)
             }),
             bounded_medium_board: cx.new(|_| {
                 // Medium bounded board - 13x13 in 250x250 space
-                let bounded = BoundedBoard::with_size(13, 13, 250.0, 250.0).update(|board| {
-                    // Convert sign_map to stone placements
-                    let stones = vec![
-                        (Pos::new(3, 1), BLACK),
-                        (Pos::new(9, 1), WHITE),
-                        (Pos::new(1, 3), BLACK),
-                        (Pos::new(11, 3), WHITE),
-                        (Pos::new(6, 6), BLACK),
-                        (Pos::new(1, 9), WHITE),
-                        (Pos::new(11, 9), BLACK),
-                        (Pos::new(3, 11), WHITE),
-                        (Pos::new(9, 11), BLACK),
-                    ];
+                let mut board = Board::with_size(13, 13);
+                let stones = vec![
+                    (Pos::new(3, 1), BLACK),
+                    (Pos::new(9, 1), WHITE),
+                    (Pos::new(1, 3), BLACK),
+                    (Pos::new(11, 3), WHITE),
+                    (Pos::new(6, 6), BLACK),
+                    (Pos::new(1, 9), WHITE),
+                    (Pos::new(11, 9), BLACK),
+                    (Pos::new(3, 11), WHITE),
+                    (Pos::new(9, 11), BLACK),
+                ];
 
-                    let mut board = board;
-                    for (pos, stone) in stones {
-                        board.data_mut().set_stone(pos, stone);
-                    }
-                    board
-                });
+                for (pos, stone) in stones {
+                    board = board.stone(pos, stone);
+                }
 
-                BoardView::new(bounded.into_inner()).coordinates(true)
+                BoardView::with_size(board, 250.0, 250.0).coordinates(true)
             }),
             bounded_large_board: cx.new(|_| {
                 // Large bounded board - 19x19 in 380x380 space
-                let bounded = BoundedBoard::with_size(19, 19, 380.0, 380.0);
-                // Empty 19x19 board
-                BoardView::new(bounded.into_inner())
+                BoardView::with_size(Board::with_size(19, 19), 380.0, 380.0)
             }),
             bounded_constrained_board: cx.new(|_| {
                 // Constrained aspect ratio - 19x19 in 200x400 space (height-constrained)
-                let bounded =
-                    BoundedBoard::with_size(19, 19, 200.0, 400.0).vertex_size_limits(5.0, 25.0);
+                let mut board = Board::with_size(19, 19);
 
                 // Add some stones to show the scaling effect
                 let sign_map = vec![
@@ -617,8 +596,8 @@ impl GoBoardStory {
                     vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
                     vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1],
                 ];
+
                 // Apply the sign map using the new API
-                let mut board = bounded.into_inner();
                 for (y, row) in sign_map.iter().enumerate() {
                     for (x, &sign) in row.iter().enumerate() {
                         if sign != 0 {
@@ -628,11 +607,11 @@ impl GoBoardStory {
                     }
                 }
 
-                BoardView::new(board)
+                BoardView::with_size(board, 200.0, 400.0)
             }),
             partial_board_center: cx.new(|_| {
                 // Partial board showing center area of a 19x19 board
-                let bounded = BoundedBoard::with_size(5, 5, 200.0, 200.0); // 5x5 visible area
+                let mut board = Board::with_size(5, 5); // 5x5 visible area
 
                 // Create a 5x5 sign map for just the visible area (coordinates 0-4)
                 let sign_map = vec![
@@ -644,7 +623,6 @@ impl GoBoardStory {
                 ];
 
                 // Apply the sign map using the new API
-                let mut board = bounded.into_inner();
                 for (y, row) in sign_map.iter().enumerate() {
                     for (x, &sign) in row.iter().enumerate() {
                         if sign != 0 {
@@ -658,7 +636,7 @@ impl GoBoardStory {
             }),
             partial_board_corner: cx.new(|_| {
                 // Partial board showing corner area
-                let bounded = BoundedBoard::with_size(7, 7, 200.0, 200.0); // 7x7 visible area
+                let mut board = Board::with_size(7, 7); // 7x7 visible area
 
                 // Create a 7x7 sign map showing typical corner pattern (coordinates 0-6)
                 let sign_map = vec![
@@ -672,7 +650,6 @@ impl GoBoardStory {
                 ];
 
                 // Apply the sign map using the new API
-                let mut board = bounded.into_inner();
                 for (y, row) in sign_map.iter().enumerate() {
                     for (x, &sign) in row.iter().enumerate() {
                         if sign != 0 {
@@ -686,7 +663,7 @@ impl GoBoardStory {
             }),
             partial_board_edge: cx.new(|_| {
                 // Partial board showing side edge
-                let bounded = BoundedBoard::with_size(19, 3, 300.0, 150.0); // 19x3 slice
+                let mut board = Board::with_size(19, 3); // 19x3 slice
 
                 // Create a 19x3 sign map for edge play (coordinates 0-18 x 0-2)
                 let sign_map = vec![
@@ -696,7 +673,6 @@ impl GoBoardStory {
                 ];
 
                 // Apply the sign map using the new API
-                let mut board = bounded.into_inner();
                 for (y, row) in sign_map.iter().enumerate() {
                     for (x, &sign) in row.iter().enumerate() {
                         if sign != 0 {
@@ -710,7 +686,7 @@ impl GoBoardStory {
             }),
             // Demonstration of efficient differential updates
             efficient_update_demo: cx.new(|_| {
-                let mut board = Board::with_size(9, 9).vertex_size(30.0);
+                let mut board = Board::with_size(9, 9);
 
                 // Demonstrate efficient bulk updates
                 let initial_stones = vec![
@@ -773,34 +749,45 @@ impl Render for GoBoardStory {
             .track_focus(&self.focus_handle)
             .child(
                 section("Standard Boards").child(
-                    h_flex()
+                    v_flex()
                         .gap_6()
                         .child(
-                            v_flex()
-                                .gap_2()
-                                .child("19x19 Board (Standard)")
-                                .child(self.board_19x19.clone())
-                                .border_1()
-                                .border_color(gpui::rgb(0xcccccc))
-                                .p_2(),
+                            h_flex()
+                                .gap_6()
+                                .child(
+                                    v_flex()
+                                        .gap_2()
+                                        .child("19x19 Board (Standard)")
+                                        .child(self.board_19x19.clone())
+                                        .border_1()
+                                        .border_color(gpui::rgb(0xcccccc))
+                                        .p_2()
+                                        .max_w(px(500.0)), // Add max width constraint
+                                )
+                                .child(
+                                    v_flex()
+                                        .gap_2()
+                                        .child("13x13 Board")
+                                        .child(self.board_13x13.clone())
+                                        .border_1()
+                                        .border_color(gpui::rgb(0xcccccc))
+                                        .p_2()
+                                        .max_w(px(400.0)), // Add max width constraint
+                                )
                         )
                         .child(
-                            v_flex()
-                                .gap_2()
-                                .child("13x13 Board")
-                                .child(self.board_13x13.clone())
-                                .border_1()
-                                .border_color(gpui::rgb(0xcccccc))
-                                .p_2(),
-                        )
-                        .child(
-                            v_flex()
-                                .gap_2()
-                                .child("9x9 Board")
-                                .child(self.board_9x9.clone())
-                                .border_1()
-                                .border_color(gpui::rgb(0xcccccc))
-                                .p_2(),
+                            h_flex()
+                                .justify_center()
+                                .child(
+                                    v_flex()
+                                        .gap_2()
+                                        .child("9x9 Board")
+                                        .child(self.board_9x9.clone())
+                                        .border_1()
+                                        .border_color(gpui::rgb(0xcccccc))
+                                        .p_2()
+                                        .max_w(px(300.0)), // Add max width constraint
+                                )
                         ),
                 ),
             )
@@ -987,14 +974,14 @@ impl Render for GoBoardStory {
                                     v_flex()
                                         .gap_2()
                                         .child("Small (9x9 in 150x150)")
-                                        .child(format!("Vertex size: {:.1}px", self.bounded_small_board.read(cx).board().vertex_size))
+                                        .child(format!("Vertex size: calculated automatically"))
                                         .child(self.bounded_small_board.clone()),
                                 )
                                 .child(
                                     v_flex()
                                         .gap_2()
                                         .child("Medium (13x13 in 250x250)")
-                                        .child(format!("Vertex size: {:.1}px", self.bounded_medium_board.read(cx).board().vertex_size))
+                                        .child(format!("Vertex size: calculated automatically"))
                                         .child(self.bounded_medium_board.clone()),
                                 ),
                         )
@@ -1005,14 +992,14 @@ impl Render for GoBoardStory {
                                     v_flex()
                                         .gap_2()
                                         .child("Large (19x19 in 380x380)")
-                                        .child(format!("Vertex size: {:.1}px", self.bounded_large_board.read(cx).board().vertex_size))
+                                        .child(format!("Vertex size: calculated automatically"))
                                         .child(self.bounded_large_board.clone()),
                                 )
                                 .child(
                                     v_flex()
                                         .gap_2()
                                         .child("Constrained (19x19 in 200x400)")
-                                        .child(format!("Vertex size: {:.1}px", self.bounded_constrained_board.read(cx).board().vertex_size))
+                                        .child(format!("Vertex size: calculated automatically"))
                                         .child("Width-constrained with size limits (5-25px)")
                                         .child(self.bounded_constrained_board.clone()),
                                 ),
@@ -1032,7 +1019,7 @@ impl Render for GoBoardStory {
                                         .gap_2()
                                         .child("Center Area (5x5)")
                                         .child("Typical center fighting pattern")
-                                        .child(format!("Vertex size: {:.1}px", self.partial_board_center.read(cx).board().vertex_size))
+                                        .child(format!("Vertex size: calculated automatically"))
                                         .child(self.partial_board_center.clone()),
                                 )
                                 .child(
@@ -1040,7 +1027,7 @@ impl Render for GoBoardStory {
                                         .gap_2()
                                         .child("Corner Area (7x7)")
                                         .child("Corner opening pattern")
-                                        .child(format!("Vertex size: {:.1}px", self.partial_board_corner.read(cx).board().vertex_size))
+                                        .child(format!("Vertex size: calculated automatically"))
                                         .child(self.partial_board_corner.clone()),
                                 )
                                 .child(
@@ -1048,7 +1035,7 @@ impl Render for GoBoardStory {
                                         .gap_2()
                                         .child("Edge Slice (19x3)")
                                         .child("Side edge patterns")
-                                        .child(format!("Vertex size: {:.1}px", self.partial_board_edge.read(cx).board().vertex_size))
+                                        .child(format!("Vertex size: calculated automatically"))
                                         .child(self.partial_board_edge.clone()),
                                 ),
                         ),
@@ -1127,7 +1114,7 @@ impl Render for GoBoardStory {
                         .child("  - Last move indicators with orange highlighting")
                         .child("  - Dimmed vertices with opacity control")
                         .child("• Bounded sizing and responsive behavior")
-                        .child("  - BoundedBoard component with automatic vertex size calculation")
+                        .child("  - BoardView component with automatic vertex size calculation")
                         .child("  - maxWidth/maxHeight constraints with proportional scaling")
                         .child("  - Configurable vertex size limits (min/max bounds)")
                         .child("  - Support for extreme aspect ratios and small displays")

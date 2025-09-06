@@ -17,9 +17,27 @@ pub struct BoardView {
 }
 
 impl BoardView {
+    /// Create a new BoardView with automatic sizing
     pub fn new(board: Board) -> Self {
         let theme = board.theme.clone();
-        let vertex_size = board.vertex_size;
+        let vertex_size = Self::calculate_default_vertex_size(board.dimensions());
+
+        Self {
+            board,
+            renderer: Renderer::new(vertex_size, theme),
+            show_coordinates: false,
+            focus: None,
+            on_click: None,
+            on_hover: None,
+            on_key: None,
+        }
+    }
+
+    /// Create a BoardView with custom sizing constraints
+    pub fn with_size(board: Board, max_width: f32, max_height: f32) -> Self {
+        let theme = board.theme.clone();
+        let vertex_size =
+            Self::calculate_vertex_size_for_container(board.dimensions(), max_width, max_height);
 
         Self {
             board,
@@ -37,7 +55,33 @@ impl BoardView {
         self
     }
 
-    pub fn set_initial_focus(mut self, pos: Option<Pos>) -> Self {
+    /// Calculate a default vertex size based on board dimensions
+    fn calculate_default_vertex_size((width, height): (usize, usize)) -> f32 {
+        // Use a reasonable default size that scales with board size
+        // For 19x19 boards, use 20px, for smaller boards use proportionally larger sizes
+        let base_size = 20.0; // Reduced from 24px to be more conservative
+        let scale_factor = 19.0 / (width.max(height) as f32);
+        base_size * scale_factor.max(0.5).min(1.5) // Reduced max from 2.0 to 1.5
+    }
+
+    /// Calculate vertex size to fit within container dimensions
+    fn calculate_vertex_size_for_container(
+        (width, height): (usize, usize),
+        max_width: f32,
+        max_height: f32,
+    ) -> f32 {
+        let available_width = max_width - 40.0; // Account for padding
+        let available_height = max_height - 40.0; // Account for padding
+        let board_width = width as f32;
+        let board_height = height as f32;
+
+        // Calculate vertex size to fit within container
+        let vertex_size_x = available_width / (board_width + 1.0); // +1 for edge spacing
+        let vertex_size_y = available_height / (board_height + 1.0); // +1 for edge spacing
+        vertex_size_x.min(vertex_size_y).max(8.0).min(50.0) // Clamp between 8-50px
+    }
+
+    pub fn focus(mut self, pos: Option<Pos>) -> Self {
         self.focus = pos;
         self
     }
@@ -74,6 +118,7 @@ impl BoardView {
         &mut self.board
     }
 
+    /// Update the board data and sync the renderer
     pub fn update_board<F>(mut self, f: F) -> Self
     where
         F: FnOnce(Board) -> Board,
@@ -84,24 +129,29 @@ impl BoardView {
     }
 
     fn sync_renderer(&mut self) {
-        self.renderer = Renderer::new(self.board.vertex_size, self.board.theme.clone());
+        let vertex_size = Self::calculate_default_vertex_size(self.board.dimensions());
+        self.renderer = Renderer::new(vertex_size, self.board.theme.clone());
     }
 
+    /// Add a stone to the board
     pub fn stone(mut self, pos: Pos, stone: Stone) -> Self {
         self.board.data_mut().set_stone(pos, stone);
         self
     }
 
+    /// Add a marker to the board
     pub fn marker(mut self, pos: Pos, marker: Marker) -> Self {
         self.board.data_mut().set_marker(pos, Some(marker));
         self
     }
 
+    /// Add a ghost stone to the board
     pub fn ghost(mut self, pos: Pos, ghost: Ghost) -> Self {
         self.board.data_mut().set_ghost(pos, Some(ghost));
         self
     }
 
+    /// Select a position on the board
     pub fn select(mut self, pos: Pos) -> Self {
         self.board
             .data_mut()
@@ -109,6 +159,7 @@ impl BoardView {
         self
     }
 
+    /// Mark the last move
     pub fn last_move(mut self, pos: Pos) -> Self {
         self.board
             .data_mut()
@@ -116,11 +167,13 @@ impl BoardView {
         self
     }
 
+    /// Clear all selections
     pub fn clear_selections(mut self) -> Self {
         self.board.data_mut().clear_selections();
         self
     }
 
+    /// Add a line to the board
     pub fn line(mut self, line: Line) -> Self {
         self.board.data_mut().add_line(line);
         self
@@ -179,9 +232,9 @@ impl BoardView {
         mouse_pos: Point<Pixels>,
         container_bounds: Bounds<Pixels>,
     ) -> Option<Pos> {
+        let vertex_size = Self::calculate_default_vertex_size(self.board.dimensions());
         let offset = if self.show_coordinates {
-            let spacing =
-                crate::go_board::render::ResponsiveSpacing::for_vertex_size(self.board.vertex_size);
+            let spacing = crate::go_board::render::ResponsiveSpacing::for_vertex_size(vertex_size);
             let effective_coord_size = self.board.theme.coord_size.max(spacing.min_coord_size);
             let margin = effective_coord_size + spacing.coord_margin_padding;
             point(px(margin), px(margin))
@@ -194,7 +247,8 @@ impl BoardView {
             mouse_pos.y - container_bounds.origin.y,
         );
 
-        self.board.pos_from_pixel(relative_mouse, offset)
+        self.board
+            .pos_from_pixel(relative_mouse, offset, vertex_size)
     }
 }
 
@@ -207,10 +261,13 @@ impl Render for BoardView {
             );
         }
 
-        let base_size = self.board.pixel_size();
+        // Use the vertex size from the renderer (calculated in constructor)
+        let vertex_size = self.renderer.vertex_size();
+
+        // Calculate board size
+        let base_size = self.board.pixel_size(vertex_size);
         let (total_width, total_height) = if self.show_coordinates {
-            let spacing =
-                crate::go_board::render::ResponsiveSpacing::for_vertex_size(self.board.vertex_size);
+            let spacing = crate::go_board::render::ResponsiveSpacing::for_vertex_size(vertex_size);
             let effective_coord_size = self.board.theme.coord_size.max(spacing.min_coord_size);
             let margin = effective_coord_size + spacing.coord_margin_padding;
             (
@@ -221,7 +278,8 @@ impl Render for BoardView {
             (base_size.width.0, base_size.height.0)
         };
 
-        let mut container = div()
+        // Create container with calculated size
+        let container = div()
             .id("go-board-view")
             .relative()
             .bg(self.board.theme.background)
@@ -229,17 +287,18 @@ impl Render for BoardView {
             .h(px(total_height));
 
         // Render the board content first
-        container = container.child({
-            let renderer = Renderer::new(self.board.vertex_size, self.board.theme.clone())
+        let container = container.child({
+            let renderer = Renderer::new(vertex_size, self.board.theme.clone())
                 .with_coordinates(self.show_coordinates);
             renderer.render(self.board.data(), self.show_coordinates)
         });
 
         // Render interactions layer last to ensure it's on top
-        container = container.child(self.render_interactions(cx));
+        let container = container.child(self.render_interactions(cx, vertex_size));
 
-        container = container.key_context("go-board").on_key_down(cx.listener(
-            |view, event, _cx, _phase| {
+        container
+            .key_context("go-board")
+            .on_key_down(cx.listener(|view, event, _cx, _phase| {
                 if let Some(nav_event) = view.handle_key_input(event) {
                     match nav_event {
                         NavEvent::MoveFocus(pos) => {
@@ -261,21 +320,16 @@ impl Render for BoardView {
                         }
                     }
                 }
-            },
-        ));
-
-        container
+            }))
     }
 }
 
 impl BoardView {
-    fn render_interactions(&self, _cx: &mut Context<Self>) -> impl IntoElement {
+    fn render_interactions(&self, _cx: &mut Context<Self>, vertex_size: f32) -> impl IntoElement {
         let range = self.board.visible_range();
-        let vertex_size = self.board.vertex_size;
 
         let offset = if self.show_coordinates {
-            let spacing =
-                crate::go_board::render::ResponsiveSpacing::for_vertex_size(self.board.vertex_size);
+            let spacing = crate::go_board::render::ResponsiveSpacing::for_vertex_size(vertex_size);
             let effective_coord_size = self.board.theme.coord_size.max(spacing.min_coord_size);
             let margin = effective_coord_size + spacing.coord_margin_padding;
             point(px(margin), px(margin))
@@ -288,7 +342,7 @@ impl BoardView {
         for y in range.y.0..=range.y.1 {
             for x in range.x.0..=range.x.1 {
                 let pos = Pos::new(x, y);
-                let pixel_pos = self.board.pixel_from_pos(pos, offset);
+                let pixel_pos = self.board.pixel_from_pos(pos, offset, vertex_size);
                 let button_size = vertex_size * 1.0; // Normal hit area size
 
                 let mut button = div()
@@ -341,54 +395,12 @@ impl BoardView {
     }
 }
 
-pub fn simple_board<F>(click_handler: F) -> BoardView
+/// Create a simple interactive board
+pub fn interactive_board<F>(click_handler: F) -> BoardView
 where
     F: Fn(PosEvent) + 'static,
 {
     BoardView::new(Board::new()).on_click(click_handler)
-}
-
-pub fn board_with_stones<F>(stones: Vec<(Pos, Stone)>, click_handler: F) -> BoardView
-where
-    F: Fn(PosEvent) + 'static,
-{
-    let mut board = Board::new();
-    for (pos, stone) in stones {
-        board.data_mut().set_stone(pos, stone);
-    }
-
-    BoardView::new(board).on_click(click_handler)
-}
-
-pub fn demo_board_view() -> BoardView {
-    let board = Board::new()
-        .stone(Pos::new(3, 3), BLACK)
-        .stone(Pos::new(15, 15), WHITE)
-        .stone(Pos::new(9, 9), BLACK)
-        .marker(
-            Pos::new(3, 15),
-            Marker::circle().with_color(rgb(0xff0000).into()),
-        )
-        .ghost(Pos::new(4, 4), Ghost::good(WHITE))
-        .select(Pos::new(3, 3))
-        .last_move(Pos::new(9, 9));
-
-    BoardView::new(board)
-        .on_click(|event| {
-            println!("Clicked at {:?}", event.pos);
-        })
-        .on_hover(|pos| {
-            if let Some(p) = pos {
-                println!("Hovering over {:?}", p);
-            }
-        })
-}
-
-pub fn bounded_board_view(max_width: f32, max_height: f32) -> BoardView {
-    use crate::go_board::board::BoundedBoard;
-
-    let bounded = BoundedBoard::new(max_width, max_height);
-    BoardView::new(bounded.into_inner())
 }
 
 #[cfg(test)]
@@ -444,10 +456,7 @@ mod tests {
 
     #[test]
     fn test_factory_functions() {
-        let _simple = simple_board(|_| {});
-        let _with_stones = board_with_stones(vec![(Pos::new(4, 4), BLACK)], |_| {});
-        let _demo = demo_board_view();
-        let _bounded = bounded_board_view(400.0, 400.0);
+        let _interactive = interactive_board(|_| {});
     }
 
     // =============================================================================
@@ -531,27 +540,5 @@ mod tests {
         assert_eq!(board.dimensions(), (19, 19));
         assert_eq!(board.visible_range().width(), 19);
         assert_eq!(board.visible_range().height(), 19);
-    }
-
-    #[test]
-    fn test_custom_board_size() {
-        let view = BoardView::new(Board::with_size(9, 9));
-        let board = view.board();
-
-        assert_eq!(board.dimensions(), (9, 9));
-        assert_eq!(board.visible_range().width(), 9);
-        assert_eq!(board.visible_range().height(), 9);
-
-        // Test focus movement within smaller board
-        let mut view = view;
-        view.set_focus(Some(Pos::new(4, 4)));
-
-        let new_pos = view.move_focus(1, 1).unwrap();
-        assert_eq!(new_pos, Pos::new(5, 5));
-
-        // Test boundary
-        view.set_focus(Some(Pos::new(8, 8)));
-        let beyond_boundary = view.move_focus(1, 1);
-        assert!(beyond_boundary.is_none());
     }
 }

@@ -5,31 +5,22 @@ use gpui::{
 };
 
 // =============================================================================
-// CONSTANTS - Simplified
+// SIMPLIFIED SPACING
 // =============================================================================
 
-const BASE_COORD_MARGIN_RATIO: f32 = 0.2;
-const HEAT_SIZE_RATIO: f32 = 0.9;
 const MARKER_SIZE_RATIO: f32 = 0.6;
-const SELECTION_SIZE_RATIO: f32 = 0.9;
-const GHOST_SIZE_RATIO: f32 = 0.9;
 const CROSS_LINE_RATIO: f32 = 0.9;
 const DOT_SIZE_RATIO: f32 = 0.6;
-
-const SMALL_VERTEX_THRESHOLD: f32 = 20.0;
-const LARGE_VERTEX_THRESHOLD: f32 = 50.0;
+const GHOST_SIZE_RATIO: f32 = 0.9;
+const HEAT_SIZE_RATIO: f32 = 0.9;
+const SELECTION_SIZE_RATIO: f32 = 0.9;
 const GREEN_HUE: f32 = 120.0 / 360.0;
 const RED_HUE: f32 = 0.0;
 const GHOST_SATURATION: f32 = 0.6;
 
-// =============================================================================
-// RESPONSIVE SPACING - Simplified
-// =============================================================================
-
 #[derive(Debug, Clone)]
 pub struct ResponsiveSpacing {
     pub coord_margin_padding: f32,
-    pub coord_board_gap: f32,
     pub cross_line_width: f32,
     pub min_coord_size: f32,
     pub heat_text_size: f32,
@@ -37,26 +28,11 @@ pub struct ResponsiveSpacing {
 
 impl ResponsiveSpacing {
     pub fn for_vertex_size(vertex_size: f32) -> Self {
-        let scale_factor = Self::calculate_scale_factor(vertex_size);
-
         Self {
-            coord_margin_padding: (vertex_size * BASE_COORD_MARGIN_RATIO * scale_factor).max(4.0),
-            coord_board_gap: 0.0, // Remove gap between coordinates and board
-            cross_line_width: (vertex_size * 0.08 * scale_factor).clamp(1.0, 3.0),
+            coord_margin_padding: (vertex_size * 0.2).max(4.0),
+            cross_line_width: (vertex_size * 0.08).clamp(1.0, 3.0),
             min_coord_size: (vertex_size * 0.6).clamp(12.0, 24.0),
-            heat_text_size: (vertex_size * 0.3 * scale_factor).clamp(8.0, 16.0),
-        }
-    }
-
-    fn calculate_scale_factor(vertex_size: f32) -> f32 {
-        match vertex_size {
-            v if v <= SMALL_VERTEX_THRESHOLD => 0.8,
-            v if v >= LARGE_VERTEX_THRESHOLD => 1.2,
-            v => {
-                0.8 + (v - SMALL_VERTEX_THRESHOLD)
-                    / (LARGE_VERTEX_THRESHOLD - SMALL_VERTEX_THRESHOLD)
-                    * 0.4
-            }
+            heat_text_size: (vertex_size * 0.3).clamp(8.0, 16.0),
         }
     }
 }
@@ -81,6 +57,10 @@ impl Renderer {
             coord_offset: point(px(0.0), px(0.0)),
             spacing,
         }
+    }
+
+    pub fn vertex_size(&self) -> f32 {
+        self.vertex_size
     }
 
     pub fn with_coordinates(mut self, show: bool) -> Self {
@@ -268,6 +248,8 @@ impl Renderer {
                                 .h(px(stone_size))
                                 .rounded_full()
                                 .bg(self.theme.white_stone)
+                                .border_1()
+                                .border_color(self.theme.grid_lines)
                                 .into_any_element()
                         }
                     }
@@ -392,36 +374,24 @@ impl Renderer {
                                 .h(px(stone_size));
 
                             // Apply tinting based on ghost kind
-                            svg_element = match ghost.kind {
-                                GhostKind::Good => svg_element.text_color(hsla(
-                                    GREEN_HUE,
-                                    GHOST_SATURATION,
-                                    0.5,
-                                    1.0,
-                                )),
-                                GhostKind::Bad => svg_element.text_color(hsla(
-                                    RED_HUE,
-                                    GHOST_SATURATION,
-                                    0.5,
-                                    1.0,
-                                )),
-                                GhostKind::Neutral => svg_element,
+                            svg_element = if ghost.is_good {
+                                svg_element.text_color(hsla(GREEN_HUE, GHOST_SATURATION, 0.5, 1.0))
+                            } else if ghost.is_bad {
+                                svg_element.text_color(hsla(RED_HUE, GHOST_SATURATION, 0.5, 1.0))
+                            } else {
+                                svg_element
                             };
 
                             svg_element.into_any_element()
                         } else {
                             // Fallback to colored div with tinting
                             let mut hsla: Hsla = self.theme.black_stone;
-                            match ghost.kind {
-                                GhostKind::Good => {
-                                    hsla.h = GREEN_HUE;
-                                    hsla.s = GHOST_SATURATION;
-                                }
-                                GhostKind::Bad => {
-                                    hsla.h = RED_HUE;
-                                    hsla.s = GHOST_SATURATION;
-                                }
-                                GhostKind::Neutral => {}
+                            if ghost.is_good {
+                                hsla.h = GREEN_HUE;
+                                hsla.s = GHOST_SATURATION;
+                            } else if ghost.is_bad {
+                                hsla.h = RED_HUE;
+                                hsla.s = GHOST_SATURATION;
                             }
 
                             div()
@@ -429,6 +399,7 @@ impl Renderer {
                                 .h(px(stone_size))
                                 .rounded_full()
                                 .bg(hsla)
+                                .opacity(ghost.alpha)
                                 .into_any_element()
                         }
                     }
@@ -441,36 +412,24 @@ impl Renderer {
                                 .h(px(stone_size));
 
                             // Apply tinting based on ghost kind
-                            svg_element = match ghost.kind {
-                                GhostKind::Good => svg_element.text_color(hsla(
-                                    GREEN_HUE,
-                                    GHOST_SATURATION,
-                                    0.5,
-                                    1.0,
-                                )),
-                                GhostKind::Bad => svg_element.text_color(hsla(
-                                    RED_HUE,
-                                    GHOST_SATURATION,
-                                    0.5,
-                                    1.0,
-                                )),
-                                GhostKind::Neutral => svg_element,
+                            svg_element = if ghost.is_good {
+                                svg_element.text_color(hsla(GREEN_HUE, GHOST_SATURATION, 0.5, 1.0))
+                            } else if ghost.is_bad {
+                                svg_element.text_color(hsla(RED_HUE, GHOST_SATURATION, 0.5, 1.0))
+                            } else {
+                                svg_element
                             };
 
                             svg_element.into_any_element()
                         } else {
                             // Fallback to colored div with tinting
                             let mut hsla: Hsla = self.theme.white_stone;
-                            match ghost.kind {
-                                GhostKind::Good => {
-                                    hsla.h = GREEN_HUE;
-                                    hsla.s = GHOST_SATURATION;
-                                }
-                                GhostKind::Bad => {
-                                    hsla.h = RED_HUE;
-                                    hsla.s = GHOST_SATURATION;
-                                }
-                                GhostKind::Neutral => {}
+                            if ghost.is_good {
+                                hsla.h = GREEN_HUE;
+                                hsla.s = GHOST_SATURATION;
+                            } else if ghost.is_bad {
+                                hsla.h = RED_HUE;
+                                hsla.s = GHOST_SATURATION;
                             }
 
                             div()
@@ -478,6 +437,9 @@ impl Renderer {
                                 .h(px(stone_size))
                                 .rounded_full()
                                 .bg(hsla)
+                                .border_1()
+                                .border_color(self.theme.grid_lines)
+                                .opacity(ghost.alpha)
                                 .into_any_element()
                         }
                     }
@@ -579,36 +541,36 @@ impl Renderer {
                 let pixel_pos = self.pos_to_pixel_grid(pos, range);
                 let selection_size = self.vertex_size * SELECTION_SIZE_RATIO;
 
-                let element = match &selection.style {
-                    SelectionStyle::Selected { color } => div()
+                let element = if selection.is_last_move {
+                    // Use a full-size container and center a smaller dot inside it
+                    // so the last-move indicator appears exactly at the vertex center.
+                    let dot_size = selection_size * 0.5;
+                    div()
+                        .w(px(selection_size))
+                        .h(px(selection_size))
+                        .flex()
+                        .items_center()
+                        .justify_center()
+                        .child(
+                            div()
+                                .w(px(dot_size))
+                                .h(px(dot_size))
+                                .rounded_full()
+                                .bg(selection.color),
+                        )
+                } else if selection.alpha < 1.0 {
+                    div()
+                        .w(px(selection_size))
+                        .h(px(selection_size))
+                        .bg(rgb(0x000000))
+                        .opacity(selection.alpha)
+                } else {
+                    div()
                         .w(px(selection_size))
                         .h(px(selection_size))
                         .rounded(px(selection_size * 0.1))
                         .border_2()
-                        .border_color(*color),
-                    SelectionStyle::Dimmed { alpha } => div()
-                        .w(px(selection_size))
-                        .h(px(selection_size))
-                        .bg(rgb(0x000000))
-                        .opacity(*alpha),
-                    SelectionStyle::LastMove { color } => {
-                        // Use a full-size container and center a smaller dot inside it
-                        // so the last-move indicator appears exactly at the vertex center.
-                        let dot_size = selection_size * 0.5;
-                        div()
-                            .w(px(selection_size))
-                            .h(px(selection_size))
-                            .flex()
-                            .items_center()
-                            .justify_center()
-                            .child(
-                                div()
-                                    .w(px(dot_size))
-                                    .h(px(dot_size))
-                                    .rounded_full()
-                                    .bg(*color),
-                            )
-                    }
+                        .border_color(selection.color)
                 };
 
                 selections = selections.child(
@@ -638,10 +600,7 @@ impl Renderer {
                 let length = (dx * dx + dy * dy).sqrt();
                 let angle = dy.atan2(dx);
 
-                let (color, width) = match &line.style {
-                    LineStyle::Line { color, width } => (*color, *width),
-                    LineStyle::Arrow { color, width } => (*color, *width),
-                };
+                let (color, width) = (line.color, line.width);
 
                 // Create a smooth line using multiple overlapping segments
                 let num_segments = ((length / width) * 4.0).max(8.0) as usize;
@@ -673,7 +632,7 @@ impl Renderer {
                 }
 
                 // For arrows, add a proper arrowhead
-                if let LineStyle::Arrow { .. } = line.style {
+                if line.is_arrow {
                     let arrowhead_size = width * 3.0;
                     let arrowhead_distance = width * 2.0;
 
@@ -736,9 +695,7 @@ impl Renderer {
                 div()
                     .absolute()
                     .left(px(pixel_x - self.effective_coord_size() / 2.0))
-                    .top(px(
-                        margin - self.effective_coord_size() + self.spacing.coord_board_gap
-                    ))
+                    .top(px(margin - self.effective_coord_size()))
                     .w(px(self.effective_coord_size()))
                     .h(px(self.effective_coord_size()))
                     .flex()

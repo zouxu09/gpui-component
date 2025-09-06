@@ -11,143 +11,35 @@ pub mod view;
 // MAIN EXPORTS
 // =============================================================================
 
-pub use board::{Board, BoundedBoard};
+pub use board::Board;
 pub use render::Renderer;
 pub use view::BoardView;
 
 pub use core::{
-    BoardData, Ghost, GhostKind, Heat, Line, LineStyle, Marker, NavEvent, Pos, PosEvent, Range,
-    Selection, SelectionStyle, Stone, Territory, Theme, BLACK, EMPTY, WHITE,
+    BoardData, Ghost, Heat, Line, Marker, NavEvent, Pos, PosEvent, Range, Selection, Stone,
+    Territory, Theme, BLACK, EMPTY, WHITE,
 };
 
 // =============================================================================
-// CONVENIENCE MODULES
+// SIMPLIFIED FACTORY FUNCTIONS
 // =============================================================================
 
-pub mod constants {
-    pub use crate::go_board::core::{BLACK, EMPTY, WHITE};
+/// Create an empty board
+pub fn empty_board() -> Board {
+    Board::new()
 }
 
-pub mod themes {
-    pub use crate::go_board::core::Theme;
-
-    pub fn default() -> Theme {
-        Theme::default()
-    }
-
-    pub fn dark() -> Theme {
-        Theme::dark()
-    }
-
-    pub fn minimal() -> Theme {
-        Theme::minimal()
-    }
-
-    pub fn high_contrast() -> Theme {
-        Theme::high_contrast()
-    }
-
-    pub fn with_assets() -> Theme {
-        Theme::with_assets()
-    }
+/// Create a teaching board (9x9)
+pub fn teaching_board() -> Board {
+    Board::with_size(9, 9)
 }
 
-pub mod marker_helpers {
-    pub use crate::go_board::core::Marker;
-
-    pub fn circle() -> Marker {
-        Marker::circle()
-    }
-
-    pub fn cross() -> Marker {
-        Marker::cross()
-    }
-
-    pub fn triangle() -> Marker {
-        Marker::triangle()
-    }
-
-    pub fn square() -> Marker {
-        Marker::square()
-    }
-
-    pub fn dot() -> Marker {
-        Marker::dot()
-    }
-
-    pub fn label(text: impl Into<String>) -> Marker {
-        Marker::label(text)
-    }
-}
-
-pub mod ghosts {
-    pub use crate::go_board::core::{Ghost, GhostKind, Stone, BLACK, WHITE};
-
-    pub fn good(stone: Stone) -> Ghost {
-        Ghost::good(stone)
-    }
-
-    pub fn bad(stone: Stone) -> Ghost {
-        Ghost::bad(stone)
-    }
-
-    pub fn neutral(stone: Stone) -> Ghost {
-        Ghost::neutral(stone)
-    }
-}
-
-pub mod lines {
-    pub use crate::go_board::core::{Line, Pos};
-
-    pub fn line(from: Pos, to: Pos) -> Line {
-        Line::line(from, to)
-    }
-
-    pub fn arrow(from: Pos, to: Pos) -> Line {
-        Line::arrow(from, to)
-    }
-
-    pub fn connection(from: Pos, to: Pos) -> Line {
-        Line::connection(from, to)
-    }
-
-    pub fn analysis_arrow(from: Pos, to: Pos) -> Line {
-        Line::analysis_arrow(from, to)
-    }
-
-    pub fn highlight_line(from: Pos, to: Pos) -> Line {
-        Line::highlight_line(from, to)
-    }
-
-    pub fn direction_arrow(from: Pos, to: Pos) -> Line {
-        Line::direction_arrow(from, to)
-    }
-}
-
-pub mod factory {
-    use crate::go_board::{Board, BoardView, Pos, BLACK, WHITE};
-
-    pub fn empty_board() -> Board {
-        Board::new()
-    }
-
-    pub fn teaching_board() -> Board {
-        Board::with_size(9, 9).vertex_size(30.0)
-    }
-
-    pub fn demo_board() -> Board {
-        Board::new()
-            .stone(Pos::new(3, 3), BLACK)
-            .stone(Pos::new(15, 15), WHITE)
-            .stone(Pos::new(9, 9), BLACK)
-            .last_move(Pos::new(9, 9))
-    }
-
-    pub fn simple_board_view() -> BoardView {
-        BoardView::new(empty_board()).on_click(|event| {
-            println!("Clicked at position {:?}", event.pos);
-        })
-    }
+/// Create a simple interactive board view
+pub fn interactive_board<F>(click_handler: F) -> BoardView
+where
+    F: Fn(PosEvent) + 'static,
+{
+    BoardView::new(Board::new()).on_click(click_handler)
 }
 
 // =============================================================================
@@ -207,17 +99,14 @@ pub mod factory {
 ///     });
 /// ```
 ///
-/// ## Auto-sizing Board
+/// ## Responsive Board
 ///
 /// ```rust
 /// use crate::go_board::*;
 ///
-/// let bounded = BoundedBoard::new(400.0, 400.0)
-///     .update(|board| {
-///         board.stone(Pos::new(9, 9), BLACK)
-///     });
-///
-/// let view = BoardView::new(bounded.inner().clone());
+/// // Board that automatically calculates appropriate size
+/// let responsive_view = BoardView::new(Board::new())
+///     .stone(Pos::new(9, 9), BLACK);
 /// ```
 ///
 /// ## Loading from SGF-like format
@@ -232,11 +121,8 @@ pub mod factory {
 #[cfg(test)]
 mod integration_tests {
     use super::*;
-    use crate::go_board::view::{bounded_board_view, demo_board_view, simple_board};
-    use gpui::{
-        div, point, px, rgb, App, Context, Entity, InteractiveElement, IntoElement, Modifiers,
-        MouseButton, ParentElement, Pixels, Point, Render, Styled, Window,
-    };
+    use crate::go_board::view::interactive_board;
+    use gpui::rgb;
 
     #[test]
     fn test_new_api_basic_usage() {
@@ -253,12 +139,11 @@ mod integration_tests {
     fn test_new_api_builder_pattern() {
         let board = Board::new()
             .clear_all()
-            .stones([(Pos::new(3, 3), BLACK), (Pos::new(4, 4), WHITE)])
-            .markers([
-                (Pos::new(1, 1), Marker::circle()),
-                (Pos::new(2, 2), Marker::triangle()),
-            ])
-            .theme(themes::dark());
+            .stone(Pos::new(3, 3), BLACK)
+            .stone(Pos::new(4, 4), WHITE)
+            .marker(Pos::new(1, 1), Marker::circle())
+            .marker(Pos::new(2, 2), Marker::triangle())
+            .theme(Theme::dark());
 
         assert_eq!(board.stone_at(Pos::new(3, 3)), BLACK);
         assert!(board.marker_at(Pos::new(1, 1)).is_some());
@@ -273,27 +158,26 @@ mod integration_tests {
 
     #[test]
     fn test_convenience_functions() {
-        let _simple = simple_board(|_| {});
-        let _demo = demo_board_view();
-        let _bounded = bounded_board_view(300.0, 300.0);
+        let _simple = interactive_board(|_| {});
+        let _empty = empty_board();
+        let _teaching = teaching_board();
     }
 
     #[test]
-    fn test_helper_modules() {
+    fn test_direct_api_usage() {
         let marker = Marker::circle().with_color(rgb(0xff0000).into());
-        let ghost = ghosts::good(BLACK).with_alpha(0.8);
-        let line = lines::arrow(Pos::new(0, 0), Pos::new(1, 1));
-        let theme = themes::dark();
+        let ghost = Ghost::good(BLACK).with_alpha(0.8);
+        let line = Line::arrow(Pos::new(0, 0), Pos::new(1, 1));
 
         assert!(matches!(marker, Marker::Circle { .. }));
         assert_eq!(ghost.stone, BLACK);
-        assert!(matches!(line.style, LineStyle::Arrow { .. }));
+        assert!(line.is_arrow);
     }
 
     #[test]
     fn test_constants() {
-        assert_eq!(constants::EMPTY, 0);
-        assert_eq!(constants::BLACK, 1);
-        assert_eq!(constants::WHITE, -1);
+        assert_eq!(EMPTY, 0);
+        assert_eq!(BLACK, 1);
+        assert_eq!(WHITE, -1);
     }
 }
